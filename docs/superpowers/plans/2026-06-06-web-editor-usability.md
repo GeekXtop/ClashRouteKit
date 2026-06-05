@@ -86,13 +86,13 @@ Policy Groups and Rule Providers can initially be read-only summaries with clear
 
 ## Task 1: Establish Editor State Model
 
-- [ ] Add `configMutations.ts` with pure immutable helpers:
+- [x] Add `configMutations.ts` with pure immutable helpers:
   `updateModule`, `toggleModule`, `addModule`, `deleteModule`, `setModuleTags`, `setModuleProviderRefs`.
-- [ ] Add tests for each helper before implementation.
-- [ ] Add `projectController.ts` for dirty tracking:
+- [x] Add tests for each helper before implementation.
+- [x] Add `projectController.ts` for dirty tracking:
   original YAML/config, draft config, save status, last validation output, selected view, selected module ID.
-- [ ] Add tests for dirty state and save readiness.
-- [ ] Keep all functions independent from React so they are easy to test.
+- [x] Add tests for dirty state and save readiness.
+- [x] Keep all functions independent from React so they are easy to test.
 
 Verification:
 
@@ -103,11 +103,11 @@ pnpm typecheck
 
 ## Task 2: Split App Into Real Components
 
-- [ ] Extract `AppShell`, `ModuleList`, `ModuleEditor`, `PreviewWorkspace`, `PublishPanel`, and `InspectorPanel`.
-- [ ] Keep `App.tsx` under 180 lines.
-- [ ] Move subscription editor into its own component or temporarily hide it behind a secondary view so it no longer competes with route editing.
-- [ ] Preserve current local API behavior while moving code.
-- [ ] Add smoke tests for pure helpers only; do not add brittle DOM tests yet.
+- [x] Extract `AppShell`, `ModuleList`, `ModuleEditor`, `PreviewWorkspace`, `PublishPanel`, and `InspectorPanel`.
+- [x] Keep `App.tsx` under 180 lines.
+- [x] Move subscription editor into its own component or temporarily hide it behind a secondary view so it no longer competes with route editing.
+- [x] Preserve current local API behavior while moving code.
+- [x] Add smoke tests for pure helpers only; do not add brittle DOM tests yet.
 
 Verification:
 
