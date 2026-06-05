@@ -686,6 +686,10 @@ button:disabled {
   color: var(--red);
 }
 
+.project-message.success {
+  color: var(--green);
+}
+
 .empty-state {
   min-height: 74px;
   border: 1px dashed var(--line-strong);
@@ -694,6 +698,51 @@ button:disabled {
   display: grid;
   place-items: center;
   font-size: 13px;
+}
+
+.diff-panel {
+  overflow: hidden;
+}
+
+.diff-output {
+  max-height: 360px;
+  margin: 0;
+  padding: 10px 0;
+  overflow: auto;
+  background: #10181d;
+  color: #d8e7e9;
+  font:
+    12px/1.55 "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+
+.diff-line {
+  min-height: 22px;
+  padding: 0 10px;
+  display: grid;
+  grid-template-columns: 18px 42px minmax(0, 1fr);
+  gap: 8px;
+  white-space: pre-wrap;
+}
+
+.diff-line.added {
+  background: rgba(33, 132, 90, 0.18);
+  color: #baf3d3;
+}
+
+.diff-line.removed {
+  background: rgba(179, 58, 47, 0.2);
+  color: #ffc5bf;
+}
+
+.diff-prefix,
+.diff-number {
+  color: rgba(216, 231, 233, 0.6);
+  user-select: none;
+}
+
+.diff-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .project-overview {

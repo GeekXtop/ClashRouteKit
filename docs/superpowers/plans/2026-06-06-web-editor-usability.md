@@ -143,12 +143,12 @@ Manual browser checks:
 
 ## Task 4: Add Save Readiness, Diff, and Diagnostics
 
-- [ ] Show a persistent dirty indicator when draft config differs from loaded config.
-- [ ] Add a YAML diff panel using line-based diff initially.
-- [ ] Add a local validation panel that calls `check` and displays diagnostics before save/publish.
-- [ ] Block or strongly warn on save when required fields are empty.
-- [ ] Show exactly what file will be written: `config/modules.yaml`.
-- [ ] After save succeeds, reset dirty baseline.
+- [x] Show a persistent dirty indicator when draft config differs from loaded config.
+- [x] Add a YAML diff panel using line-based diff initially.
+- [x] Add a local validation panel that calls `check` and displays diagnostics before save/publish.
+- [x] Block or strongly warn on save when required fields are empty.
+- [x] Show exactly what file will be written: `config/modules.yaml`.
+- [x] After save succeeds, reset dirty baseline.
 
 Verification:
 

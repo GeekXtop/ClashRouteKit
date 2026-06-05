@@ -1,20 +1,23 @@
 import { CheckCircle2, CircleDot, Layers3, Settings2 } from "lucide-react";
 import type { RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
-import type { ProjectControllerState } from "../projectController.js";
+import type { ProjectControllerState, SaveReadiness } from "../projectController.js";
 import type { PolicyStat } from "../routeSummary.js";
 import { TagList } from "./TagList.js";
+import { YamlDiffPanel } from "./YamlDiffPanel.js";
 
 export function InspectorPanel({
   config,
   policyStats,
   project,
   routeRowsCount,
+  saveReadiness,
   selectedModule,
 }: {
   config: RouteKitProjectConfig;
   policyStats: PolicyStat[];
   project: ProjectControllerState;
   routeRowsCount: number;
+  saveReadiness: SaveReadiness;
   selectedModule: RouteModule | undefined;
 }) {
   const providerCount = config.ruleProviders?.length ?? 0;
@@ -31,13 +34,19 @@ export function InspectorPanel({
         </div>
         <div className="local-project-actions">
           <p className={`project-message ${project.status}`}>{project.message}</p>
+          <p className="project-message">目标文件：config/modules.yaml</p>
           <p className="project-message">草稿 YAML {project.draftYaml.length} 字符</p>
           <p className="project-message">当前视图 {project.selectedView}</p>
+          <p className={`project-message ${saveReadiness.ok ? "success" : "error"}`}>
+            保存状态：{saveReadiness.ok ? "可以保存" : saveReadiness.reason}
+          </p>
           <p className={`project-message ${project.validation.status}`}>
             检查状态：{project.validation.status}，{project.validation.output}
           </p>
         </div>
       </section>
+
+      <YamlDiffPanel project={project} />
 
       <section className="panel detail-panel">
         <div className="panel-heading">

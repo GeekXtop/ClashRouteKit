@@ -128,6 +128,7 @@ export default function App() {
           policyStats={policyStats}
           project={project}
           routeRowsCount={routeRows.length}
+          saveReadiness={saveReadiness}
           selectedModule={selectedModule}
         />
       }
