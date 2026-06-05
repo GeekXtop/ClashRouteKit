@@ -1098,13 +1098,35 @@ button.state {
 }
 
 @media (max-width: 1180px) {
-  .workspace {
-    grid-template-columns: 260px minmax(0, 1fr);
+  .editor-workspace {
+    grid-template-columns: 1fr;
   }
 
   .right-rail {
-    grid-column: 1 / -1;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nav-panel {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    position: sticky;
+    top: 72px;
+    z-index: 5;
+  }
+
+  .nav-row {
+    min-height: 62px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .nav-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .nav-row small {
+    display: none;
   }
 
   .module-workspace,
@@ -1129,10 +1151,6 @@ button.state {
   .workspace {
     padding: 12px;
     grid-template-columns: 1fr;
-  }
-
-  .nav-panel {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .module-list,

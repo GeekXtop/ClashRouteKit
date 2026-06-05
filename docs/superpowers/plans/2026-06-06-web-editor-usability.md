@@ -167,15 +167,15 @@ Manual browser checks:
 
 ## Task 5: Redesign Layout for Editor Use
 
-- [ ] Replace the current three-column dashboard with a deliberate editor shell.
-- [ ] Desktop layout:
+- [x] Replace the current three-column dashboard with a deliberate editor shell.
+- [x] Desktop layout:
   left navigation 220-260px, main workspace flexible, inspector 320-360px.
-- [ ] Medium layout:
+- [x] Medium layout:
   navigation becomes horizontal tabs, inspector collapses below workspace.
-- [ ] Mobile layout:
+- [x] Mobile layout:
   single-column workflow with view tabs and no permanent right rail.
-- [ ] Use clear states: loaded, dirty, saving, error, validated, generated.
-- [ ] Keep typography, spacing, and controls consistent across forms, previews, and actions.
+- [x] Use clear states: loaded, dirty, saving, error, validated, generated.
+- [x] Keep typography, spacing, and controls consistent across forms, previews, and actions.
 
 Design note:
 
