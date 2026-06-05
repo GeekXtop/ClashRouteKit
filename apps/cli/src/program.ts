@@ -74,6 +74,33 @@ export interface SyncVendorOptions extends ProgramOptions {
   runGit?: (args: string[], cwd: string) => Promise<void>;
 }
 
+export interface SubconverterUrlOptions extends ProgramOptions {
+  subscriptionUrl?: string;
+  subconverterBaseUrl?: string;
+  target?: string;
+}
+
+function publishTemplateUrl(config: RouteKitProjectConfig): string {
+  return `${config.publishBaseUrl.replace(/\/+$/, "")}/templates/${config.template.output}`;
+}
+
+export async function buildSubconverterUrl(options: SubconverterUrlOptions): Promise<string> {
+  const subscriptionUrl = options.subscriptionUrl?.trim();
+  if (!subscriptionUrl) {
+    throw new Error("Set CLASH_ROUTE_KIT_SUBSCRIPTION_URL before running subconvert-url");
+  }
+
+  const config = await readConfig(options);
+  const endpoint = new URL(options.subconverterBaseUrl ?? "http://127.0.0.1:25500/sub");
+  if (endpoint.pathname === "/" || endpoint.pathname === "") {
+    endpoint.pathname = "/sub";
+  }
+  endpoint.searchParams.set("target", options.target ?? "clash");
+  endpoint.searchParams.set("url", subscriptionUrl);
+  endpoint.searchParams.set("config", publishTemplateUrl(config));
+  return endpoint.toString();
+}
+
 function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
   if (source.basePath) return resolveInputPath(root, source.basePath);
   if (fallbackBasePath) return resolveInputPath(root, fallbackBasePath);

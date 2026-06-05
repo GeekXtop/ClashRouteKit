@@ -2,7 +2,14 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkConfig, generateOutputs, previewRules, resolveProjectRoot, syncVendor } from "../src/program.js";
+import {
+  buildSubconverterUrl,
+  checkConfig,
+  generateOutputs,
+  previewRules,
+  resolveProjectRoot,
+  syncVendor,
+} from "../src/program.js";
 
 const sampleConfig = `
 publishBaseUrl: https://example.com/publish
@@ -488,5 +495,33 @@ final:
     await writeFile(path.join(root, "config/modules.yaml"), sampleConfig, "utf8");
 
     expect(resolveProjectRoot(nested, "config/modules.yaml")).toBe(root);
+  });
+
+  it("builds a SubConverter URL from the subscription environment value and published template", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+
+    const subscriptionUrl = "https://subscribe.example/token?user=abc&name=main profile";
+    const url = await buildSubconverterUrl({
+      root,
+      configFile: "modules.yaml",
+      subscriptionUrl,
+      subconverterBaseUrl: "http://127.0.0.1:25500/sub",
+    });
+    const parsed = new URL(url);
+
+    expect(`${parsed.origin}${parsed.pathname}`).toBe("http://127.0.0.1:25500/sub");
+    expect(parsed.searchParams.get("target")).toBe("clash");
+    expect(parsed.searchParams.get("url")).toBe(subscriptionUrl);
+    expect(parsed.searchParams.get("config")).toBe("https://example.com/publish/templates/Custom_Clash.ini");
+  });
+
+  it("requires a subscription URL when building a SubConverter URL", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+
+    await expect(buildSubconverterUrl({ root, configFile: "modules.yaml" })).rejects.toThrow(
+      "Set CLASH_ROUTE_KIT_SUBSCRIPTION_URL before running subconvert-url",
+    );
   });
 });

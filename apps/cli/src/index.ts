@@ -1,4 +1,11 @@
-import { checkConfig, generateOutputs, previewRules, resolveProjectRoot, syncVendor } from "./program.js";
+import {
+  buildSubconverterUrl,
+  checkConfig,
+  generateOutputs,
+  previewRules,
+  resolveProjectRoot,
+  syncVendor,
+} from "./program.js";
 
 const command = process.argv[2] ?? "help";
 const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/modules.yaml";
@@ -50,7 +57,20 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log("Usage: clash-route-kit <generate|preview|check|sync-vendor>");
+  if (command === "subconvert-url") {
+    console.log(
+      await buildSubconverterUrl({
+        root,
+        configFile,
+        subscriptionUrl: process.env.CLASH_ROUTE_KIT_SUBSCRIPTION_URL,
+        subconverterBaseUrl: process.env.CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL,
+        target: process.env.CLASH_ROUTE_KIT_SUBCONVERTER_TARGET,
+      }),
+    );
+    return;
+  }
+
+  console.log("Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url>");
 }
 
 main().catch((error: unknown) => {

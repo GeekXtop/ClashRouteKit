@@ -190,10 +190,21 @@ pnpm check
 pnpm preview
 pnpm sync:vendor
 pnpm generate
+pnpm subconvert-url
 pnpm serve:output
 ```
 
 如果本地已经同步 `vendor/domain-list-community/data`，`pnpm check` 会同时校验 `modules[].geosite` 引用的 tag 是否存在；未同步 vendor 时会跳过这项检查。
+
+生成 SubConverter 调用 URL：
+
+```powershell
+$env:CLASH_ROUTE_KIT_SUBSCRIPTION_URL="https://example.com/your-subscription"
+$env:CLASH_ROUTE_KIT_PUBLISH_BASE_URL="https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish"
+pnpm subconvert-url
+```
+
+默认 SubConverter endpoint 是 `http://127.0.0.1:25500/sub`，可用 `CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL` 覆盖。订阅 URL 只从环境变量读取，不写入仓库配置。
 
 Web 控制台：
 
