@@ -925,6 +925,98 @@ button.state {
   color: var(--ink);
 }
 
+.read-only-grid select,
+.textarea-grid textarea,
+.provider-edit-row select,
+.provider-edit-row input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.read-only-grid select,
+.provider-edit-row select,
+.provider-edit-row input {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.editor-form {
+  gap: 18px;
+}
+
+.check-line {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fbfcfd;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.check-line input {
+  width: 16px;
+  height: 16px;
+}
+
+.textarea-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.textarea-grid label,
+.provider-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.textarea-grid span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.textarea-grid textarea {
+  min-height: 160px;
+  padding: 10px;
+  resize: vertical;
+  font:
+    12px/1.55 "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+
+.provider-edit-row {
+  display: grid;
+  grid-template-columns: 122px minmax(0, 1fr) 112px 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.danger-zone {
+  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.command-button.danger {
+  border-color: #f0b5af;
+  color: var(--red);
+  background: #fff5f4;
+}
+
+.danger-zone span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .policy-list,
 .provider-list {
   display: grid;
@@ -1015,7 +1107,9 @@ button.state {
   .metrics-grid,
   .right-rail,
   .nav-panel,
-  .read-only-grid {
+  .read-only-grid,
+  .textarea-grid,
+  .provider-edit-row {
     grid-template-columns: 1fr;
   }
 

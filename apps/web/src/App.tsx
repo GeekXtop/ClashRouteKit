@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
+import { renderIni } from "@clash-route-kit/core";
 import { requestLocalAction, type LocalRouteKitAction } from "./actions.js";
 import { AppShell } from "./components/AppShell.js";
 import { InspectorPanel } from "./components/InspectorPanel.js";
@@ -8,10 +8,8 @@ import type { LocalActionState } from "./components/PublishPanel.js";
 import { SubscriptionPanel } from "./components/SubscriptionPanel.js";
 import { WorkspaceRouter } from "./components/WorkspaceRouter.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
-import { toggleModule } from "./configMutations.js";
 import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
 import {
-  applyDraftConfig,
   canSaveProject,
   createProjectController,
   markProjectSaved,
@@ -20,6 +18,7 @@ import {
   updateProjectValidation,
 } from "./projectController.js";
 import { createPolicyStats, createRouteSummary } from "./routeSummary.js";
+import { useProjectDraftActions } from "./useProjectDraftActions.js";
 import { useSubscriptions } from "./useSubscriptions.js";
 
 export default function App() {
@@ -42,6 +41,7 @@ export default function App() {
   const selectedModule = config.modules.find((module) => module.id === project.selectedModuleId) ?? config.modules[0];
   const enabledCount = config.modules.filter((module) => module.enabled !== false).length;
   const saveReadiness = useMemo(() => canSaveProject(project), [project]);
+  const draftActions = useProjectDraftActions(setProject);
 
   useEffect(() => {
     let alive = true;
@@ -63,17 +63,6 @@ export default function App() {
       alive = false;
     };
   }, []);
-
-  function updateDraft(mutator: (config: RouteKitProjectConfig) => RouteKitProjectConfig) {
-    setProject((current) => {
-      const next = applyDraftConfig(current, mutator(current.draftConfig));
-      return {
-        ...next,
-        message: next.dirty ? "有未保存的本地配置修改" : current.message,
-        status: next.status === "error" ? "ready" : next.status,
-      };
-    });
-  }
 
   async function saveLocalProject() {
     const readiness = canSaveProject(project);
@@ -160,12 +149,17 @@ export default function App() {
         selectedModule={selectedModule}
         subscriptionPanel={subscriptionPanel}
         onModuleSearchChange={setModuleSearch}
+        onCreateModule={draftActions.createModule}
+        onDeleteModule={draftActions.deleteModule}
         onPolicyFilterChange={setPolicyFilter}
         onPreviewModeChange={setPreviewMode}
         onRunAction={runLocalRouteKitAction}
         onSave={saveLocalProject}
-        onSelectModule={(selectedModuleId) => setProject((current) => setProjectSelection(current, { selectedModuleId }))}
-        onToggleModule={(moduleId) => updateDraft((current) => toggleModule(current, moduleId))}
+        onSetModuleProviderRefs={draftActions.setModuleProviderRefs}
+        onSetModuleTags={draftActions.setModuleTags}
+        onSelectModule={draftActions.selectModule}
+        onToggleModule={draftActions.toggleModule}
+        onUpdateModule={draftActions.updateModule}
       />
     </AppShell>
   );

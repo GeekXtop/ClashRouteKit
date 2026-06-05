@@ -148,6 +148,9 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
     };
   }
 
+  const moduleIds = new Set<string>();
+  const policies = new Set(state.draftConfig.proxyGroups.map((group) => group.name));
+
   for (const module of state.draftConfig.modules) {
     if (!module.id.trim()) {
       return {
@@ -155,10 +158,23 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
         reason: "模块 ID 不能为空",
       };
     }
+    if (moduleIds.has(module.id)) {
+      return {
+        ok: false,
+        reason: `模块 ID 不能重复：${module.id}`,
+      };
+    }
+    moduleIds.add(module.id);
     if (!module.policy.trim()) {
       return {
         ok: false,
         reason: `模块 ${module.id} 的策略不能为空`,
+      };
+    }
+    if (!policies.has(module.policy)) {
+      return {
+        ok: false,
+        reason: `模块 ${module.id} 引用了不存在的策略：${module.policy}`,
       };
     }
   }
@@ -167,6 +183,12 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
     return {
       ok: false,
       reason: "FINAL 策略不能为空",
+    };
+  }
+  if (!policies.has(state.draftConfig.final.policy)) {
+    return {
+      ok: false,
+      reason: `FINAL 引用了不存在的策略：${state.draftConfig.final.policy}`,
     };
   }
 

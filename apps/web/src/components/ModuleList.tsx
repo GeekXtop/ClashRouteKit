@@ -1,4 +1,4 @@
-import { Power, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import type { RouteModule } from "@clash-route-kit/core";
 
 function isEnabled(module: RouteModule): boolean {
@@ -35,6 +35,7 @@ function ModuleRow({
 
 export function ModuleList({
   modules,
+  onCreateModule,
   onSearchChange,
   onSelectModule,
   onToggleModule,
@@ -42,6 +43,7 @@ export function ModuleList({
   selectedModuleId,
 }: {
   modules: RouteModule[];
+  onCreateModule: () => void;
   onSearchChange: (value: string) => void;
   onSelectModule: (moduleId: string) => void;
   onToggleModule: (moduleId: string) => void;
@@ -62,7 +64,9 @@ export function ModuleList({
             {visibleModules.length} / {modules.length} total
           </span>
         </div>
-        <Power size={18} />
+        <button className="icon-button" aria-label="create module" title="新增模块" type="button" onClick={onCreateModule}>
+          <Plus size={16} />
+        </button>
       </div>
       <label className="search-field">
         <Search size={15} />

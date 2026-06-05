@@ -45,7 +45,7 @@ describe("project controller", () => {
     const next = applyDraftConfig(controller, {
       ...config,
       modules: config.modules.map((module) =>
-        module.id === "developer" ? { ...module, policy: "DIRECT" } : module,
+        module.id === "developer" ? { ...module, geosite: ["gitlab"] } : module,
       ),
     });
 
@@ -65,6 +65,37 @@ describe("project controller", () => {
     expect(canSaveProject(next)).toEqual({
       ok: false,
       reason: "模块 ID 不能为空",
+    });
+  });
+
+  it("blocks save readiness when module ids are duplicated", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const next = applyDraftConfig(controller, {
+      ...config,
+      modules: [
+        { ...config.modules[0]!, id: "developer" },
+        { ...config.modules[1]!, id: "developer" },
+      ],
+    });
+
+    expect(canSaveProject(next)).toEqual({
+      ok: false,
+      reason: "模块 ID 不能重复：developer",
+    });
+  });
+
+  it("blocks save readiness when a module references an unknown policy", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const next = applyDraftConfig(controller, {
+      ...config,
+      modules: [{ ...config.modules[0]!, policy: "Missing" }, config.modules[1]!],
+    });
+
+    expect(canSaveProject(next)).toEqual({
+      ok: false,
+      reason: "模块 developer 引用了不存在的策略：Missing",
     });
   });
 

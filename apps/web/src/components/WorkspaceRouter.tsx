@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
+import type { ProviderReference, RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
 import type { LocalRouteKitAction } from "../actions.js";
 import type { ProjectControllerState, SaveReadiness } from "../projectController.js";
 import type { PolicyStat, RouteSummaryRow } from "../routeSummary.js";
@@ -17,12 +17,17 @@ export function WorkspaceRouter({
   iniPreview,
   moduleSearch,
   onModuleSearchChange,
+  onCreateModule,
+  onDeleteModule,
   onPolicyFilterChange,
   onPreviewModeChange,
   onRunAction,
   onSave,
+  onSetModuleProviderRefs,
+  onSetModuleTags,
   onSelectModule,
   onToggleModule,
+  onUpdateModule,
   policyFilter,
   policyStats,
   previewMode,
@@ -36,13 +41,18 @@ export function WorkspaceRouter({
   config: RouteKitProjectConfig;
   iniPreview: string;
   moduleSearch: string;
+  onCreateModule: () => void;
+  onDeleteModule: (moduleId: string) => void;
   onModuleSearchChange: (value: string) => void;
   onPolicyFilterChange: (value: string) => void;
   onPreviewModeChange: (mode: PreviewMode) => void;
   onRunAction: (action: LocalRouteKitAction) => void;
   onSave: () => void;
+  onSetModuleProviderRefs: (moduleId: string, providers: ProviderReference[]) => void;
+  onSetModuleTags: (moduleId: string, field: "geosite" | "geoip", tags: string[]) => void;
   onSelectModule: (moduleId: string) => void;
   onToggleModule: (moduleId: string) => void;
+  onUpdateModule: (moduleId: string, patch: Partial<RouteModule>) => void;
   policyFilter: string;
   policyStats: PolicyStat[];
   previewMode: PreviewMode;
@@ -91,11 +101,20 @@ export function WorkspaceRouter({
         modules={config.modules}
         search={moduleSearch}
         selectedModuleId={selectedModule?.id ?? ""}
+        onCreateModule={onCreateModule}
         onSearchChange={onModuleSearchChange}
         onSelectModule={onSelectModule}
         onToggleModule={onToggleModule}
       />
-      <ModuleEditor module={selectedModule} onToggleModule={onToggleModule} />
+      <ModuleEditor
+        module={selectedModule}
+        policies={config.proxyGroups.map((group) => group.name)}
+        onDeleteModule={onDeleteModule}
+        onSetModuleProviderRefs={onSetModuleProviderRefs}
+        onSetModuleTags={onSetModuleTags}
+        onToggleModule={onToggleModule}
+        onUpdateModule={onUpdateModule}
+      />
     </div>
   );
 }

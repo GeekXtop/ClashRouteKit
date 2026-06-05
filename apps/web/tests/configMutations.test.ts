@@ -6,6 +6,7 @@ import {
   setModuleProviderRefs,
   setModuleTags,
   toggleModule,
+  createModule,
   updateModule,
 } from "../src/configMutations.js";
 
@@ -68,6 +69,23 @@ describe("config mutation helpers", () => {
 
     expect(next.modules.map((module) => module.id)).toEqual(["developer", "streaming", "ai"]);
     expect(() => addModule(next, { id: "ai", policy: "Proxy" })).toThrow("already exists");
+  });
+
+  it("creates a default module with the next available id and first policy", () => {
+    const config = createConfig();
+
+    const module = createModule(config);
+    const custom = createModule({ ...config, modules: [...config.modules, module] }, { baseId: "module" });
+
+    expect(module).toEqual({
+      id: "module",
+      enabled: true,
+      policy: "Proxy",
+      geosite: [],
+      geoip: [],
+      providers: [],
+    });
+    expect(custom.id).toBe("module-2");
   });
 
   it("deletes modules without mutating unrelated modules", () => {

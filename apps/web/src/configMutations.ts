@@ -2,6 +2,11 @@ import type { ProviderReference, RouteKitProjectConfig, RouteModule } from "@cla
 
 type ModuleTagField = "geosite" | "geoip";
 
+export interface CreateModuleOptions {
+  baseId?: string;
+  policy?: string;
+}
+
 function cloneProviders(providers: ProviderReference[] | undefined): ProviderReference[] | undefined {
   return providers?.map((provider) => ({ ...provider }));
 }
@@ -17,6 +22,32 @@ function cloneModule(module: RouteModule): RouteModule {
 
 function normalizeTags(tags: string[]): string[] {
   return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
+}
+
+function nextModuleId(config: RouteKitProjectConfig, baseId: string): string {
+  const ids = new Set(config.modules.map((module) => module.id));
+  if (!ids.has(baseId)) return baseId;
+
+  let suffix = 2;
+  while (ids.has(`${baseId}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseId}-${suffix}`;
+}
+
+export function createModule(
+  config: RouteKitProjectConfig,
+  options: CreateModuleOptions = {},
+): RouteModule {
+  const baseId = options.baseId?.trim() || "module";
+  return {
+    id: nextModuleId(config, baseId),
+    enabled: true,
+    policy: options.policy ?? config.proxyGroups[0]?.name ?? config.final.policy,
+    geosite: [],
+    geoip: [],
+    providers: [],
+  };
 }
 
 export function updateModule(

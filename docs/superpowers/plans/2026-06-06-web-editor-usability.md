@@ -118,13 +118,13 @@ pnpm typecheck
 
 ## Task 3: Build Module Editing MVP
 
-- [ ] Module list supports select, enable/disable, and create module.
-- [ ] Module editor supports:
+- [x] Module list supports select, enable/disable, and create module.
+- [x] Module editor supports:
   `id`, `policy`, `enabled`, `geosite`, `geoip`, and provider references.
-- [ ] Tag inputs use newline or chip editing, but serialize back to arrays.
-- [ ] Provider reference editor supports `behavior`, `file`, and optional `interval`.
-- [ ] Delete module requires a confirmation affordance in the UI.
-- [ ] Route order preview updates from draft state immediately.
+- [x] Tag inputs use newline or chip editing, but serialize back to arrays.
+- [x] Provider reference editor supports `behavior`, `file`, and optional `interval`.
+- [x] Delete module requires a confirmation affordance in the UI.
+- [x] Route order preview updates from draft state immediately.
 
 Verification:
 
