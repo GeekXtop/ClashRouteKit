@@ -1,8 +1,15 @@
 export { renderIni } from "./ini.js";
-export { convertDomainListCommunity, generateDomainProvider } from "./rules.js";
+export {
+  collectDomainProviderRules,
+  convertDomainListCommunity,
+  generateDomainProvider,
+  summarizeDomainProvider,
+} from "./rules.js";
 export type {
   DomainListCommunityOptions,
   DomainProviderInput,
+  DomainProviderRule,
+  DomainProviderSummary,
   DomainListCommunitySource,
   ClashListSource,
   ClashProviderSource,
@@ -15,4 +22,5 @@ export type {
   RuleProviderConfig,
   RuleProviderSource,
   SourceBase,
+  VendorRepoConfig,
 } from "./types.js";

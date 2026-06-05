@@ -1,16 +1,21 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  collectDomainProviderRules,
   convertDomainListCommunity,
   generateDomainProvider,
   renderIni,
+  summarizeDomainProvider,
+  type DomainProviderRule,
+  type DomainProviderSummary,
   type RouteKitProjectConfig,
   type RuleProviderSource,
   type SourceBase,
+  type VendorRepoConfig,
 } from "@clash-route-kit/core";
 import YAML from "yaml";
 
@@ -21,15 +26,42 @@ export interface ProgramOptions {
   configFile: string;
 }
 
+export interface SourceContributionSummary {
+  name: string;
+  type: RuleProviderSource["type"];
+  inputRules: number;
+  domainRules: number;
+}
+
+export interface ProviderOutputSummary extends DomainProviderSummary {
+  name: string;
+  output: string;
+  path: string;
+  sources: SourceContributionSummary[];
+}
+
+export interface DuplicateRuleSummary {
+  rule: string;
+  sources: string[];
+}
+
+export interface ProviderDuplicateSummary {
+  provider: string;
+  rules: DuplicateRuleSummary[];
+}
+
+export interface ProviderOverlapSummary {
+  rule: string;
+  providers: string[];
+}
+
 export interface GenerateResult {
   templatePath: string;
   rulePaths: string[];
-}
-
-export interface VendorRepo {
-  name: string;
-  url: string;
-  path: string;
+  reportPath: string;
+  providers: ProviderOutputSummary[];
+  duplicates: ProviderDuplicateSummary[];
+  overlaps: ProviderOverlapSummary[];
 }
 
 export interface VendorSyncResult {
@@ -38,28 +70,9 @@ export interface VendorSyncResult {
   path: string;
 }
 
-export interface SyncVendorOptions {
-  root: string;
+export interface SyncVendorOptions extends ProgramOptions {
   runGit?: (args: string[], cwd: string) => Promise<void>;
 }
-
-export const vendorRepos: VendorRepo[] = [
-  {
-    name: "domain-list-community",
-    url: "https://github.com/v2fly/domain-list-community.git",
-    path: "vendor/domain-list-community",
-  },
-  {
-    name: "ACL4SSR",
-    url: "https://github.com/ACL4SSR/ACL4SSR.git",
-    path: "vendor/ACL4SSR",
-  },
-  {
-    name: "Rules",
-    url: "https://github.com/dler-io/Rules.git",
-    path: "vendor/Rules",
-  },
-];
 
 function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
   if (source.basePath) return resolveInputPath(root, source.basePath);
@@ -73,10 +86,12 @@ async function defaultRunGit(args: string[], cwd: string): Promise<void> {
 
 export async function syncVendor(options: SyncVendorOptions): Promise<VendorSyncResult[]> {
   const runGit = options.runGit ?? defaultRunGit;
+  const config = await readConfig(options);
+  const repos = readVendorRepos(config, options.configFile);
   const results: VendorSyncResult[] = [];
   await mkdir(path.join(options.root, "vendor"), { recursive: true });
 
-  for (const repo of vendorRepos) {
+  for (const repo of repos) {
     const repoPath = path.join(options.root, repo.path);
     const gitDir = path.join(repoPath, ".git");
     if (existsSync(gitDir)) {
@@ -94,6 +109,14 @@ export async function syncVendor(options: SyncVendorOptions): Promise<VendorSync
   }
 
   return results;
+}
+
+function readVendorRepos(config: RouteKitProjectConfig, configFile: string): VendorRepoConfig[] {
+  if (!Array.isArray(config.vendorRepos)) {
+    throw new Error(`Missing vendorRepos in ${configFile}`);
+  }
+
+  return config.vendorRepos;
 }
 
 function resolveInputPath(root: string, inputPath: string): string {
@@ -172,6 +195,18 @@ async function readRules(root: string, source: RuleProviderSource): Promise<stri
   throw new Error(`Unsupported rule provider source type: ${(source satisfies never)}`);
 }
 
+async function readLocalGeositeTags(root: string): Promise<Set<string> | null> {
+  const dataPath = path.join(root, "vendor/domain-list-community/data");
+  if (!existsSync(dataPath)) return null;
+
+  const entries = await readdir(dataPath, { withFileTypes: true });
+  return new Set(
+    entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name),
+  );
+}
+
 function sourceLabel(source: RuleProviderSource): string {
   if (source.type === "domain-list-community") {
     return `domain-list-community:${source.entry}`;
@@ -179,33 +214,151 @@ function sourceLabel(source: RuleProviderSource): string {
   return source.path;
 }
 
+function duplicateRulesBySource(
+  provider: string,
+  sourceRules: Array<{ source: string; rules: DomainProviderRule[] }>,
+): ProviderDuplicateSummary | null {
+  const rulesByKey = new Map<string, { rule: string; sources: string[] }>();
+  for (const source of sourceRules) {
+    for (const rule of source.rules) {
+      const existing = rulesByKey.get(rule.key) ?? { rule: rule.rule, sources: [] };
+      existing.sources.push(source.source);
+      rulesByKey.set(rule.key, existing);
+    }
+  }
+
+  const duplicateRules = [...rulesByKey.values()]
+    .filter((rule) => rule.sources.length > 1)
+    .map((rule) => ({
+      rule: rule.rule,
+      sources: rule.sources.sort(),
+    }))
+    .sort((left, right) => left.rule.localeCompare(right.rule));
+
+  return duplicateRules.length > 0 ? { provider, rules: duplicateRules } : null;
+}
+
+function overlapRulesByProvider(
+  providerRules: Array<{ provider: string; rules: DomainProviderRule[] }>,
+): ProviderOverlapSummary[] {
+  const rulesByKey = new Map<string, { rule: string; providers: string[] }>();
+  for (const provider of providerRules) {
+    for (const rule of provider.rules) {
+      const existing = rulesByKey.get(rule.key) ?? { rule: rule.rule, providers: [] };
+      existing.providers.push(provider.provider);
+      rulesByKey.set(rule.key, existing);
+    }
+  }
+
+  return [...rulesByKey.values()]
+    .filter((rule) => rule.providers.length > 1)
+    .map((rule) => ({
+      rule: rule.rule,
+      providers: rule.providers.sort(),
+    }))
+    .sort((left, right) => left.rule.localeCompare(right.rule));
+}
+
 export async function generateOutputs(options: ProgramOptions): Promise<GenerateResult> {
   const config = await readConfig(options);
   const templatePath = path.join(options.root, "output/templates", config.template.output);
+  const reportPath = path.join(options.root, "output/reports/rule-report.json");
   await mkdir(path.dirname(templatePath), { recursive: true });
   await writeFile(templatePath, renderIni(config), "utf8");
 
   const rulePaths: string[] = [];
+  const providers: ProviderOutputSummary[] = [];
+  const duplicates: ProviderDuplicateSummary[] = [];
+  const finalProviderRules: Array<{ provider: string; rules: DomainProviderRule[] }> = [];
   for (const provider of config.ruleProviders ?? []) {
     const rules: string[] = [];
+    const sources: SourceContributionSummary[] = [];
+    const sourceRulesForReport: Array<{ source: string; rules: DomainProviderRule[] }> = [];
     for (const source of provider.sources) {
-      rules.push(...(await readRules(options.root, source)));
+      const sourceRules = await readRules(options.root, source);
+      const sourceSummary = summarizeDomainProvider({
+        source: sourceLabel(source),
+        rules: sourceRules,
+      });
+      sourceRulesForReport.push({
+        source: source.name,
+        rules: collectDomainProviderRules({
+          source: sourceLabel(source),
+          rules: sourceRules,
+        }),
+      });
+      sources.push({
+        name: source.name,
+        type: source.type,
+        inputRules: sourceSummary.inputRules,
+        domainRules: sourceSummary.domainRules,
+      });
+      rules.push(...sourceRules);
     }
 
     const rulePath = path.join(options.root, "output/rules", provider.output);
     await mkdir(path.dirname(rulePath), { recursive: true });
+    const exclude = [
+      ...(provider.exclude ?? []),
+      ...(provider.remove ?? []),
+    ];
     await writeFile(
       rulePath,
       generateDomainProvider({
         source: provider.sources.map(sourceLabel).join(", "),
         rules,
+        exclude,
       }),
       "utf8",
     );
     rulePaths.push(rulePath);
+    const duplicateSummary = duplicateRulesBySource(provider.name, sourceRulesForReport);
+    if (duplicateSummary) duplicates.push(duplicateSummary);
+    finalProviderRules.push({
+      provider: provider.name,
+      rules: collectDomainProviderRules({
+        source: provider.name,
+        rules,
+        exclude,
+      }),
+    });
+    providers.push({
+      name: provider.name,
+      output: provider.output,
+      path: rulePath,
+      ...summarizeDomainProvider({
+        source: provider.name,
+        rules,
+        exclude,
+      }),
+      sources,
+    });
   }
 
-  return { templatePath, rulePaths };
+  const overlaps = overlapRulesByProvider(finalProviderRules);
+  await mkdir(path.dirname(reportPath), { recursive: true });
+  await writeFile(
+    reportPath,
+    JSON.stringify(
+      {
+        providers,
+        duplicates,
+        overlaps,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  return {
+    templatePath,
+    rulePaths,
+    reportPath,
+    providers,
+    duplicates,
+    overlaps,
+  };
 }
 
 export async function previewRules(options: ProgramOptions): Promise<string[]> {
@@ -230,12 +383,20 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
 export async function checkConfig(options: ProgramOptions): Promise<string[]> {
   const config = await readConfig(options);
   const groupNames = new Set(config.proxyGroups.map((group) => group.name));
+  const geositeTags = await readLocalGeositeTags(options.root);
   const diagnostics: string[] = [];
 
   for (const module of config.modules) {
     if (module.enabled === false) continue;
     if (!groupNames.has(module.policy)) {
       diagnostics.push(`Module ${module.id} references missing policy group: ${module.policy}`);
+    }
+    if (geositeTags) {
+      for (const tag of module.geosite ?? []) {
+        if (!geositeTags.has(tag)) {
+          diagnostics.push(`Module ${module.id} references missing geosite tag: ${tag}`);
+        }
+      }
     }
   }
   if (!groupNames.has(config.final.policy)) {

@@ -113,13 +113,11 @@ FINAL -> Proxy
 
 ## 真实数据源
 
-当前默认配置在 CI 中引用 `vendor/` 里的上游 checkout：
+`pnpm sync:vendor` 从 `config/modules.yaml` 顶层 `vendorRepos` 读取要同步的上游仓库。当前配置声明：
 
-- `vendor/domain-list-community/data`：DLC tag，例如 `github`、`debian`、`ubuntu`、`openai`。
-- `vendor/ACL4SSR/Clash/Ruleset/Developer.list`：Developer 补充列表。
-- `vendor/Rules/Clash/Provider/AI Suite.yaml`：AI provider。
-- `vendor/Rules/Clash/Provider/Crypto.yaml`：Crypto provider。
-- `vendor/Rules/Clash/Provider/Microsoft.yaml`：Microsoft provider。
+- `vendor/domain-list-community`：DLC tag，例如 `github`、`debian`、`ubuntu`、`openai`。
+- `vendor/ACL4SSR`：Developer 补充列表。
+- `vendor/Rules`：AI、Crypto、Microsoft provider。
 
 本地使用当前项目自己的 `vendor/` 缓存，不依赖旁边已有 clone：
 
@@ -137,6 +135,38 @@ pnpm generate
 - `domain-list-community`：读取本地 domain-list-community data 文件，并展开 `include:`。
 
 生成 domain provider 时只保留 `DOMAIN-SUFFIX` 和 `DOMAIN`。`DOMAIN-KEYWORD`、`IP-CIDR`、`PROCESS-NAME` 等不会进入 domain provider。
+
+provider 可以在合并全部 source 后排除不想输出的域名规则：
+
+```yaml
+ruleProviders:
+  - name: Developer
+    output: Developer_Domain.yaml
+    behavior: domain
+    exclude:
+      - tracker.example
+    remove:
+      - DOMAIN,api.example
+    sources:
+      - name: LocalDeveloper
+        type: clash-list
+        path: config/rules/Developer_Domain.list
+```
+
+`exclude` 是主配置名，`remove` 是兼容别名。裸域名按 `DOMAIN-SUFFIX` 处理；`DOMAIN,example.com` 只排除精确域名。
+
+`pnpm generate` 会为每个 provider 输出 summary：
+
+```text
+[generate] summary: Developer output=1200 domain=1205 excluded=5 sources=[LocalDeveloper:10/10, DLC_github:300/300]
+[generate] duplicates: providers=2 rules=45
+[generate] overlaps: rules=8
+[generate] report: E:\Developer\Solutions\ClashRouteKit\output\reports\rule-report.json
+```
+
+`sourceName:domain/input` 中，`input` 是 source 读取到的原始规则条数，`domain` 是能进入 domain provider 的去重后 `DOMAIN-SUFFIX` / `DOMAIN` 条数。
+
+如果同一个 provider 的多个 source 贡献了同一条 domain 规则，报告会写入 `duplicates`；如果多个 provider 最终输出了同一条 domain 规则，报告会写入 `overlaps`。
 
 ## 命令
 
@@ -162,6 +192,8 @@ pnpm sync:vendor
 pnpm generate
 pnpm serve:output
 ```
+
+如果本地已经同步 `vendor/domain-list-community/data`，`pnpm check` 会同时校验 `modules[].geosite` 引用的 tag 是否存在；未同步 vendor 时会跳过这项检查。
 
 Web 控制台：
 

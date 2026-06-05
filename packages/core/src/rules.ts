@@ -1,4 +1,9 @@
-import type { DomainListCommunityOptions, DomainProviderInput } from "./types.js";
+import type {
+  DomainListCommunityOptions,
+  DomainProviderInput,
+  DomainProviderRule,
+  DomainProviderSummary,
+} from "./types.js";
 
 function stripComment(line: string): string {
   const trimmed = line.trim();
@@ -56,34 +61,77 @@ function parseRule(rule: string): { kind: string; value: string } | null {
   return { kind: kind.toUpperCase(), value };
 }
 
-function domainPayload(rules: string[]): string[] {
-  const payload: string[] = [];
+function normalizeDomainRule(rawRule: string): DomainProviderRule | null {
+  const trimmed = rawRule.trim();
+  const rule = parseRule(trimmed.includes(",") ? trimmed : `DOMAIN-SUFFIX,${trimmed}`);
+  if (!rule) return null;
+
+  if (rule.kind === "DOMAIN-SUFFIX") {
+    return {
+      payload: `'+.${rule.value}'`,
+      key: `DOMAIN-SUFFIX,${rule.value.toLowerCase()}`,
+      rule: `DOMAIN-SUFFIX,${rule.value}`,
+    };
+  }
+  if (rule.kind === "DOMAIN") {
+    return {
+      payload: `'${rule.value}'`,
+      key: `DOMAIN,${rule.value.toLowerCase()}`,
+      rule: `DOMAIN,${rule.value}`,
+    };
+  }
+
+  return null;
+}
+
+export function collectDomainProviderRules(input: DomainProviderInput): DomainProviderRule[] {
+  const rules: DomainProviderRule[] = [];
   const seen = new Set<string>();
-  for (const rawRule of rules) {
-    const rule = parseRule(rawRule);
+  const excluded = new Set(
+    (input.exclude ?? [])
+      .map(normalizeDomainRule)
+      .filter((rule): rule is DomainProviderRule => rule !== null)
+      .map((rule) => rule.key),
+  );
+
+  for (const rawRule of input.rules) {
+    const rule = normalizeDomainRule(rawRule);
     if (!rule) continue;
+    if (excluded.has(rule.key)) continue;
 
-    let entry: string | null = null;
-    if (rule.kind === "DOMAIN-SUFFIX") {
-      entry = `'+.${rule.value}'`;
-    } else if (rule.kind === "DOMAIN") {
-      entry = `'${rule.value}'`;
-    }
-
-    if (entry && !seen.has(entry)) {
-      seen.add(entry);
-      payload.push(entry);
+    if (!seen.has(rule.key)) {
+      seen.add(rule.key);
+      rules.push(rule);
     }
   }
-  return payload.sort();
+  return rules.sort((left, right) => left.rule.localeCompare(right.rule));
+}
+
+function domainPayload(rules: string[], exclude: string[] = []): string[] {
+  return collectDomainProviderRules({
+    source: "",
+    rules,
+    exclude,
+  }).map((rule) => rule.payload);
 }
 
 export function generateDomainProvider(input: DomainProviderInput): string {
-  const payload = domainPayload(input.rules);
+  const payload = domainPayload(input.rules, input.exclude);
   const lines = [`# 生成自 ${input.source}`, `# 总数: ${payload.length}`, "", "payload:"];
   for (const entry of payload) {
     lines.push(`  - ${entry}`);
   }
   lines.push("");
   return lines.join("\n");
+}
+
+export function summarizeDomainProvider(input: DomainProviderInput): DomainProviderSummary {
+  const domainRules = domainPayload(input.rules).length;
+  const outputRules = domainPayload(input.rules, input.exclude).length;
+  return {
+    inputRules: input.rules.length,
+    domainRules,
+    excludedRules: domainRules - outputRules,
+    outputRules,
+  };
 }

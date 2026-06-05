@@ -21,6 +21,7 @@ describe("route summary", () => {
       { id: "china", policy: "Direct", geosite: ["cn"], geoip: ["cn"] },
     ],
     final: { policy: "Proxy" },
+    vendorRepos: [],
     ruleProviders: [],
   };
 

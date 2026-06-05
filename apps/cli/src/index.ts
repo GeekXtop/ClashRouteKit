@@ -8,9 +8,19 @@ async function main(): Promise<void> {
   if (command === "generate") {
     const result = await generateOutputs({ root, configFile });
     console.log(`[generate] template: ${result.templatePath}`);
-    for (const rulePath of result.rulePaths) {
-      console.log(`[generate] rules: ${rulePath}`);
+    for (const provider of result.providers) {
+      const sources = provider.sources
+        .map((source) => `${source.name}:${source.domainRules}/${source.inputRules}`)
+        .join(", ");
+      console.log(`[generate] rules: ${provider.path}`);
+      console.log(
+        `[generate] summary: ${provider.name} output=${provider.outputRules} domain=${provider.domainRules} excluded=${provider.excludedRules} sources=[${sources}]`,
+      );
     }
+    const duplicateRuleCount = result.duplicates.reduce((count, provider) => count + provider.rules.length, 0);
+    console.log(`[generate] duplicates: providers=${result.duplicates.length} rules=${duplicateRuleCount}`);
+    console.log(`[generate] overlaps: rules=${result.overlaps.length}`);
+    console.log(`[generate] report: ${result.reportPath}`);
     return;
   }
 
@@ -33,7 +43,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "sync-vendor") {
-    const results = await syncVendor({ root });
+    const results = await syncVendor({ root, configFile });
     for (const result of results) {
       console.log(`[sync-vendor] ${result.action}: ${result.name} -> ${result.path}`);
     }

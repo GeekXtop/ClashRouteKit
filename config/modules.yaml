@@ -3,6 +3,17 @@ publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
 
+vendorRepos:
+  - name: domain-list-community
+    url: https://github.com/v2fly/domain-list-community.git
+    path: vendor/domain-list-community
+  - name: ACL4SSR
+    url: https://github.com/ACL4SSR/ACL4SSR.git
+    path: vendor/ACL4SSR
+  - name: Rules
+    url: https://github.com/dler-io/Rules.git
+    path: vendor/Rules
+
 proxyGroups:
   - name: Proxy
     type: select

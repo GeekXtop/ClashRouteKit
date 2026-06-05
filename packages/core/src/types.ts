@@ -34,6 +34,12 @@ export interface RouteKitConfig {
   };
 }
 
+export interface VendorRepoConfig {
+  name: string;
+  url: string;
+  path: string;
+}
+
 export interface SourceBase {
   basePath?: string;
 }
@@ -62,6 +68,8 @@ export interface RuleProviderConfig {
   name: string;
   output: string;
   behavior: "domain";
+  exclude?: string[];
+  remove?: string[];
   sources: RuleProviderSource[];
 }
 
@@ -69,6 +77,7 @@ export interface RouteKitProjectConfig extends RouteKitConfig {
   template: {
     output: string;
   };
+  vendorRepos: VendorRepoConfig[];
   ruleProviders?: RuleProviderConfig[];
 }
 
@@ -80,4 +89,18 @@ export interface DomainListCommunityOptions {
 export interface DomainProviderInput {
   source: string;
   rules: string[];
+  exclude?: string[];
+}
+
+export interface DomainProviderSummary {
+  inputRules: number;
+  domainRules: number;
+  excludedRules: number;
+  outputRules: number;
+}
+
+export interface DomainProviderRule {
+  key: string;
+  rule: string;
+  payload: string;
 }
