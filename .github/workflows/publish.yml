@@ -27,24 +27,6 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
 
-      - name: Checkout domain-list-community
-        uses: actions/checkout@v4
-        with:
-          repository: v2fly/domain-list-community
-          path: vendor/domain-list-community
-
-      - name: Checkout ACL4SSR
-        uses: actions/checkout@v4
-        with:
-          repository: ACL4SSR/ACL4SSR
-          path: vendor/ACL4SSR
-
-      - name: Checkout dler Rules
-        uses: actions/checkout@v4
-        with:
-          repository: dler-io/Rules
-          path: vendor/Rules
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -58,6 +40,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Sync vendor rule sources
+        run: pnpm sync:vendor
 
       - name: Validate
         run: |

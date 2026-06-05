@@ -50,18 +50,14 @@ CLI 支持的规则来源：
 
 CLI 支持本地/CI 双路径：
 
-- 本地通过 `baseEnv` 指向已有 clone。
-- CI 通过 `basePath` 读取 `vendor/` checkout。
-
-当前环境变量：
-
-```powershell
-$env:CLASH_ROUTE_KIT_DLC_DATA = "E:\Developer\Github-GeekXtop\domain-list-community\data"
-$env:CLASH_ROUTE_KIT_ACL4SSR_ROOT = "E:\Developer\Github-GeekXtop\ACL4SSR"
-$env:CLASH_ROUTE_KIT_RULES_ROOT = "E:\Developer\Github-GeekXtop\Rules"
-```
+- 本地通过 `pnpm sync:vendor` 同步上游到当前项目 `vendor/`。
+- CI 也通过 `pnpm sync:vendor` 同步同一批上游。
 
 发布时支持用 `CLASH_ROUTE_KIT_PUBLISH_BASE_URL` 覆盖 `publishBaseUrl`。
+
+已实现：
+
+- `pnpm sync:vendor`
 
 ### 配置模型
 
@@ -85,6 +81,13 @@ geolocation-!cn -> Proxy
 geolocation-cn/cn/geoip-cn -> Direct
 FINAL -> Proxy
 ```
+
+INI 生成分成两块：
+
+- `ruleset`：定义流量去哪个策略组。
+- `custom_proxy_group`：定义策略组里有哪些节点、下级策略或节点过滤器。
+
+当前节点分组能力还比较基础：可以声明静态策略组、下级选项和节点正则，但还没有“按地区自动生成节点组”或“订阅分组复用/双重分组”的完整建模。
 
 当前已接入真实数据源：
 
@@ -166,7 +169,9 @@ pnpm dev
 - 没有 classical provider。
 - 没有 ipcidr provider。
 - 没有 `DOMAIN-KEYWORD` 的合理输出策略。
-- 没有自动同步上游到本地 `vendor/` 的命令。
+- 没有地区节点组生成器。
+- 没有订阅自带分组复用策略。
+- 没有用途组到地区组的双重分组模板。
 - 没有 geosite tag 索引或搜索。
 
 ### OpenClash/SubConverter 集成
@@ -253,9 +258,7 @@ pnpm dev
 本地使用已有 clone 生成：
 
 ```powershell
-$env:CLASH_ROUTE_KIT_DLC_DATA = "E:\Developer\Github-GeekXtop\domain-list-community\data"
-$env:CLASH_ROUTE_KIT_ACL4SSR_ROOT = "E:\Developer\Github-GeekXtop\ACL4SSR"
-$env:CLASH_ROUTE_KIT_RULES_ROOT = "E:\Developer\Github-GeekXtop\Rules"
+pnpm sync:vendor
 pnpm generate
 pnpm serve:output
 ```

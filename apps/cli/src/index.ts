@@ -1,4 +1,4 @@
-import { checkConfig, generateOutputs, previewRules, resolveProjectRoot } from "./program.js";
+import { checkConfig, generateOutputs, previewRules, resolveProjectRoot, syncVendor } from "./program.js";
 
 const command = process.argv[2] ?? "help";
 const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/modules.yaml";
@@ -32,7 +32,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log("Usage: clash-route-kit <generate|preview|check>");
+  if (command === "sync-vendor") {
+    const results = await syncVendor({ root });
+    for (const result of results) {
+      console.log(`[sync-vendor] ${result.action}: ${result.name} -> ${result.path}`);
+    }
+    return;
+  }
+
+  console.log("Usage: clash-route-kit <generate|preview|check|sync-vendor>");
 }
 
 main().catch((error: unknown) => {

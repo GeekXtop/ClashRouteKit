@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkConfig, generateOutputs, previewRules, resolveProjectRoot } from "../src/program.js";
+import { checkConfig, generateOutputs, previewRules, resolveProjectRoot, syncVendor } from "../src/program.js";
 
 const sampleConfig = `
 publishBaseUrl: https://example.com/publish
@@ -174,11 +174,10 @@ ruleProviders:
     expect(output).not.toContain("192.0.2.0/24");
   });
 
-  it("resolves provider source files from baseEnv before basePath", async () => {
+  it("resolves provider source files from project vendor paths", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    const localRulesRoot = path.join(root, "local-rules");
-    await mkdir(localRulesRoot, { recursive: true });
-    await writeFile(path.join(localRulesRoot, "Developer.list"), "DOMAIN-SUFFIX,local-dev.example\n", "utf8");
+    await mkdir(path.join(root, "vendor/rules"), { recursive: true });
+    await writeFile(path.join(root, "vendor/rules/Developer.list"), "DOMAIN-SUFFIX,local-dev.example\n", "utf8");
     await writeFile(
       path.join(root, "modules.yaml"),
       `
@@ -200,27 +199,43 @@ ruleProviders:
     sources:
       - name: DeveloperList
         type: clash-list
-        baseEnv: CLASH_ROUTE_KIT_TEST_RULES_ROOT
-        basePath: vendor/missing
+        basePath: vendor/rules
         path: Developer.list
 `,
       "utf8",
     );
 
-    const previous = process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT;
-    process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT = localRulesRoot;
-    try {
-      await generateOutputs({ root, configFile: "modules.yaml" });
+    await generateOutputs({ root, configFile: "modules.yaml" });
 
-      const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
-      expect(output).toContain("'+.local-dev.example'");
-    } finally {
-      if (previous === undefined) {
-        delete process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT;
-      } else {
-        process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT = previous;
-      }
-    }
+    const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
+    expect(output).toContain("'+.local-dev.example'");
+  });
+
+  it("clones missing vendor repositories and pulls existing ones", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await mkdir(path.join(root, "vendor/ACL4SSR/.git"), { recursive: true });
+    const calls: Array<{ args: string[]; cwd: string }> = [];
+
+    const result = await syncVendor({
+      root,
+      runGit: async (args, cwd) => {
+        calls.push({ args, cwd });
+      },
+    });
+
+    expect(result).toEqual([
+      { name: "domain-list-community", action: "clone", path: path.join(root, "vendor/domain-list-community") },
+      { name: "ACL4SSR", action: "pull", path: path.join(root, "vendor/ACL4SSR") },
+      { name: "Rules", action: "clone", path: path.join(root, "vendor/Rules") },
+    ]);
+    expect(calls).toContainEqual({
+      args: ["clone", "--depth", "1", "https://github.com/v2fly/domain-list-community.git", path.join(root, "vendor/domain-list-community")],
+      cwd: root,
+    });
+    expect(calls).toContainEqual({
+      args: ["-C", path.join(root, "vendor/ACL4SSR"), "pull", "--ff-only"],
+      cwd: root,
+    });
   });
 
   it("previews rule order and checks missing policy groups", async () => {

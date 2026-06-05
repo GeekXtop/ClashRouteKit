@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import path from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   convertDomainListCommunity,
@@ -12,6 +14,8 @@ import {
 } from "@clash-route-kit/core";
 import YAML from "yaml";
 
+const execFileAsync = promisify(execFile);
+
 export interface ProgramOptions {
   root: string;
   configFile: string;
@@ -22,15 +26,74 @@ export interface GenerateResult {
   rulePaths: string[];
 }
 
-function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
-  if (source.baseEnv) {
-    const envValue = process.env[source.baseEnv];
-    if (envValue) return resolveInputPath(root, envValue);
-  }
+export interface VendorRepo {
+  name: string;
+  url: string;
+  path: string;
+}
 
+export interface VendorSyncResult {
+  name: string;
+  action: "clone" | "pull";
+  path: string;
+}
+
+export interface SyncVendorOptions {
+  root: string;
+  runGit?: (args: string[], cwd: string) => Promise<void>;
+}
+
+export const vendorRepos: VendorRepo[] = [
+  {
+    name: "domain-list-community",
+    url: "https://github.com/v2fly/domain-list-community.git",
+    path: "vendor/domain-list-community",
+  },
+  {
+    name: "ACL4SSR",
+    url: "https://github.com/ACL4SSR/ACL4SSR.git",
+    path: "vendor/ACL4SSR",
+  },
+  {
+    name: "Rules",
+    url: "https://github.com/dler-io/Rules.git",
+    path: "vendor/Rules",
+  },
+];
+
+function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
   if (source.basePath) return resolveInputPath(root, source.basePath);
   if (fallbackBasePath) return resolveInputPath(root, fallbackBasePath);
   return root;
+}
+
+async function defaultRunGit(args: string[], cwd: string): Promise<void> {
+  await execFileAsync("git", args, { cwd });
+}
+
+export async function syncVendor(options: SyncVendorOptions): Promise<VendorSyncResult[]> {
+  const runGit = options.runGit ?? defaultRunGit;
+  const results: VendorSyncResult[] = [];
+  await mkdir(path.join(options.root, "vendor"), { recursive: true });
+
+  for (const repo of vendorRepos) {
+    const repoPath = path.join(options.root, repo.path);
+    const gitDir = path.join(repoPath, ".git");
+    if (existsSync(gitDir)) {
+      await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
+      results.push({ name: repo.name, action: "pull", path: repoPath });
+      continue;
+    }
+
+    if (existsSync(repoPath)) {
+      throw new Error(`Vendor path exists but is not a git repository: ${repoPath}`);
+    }
+
+    await runGit(["clone", "--depth", "1", repo.url, repoPath], options.root);
+    results.push({ name: repo.name, action: "clone", path: repoPath });
+  }
+
+  return results;
 }
 
 function resolveInputPath(root: string, inputPath: string): string {

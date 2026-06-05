@@ -77,6 +77,25 @@ config/modules.yaml
 - `ruleProviders`：从本地/第三方真实数据生成 provider YAML。
 - `final.policy`：漏网之鱼策略；当前是 `Proxy`。
 
+## INI 模型
+
+SubConverter INI 里本项目主要生成两块内容：
+
+- `ruleset`：决定“什么流量进哪个策略组”。例如 Developer 域名进 `Tech`，`geolocation-!cn` 进 `Proxy`，`FINAL` 进 `Proxy`。
+- `custom_proxy_group`：决定“策略组里面有哪些可选节点或下级策略”。例如 `Tech` 可以选 `Proxy` / `Auto` / `Direct`。
+
+这两块应该分开维护。规则模块不应该直接关心具体节点；它只把流量导向一个策略组。节点怎么组织由 `proxyGroups` 负责。
+
+节点分组可以有几种模式：
+
+- 不细分：直接让 `Proxy` / `Auto` 使用订阅里的全部节点过滤器 `.*`。
+- 按用途分组：`AI`、`Tech`、`Crypto`、`Microsoft` 这类策略组再指向 `Proxy` / `Auto` / `Direct`。
+- 按地区分组：新增 `HK`、`TW`、`JP`、`US`、`SG` 等策略组，用节点正则筛选地区。
+- 双重分组：用途组先选地区组，例如 `AI -> US/JP/Proxy/Direct`，地区组再筛选具体节点。
+- 订阅自带分组：如果订阅转换后的节点名或 provider 已经带分组，也可以尽量少建本地地区组，只保留用途策略。
+
+当前实现只支持在 `custom_proxy_group` 里写静态 `options` 和 `nodeFilters`，还没有完整的“按地区自动生成节点组”能力。
+
 默认规则顺序：
 
 ```text
@@ -102,16 +121,14 @@ FINAL -> Proxy
 - `vendor/Rules/Clash/Provider/Crypto.yaml`：Crypto provider。
 - `vendor/Rules/Clash/Provider/Microsoft.yaml`：Microsoft provider。
 
-本地不需要复制一份 `vendor/`，可以直接用你已经下载的上游仓库：
+本地使用当前项目自己的 `vendor/` 缓存，不依赖旁边已有 clone：
 
 ```powershell
-$env:CLASH_ROUTE_KIT_DLC_DATA = "E:\Developer\Github-GeekXtop\domain-list-community\data"
-$env:CLASH_ROUTE_KIT_ACL4SSR_ROOT = "E:\Developer\Github-GeekXtop\ACL4SSR"
-$env:CLASH_ROUTE_KIT_RULES_ROOT = "E:\Developer\Github-GeekXtop\Rules"
+pnpm sync:vendor
 pnpm generate
 ```
 
-如果这些环境变量不存在，CLI 会回退到 `config/modules.yaml` 中声明的 `basePath`。
+`vendor/` 是 ignored 缓存目录，不提交到 `main`。CI 也会运行同一个 `pnpm sync:vendor`。
 
 支持的 source 类型：
 
@@ -130,6 +147,7 @@ pnpm typecheck
 pnpm build
 pnpm check
 pnpm preview
+pnpm sync:vendor
 pnpm generate
 pnpm serve:output
 pnpm dev
@@ -140,6 +158,7 @@ pnpm dev
 ```powershell
 pnpm check
 pnpm preview
+pnpm sync:vendor
 pnpm generate
 pnpm serve:output
 ```
@@ -158,9 +177,7 @@ pnpm dev
 
 ```text
 checkout project
-checkout v2fly/domain-list-community -> vendor/domain-list-community
-checkout ACL4SSR/ACL4SSR -> vendor/ACL4SSR
-checkout dler-io/Rules -> vendor/Rules
+pnpm sync:vendor
 pnpm test/typecheck/build/check
 CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/<owner>/<repo>/publish pnpm generate
 publish output/ -> publish branch

@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "generate": "pnpm --filter @clash-route-kit/cli start generate",
     "preview": "pnpm --filter @clash-route-kit/cli start preview",
-    "check": "pnpm --filter @clash-route-kit/cli start check"
+    "check": "pnpm --filter @clash-route-kit/cli start check",
+    "sync:vendor": "pnpm --filter @clash-route-kit/cli start sync-vendor"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

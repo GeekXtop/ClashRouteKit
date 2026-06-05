@@ -35,7 +35,6 @@ export interface RouteKitConfig {
 }
 
 export interface SourceBase {
-  baseEnv?: string;
   basePath?: string;
 }
 

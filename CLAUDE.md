@@ -15,6 +15,7 @@ ClashRouteKit 是模块化维护 OpenClash / Clash Meta 路由规则、SubConver
 - `pnpm build` — 全工作区构建（`pnpm -r build`，core/cli 用 `tsc`，web 用 `vite build`）
 - `pnpm dev` — 启动 web 控制台（`vite --host 127.0.0.1`）
 - `pnpm serve:output` — 以 `http://127.0.0.1:8787` 暴露 `output/`，用于本地 SubConverter 拉取 INI/provider
+- `pnpm sync:vendor` — 同步上游公开规则仓库到 ignored `vendor/`
 - `pnpm generate` — 从 `config/modules.yaml` 生成 INI 模板和 rule-provider YAML 到 `output/`
 - `pnpm preview` — 打印「来源 → 策略」的规则顺序，不写文件
 - `pnpm check` — 校验所有模块/FINAL 引用的策略组都存在，缺失则退出码 1
@@ -69,16 +70,17 @@ pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
 - `clash-provider`：读取 Clash provider YAML 的 `payload` 数组。
 - `domain-list-community`：读取本地 domain-list-community data 文件，递归展开 `include:`。
 
-当前默认配置使用 `baseEnv` + `basePath`：本地可以设置 `CLASH_ROUTE_KIT_DLC_DATA`、`CLASH_ROUTE_KIT_ACL4SSR_ROOT`、`CLASH_ROUTE_KIT_RULES_ROOT` 指向已有 clone；CI 在 `vendor/domain-list-community`、`vendor/ACL4SSR`、`vendor/Rules` checkout 上游仓库。不要把绝对机器路径写进提交。
+当前默认配置只使用当前项目内的 `vendor/`。本地和 CI 都通过 `pnpm sync:vendor` 同步上游公开规则仓库；不要依赖机器旁边已有 clone，也不要把绝对机器路径写进提交。
 
 ### 发布模型
 
 `output/` 本地 ignored，不提交到 `main`。`.github/workflows/publish.yml` 在 `main` 变更或手动触发时运行：
 
-1. checkout 本仓库和三个上游仓库到 `vendor/`。
-2. 运行 `pnpm test`、`pnpm typecheck`、`pnpm build`、`pnpm check`。
-3. 用公开 raw URL 覆盖 `publishBaseUrl` 并运行 `pnpm generate`。
-4. 将 `output/` 发布到 `publish` 分支。
+1. checkout 本仓库。
+2. 运行 `pnpm sync:vendor` 同步三个上游仓库到 `vendor/`。
+3. 运行 `pnpm test`、`pnpm typecheck`、`pnpm build`、`pnpm check`。
+4. 用公开 raw URL 覆盖 `publishBaseUrl` 并运行 `pnpm generate`。
+5. 将 `output/` 发布到 `publish` 分支。
 
 ## 关键约定
 

@@ -16,6 +16,7 @@
 - `pnpm install`：根据 `pnpm-lock.yaml` 安装依赖。
 - `pnpm dev`：通过 Vite 启动 Web 控制台。
 - `pnpm serve:output`：把 `output/` 以 `http://127.0.0.1:8787` 暴露给本地 SubConverter。
+- `pnpm sync:vendor`：同步上游公开规则仓库到 ignored `vendor/`。
 - `pnpm test`：运行全部 Vitest 测试。
 - `pnpm typecheck`：检查所有包和应用的 TypeScript 类型。
 - `pnpm build`：递归构建整个 workspace。
@@ -37,4 +38,4 @@
 
 ## 安全与 Agent 专用说明
 
-不要提交密钥、订阅 URL、私有代理端点或最终 `config.yaml`。当前 `config/modules.yaml` 通过 `baseEnv` 支持本地上游 clone，并通过 `basePath` 回退到 CI 的 `vendor/` checkout；避免写入绝对机器路径。确保 `output/` 文件可由 `config/` 重新生成，并由 `publish` 分支公开。Agent 工作时默认使用简体中文回复，假定系统为 Windows 11；修改文件内容时使用 `apply_patch`，避免编码漂移。
+不要提交密钥、订阅 URL、私有代理端点或最终 `config.yaml`。上游公开规则仓库应通过 `pnpm sync:vendor` 同步到当前项目 ignored `vendor/`，不要依赖机器旁边的 clone，也不要写入绝对路径。确保 `output/` 文件可由 `config/` 重新生成，并由 `publish` 分支公开。Agent 工作时默认使用简体中文回复，假定系统为 Windows 11；修改文件内容时使用 `apply_patch`，避免编码漂移。
