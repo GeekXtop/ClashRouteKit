@@ -32,12 +32,18 @@ body {
 
 button,
 select,
-input {
+input,
+textarea {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .app-shell {
@@ -356,6 +362,150 @@ button {
   color: var(--ink);
 }
 
+.subscription-editor {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.subscription-toolbar,
+.subscription-import,
+.subscription-row,
+.generated-url {
+  display: grid;
+  gap: 10px;
+}
+
+.subscription-toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.subscription-toolbar label {
+  display: grid;
+  gap: 6px;
+}
+
+.subscription-toolbar label span,
+.generated-url span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.subscription-toolbar input,
+.subscription-row input,
+.subscription-import textarea,
+.url-output {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.subscription-toolbar input,
+.subscription-row input {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.subscription-import {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+}
+
+.subscription-import textarea,
+.url-output {
+  min-width: 0;
+  padding: 10px;
+  resize: vertical;
+  font:
+    12px/1.55 "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+
+.subscription-list {
+  display: grid;
+  gap: 8px;
+}
+
+.subscription-row {
+  grid-template-columns: 28px 132px minmax(0, 1fr) 36px;
+  align-items: center;
+}
+
+.check-cell {
+  display: grid;
+  place-items: center;
+}
+
+.check-cell input {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button,
+.command-button {
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.command-button {
+  min-height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.command-button:hover:not(:disabled),
+.icon-button:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.generated-url {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.generated-url div {
+  display: grid;
+  gap: 3px;
+}
+
+.generated-url strong {
+  font-size: 13px;
+}
+
+.url-output {
+  min-height: 118px;
+  background: #10181d;
+  color: #d8e7e9;
+}
+
+.empty-state {
+  min-height: 74px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
 .table-wrap {
   overflow: auto;
   max-height: calc(100vh - 238px);
@@ -586,6 +736,13 @@ td:nth-child(5) {
 @media (max-width: 600px) {
   .metrics-grid,
   .right-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .subscription-toolbar,
+  .subscription-import,
+  .subscription-row,
+  .generated-url {
     grid-template-columns: 1fr;
   }
 

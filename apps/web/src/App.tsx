@@ -1,19 +1,31 @@
 import {
   CheckCircle2,
   CircleDot,
+  Clipboard,
   FileCode2,
   Layers3,
+  Link2,
   ListTree,
+  Plus,
   Power,
   Route,
   Settings2,
+  Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { renderIni, type RouteKitProjectConfig, type RouteModule } from "@clash-route-kit/core";
 import { projectConfig } from "./config.js";
 import { createPolicyStats, createRouteSummary, type RouteSummaryRow } from "./routeSummary.js";
+import {
+  buildSubconverterUrl,
+  parseProviderLines,
+  type ProviderSubscription,
+} from "./subscriptions.js";
 
-type ViewMode = "rules" | "ini";
+type ViewMode = "rules" | "ini" | "subscriptions";
+
+const subscriptionStorageKey = "clash-route-kit-subscriptions";
+const defaultSubconverterEndpoint = "10.0.0.3:25500";
 
 function defaultEnabled(modules: RouteModule[]): Record<string, boolean> {
   return Object.fromEntries(modules.map((module) => [module.id, module.enabled !== false]));
@@ -30,6 +42,29 @@ function activeProjectConfig(
       enabled: enabled[module.id],
     })),
   };
+}
+
+function isProviderSubscription(value: unknown): value is ProviderSubscription {
+  const candidate = value as ProviderSubscription;
+  return (
+    typeof candidate?.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.url === "string" &&
+    typeof candidate.enabled === "boolean"
+  );
+}
+
+function loadSubscriptions(): ProviderSubscription[] {
+  if (typeof window === "undefined") return [];
+  const text = window.localStorage.getItem(subscriptionStorageKey);
+  if (!text) return [];
+
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    return Array.isArray(parsed) ? parsed.filter(isProviderSubscription) : [];
+  } catch {
+    return [];
+  }
 }
 
 function ModuleToggle({
@@ -60,11 +95,133 @@ function ModuleToggle({
   );
 }
 
+function IconButton({
+  label,
+  title,
+  onClick,
+  children,
+}: {
+  label: string;
+  title: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button aria-label={label} className="icon-button" title={title} type="button" onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SubscriptionPanel({
+  providers,
+  endpoint,
+  outputUrl,
+  copied,
+  onAdd,
+  onCopy,
+  onEndpointChange,
+  onImport,
+  onRemove,
+  onUpdate,
+}: {
+  providers: ProviderSubscription[];
+  endpoint: string;
+  outputUrl: string;
+  copied: boolean;
+  onAdd: () => void;
+  onCopy: () => void;
+  onEndpointChange: (value: string) => void;
+  onImport: (value: string) => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<ProviderSubscription>) => void;
+}) {
+  const [importText, setImportText] = useState("");
+  const activeProviders = providers.filter((provider) => provider.enabled && provider.url.trim()).length;
+
+  return (
+    <div className="subscription-editor">
+      <div className="subscription-toolbar">
+        <label>
+          <span>Endpoint</span>
+          <input value={endpoint} onChange={(event) => onEndpointChange(event.target.value)} />
+        </label>
+        <button className="command-button" type="button" onClick={onAdd}>
+          <Plus size={16} />
+          添加
+        </button>
+      </div>
+
+      <div className="subscription-import">
+        <textarea
+          rows={4}
+          value={importText}
+          onChange={(event) => setImportText(event.target.value)}
+          placeholder="provider:name,https://example.com/subscribe"
+        />
+        <button
+          className="command-button"
+          type="button"
+          onClick={() => {
+            onImport(importText);
+            setImportText("");
+          }}
+        >
+          <Link2 size={16} />
+          导入
+        </button>
+      </div>
+
+      <div className="subscription-list">
+        {providers.map((provider) => (
+          <div className="subscription-row" key={provider.id}>
+            <label className="check-cell">
+              <input
+                checked={provider.enabled}
+                type="checkbox"
+                onChange={(event) => onUpdate(provider.id, { enabled: event.target.checked })}
+              />
+            </label>
+            <input
+              aria-label="provider name"
+              className="name-input"
+              value={provider.name}
+              onChange={(event) => onUpdate(provider.id, { name: event.target.value })}
+            />
+            <input
+              aria-label="subscription url"
+              className="url-input"
+              value={provider.url}
+              onChange={(event) => onUpdate(provider.id, { url: event.target.value })}
+            />
+            <IconButton label="remove provider" title="删除" onClick={() => onRemove(provider.id)}>
+              <Trash2 size={16} />
+            </IconButton>
+          </div>
+        ))}
+        {providers.length === 0 ? <div className="empty-state">暂无订阅</div> : null}
+      </div>
+
+      <div className="generated-url">
+        <div>
+          <strong>SubConverter URL</strong>
+          <span>{activeProviders} active</span>
+        </div>
+        <button className="command-button" disabled={!outputUrl} type="button" onClick={onCopy}>
+          <Clipboard size={16} />
+          {copied ? "已复制" : "复制"}
+        </button>
+      </div>
+      <textarea className="url-output" readOnly rows={5} value={outputUrl} />
     </div>
   );
 }
@@ -127,6 +284,9 @@ export default function App() {
   const [selectedModuleId, setSelectedModuleId] = useState(projectConfig.modules[0]?.id ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("rules");
   const [policyFilter, setPolicyFilter] = useState("全部");
+  const [subscriptions, setSubscriptions] = useState(loadSubscriptions);
+  const [subconverterEndpoint, setSubconverterEndpoint] = useState(defaultSubconverterEndpoint);
+  const [copied, setCopied] = useState(false);
 
   const config = useMemo(() => activeProjectConfig(projectConfig, enabled), [enabled]);
   const routeRows = useMemo(() => createRouteSummary(config), [config]);
@@ -136,6 +296,55 @@ export default function App() {
   const activeRows = policyFilter === "全部" ? routeRows : routeRows.filter((row) => row.policy === policyFilter);
   const enabledCount = config.modules.filter((module) => module.enabled !== false).length;
   const providerCount = config.ruleProviders?.length ?? 0;
+  const subconverterUrl = useMemo(() => {
+    const hasProvider = subscriptions.some((provider) => provider.enabled && provider.name.trim() && provider.url.trim());
+    if (!hasProvider) return "";
+    return buildSubconverterUrl({
+      providers: subscriptions,
+      publishBaseUrl: config.publishBaseUrl,
+      templateOutput: config.template.output,
+      endpoint: subconverterEndpoint,
+    });
+  }, [config.publishBaseUrl, config.template.output, subconverterEndpoint, subscriptions]);
+
+  useEffect(() => {
+    window.localStorage.setItem(subscriptionStorageKey, JSON.stringify(subscriptions));
+  }, [subscriptions]);
+
+  function updateSubscription(id: string, patch: Partial<ProviderSubscription>) {
+    setSubscriptions((current) =>
+      current.map((provider) => (provider.id === id ? { ...provider, ...patch } : provider)),
+    );
+    setCopied(false);
+  }
+
+  function addSubscription() {
+    const id = `provider-${Date.now()}`;
+    setSubscriptions((current) => [...current, { id, name: "", url: "", enabled: true }]);
+    setCopied(false);
+  }
+
+  function importSubscriptions(value: string) {
+    const imported = parseProviderLines(value);
+    if (imported.length === 0) return;
+    const now = Date.now();
+    setSubscriptions((current) => [
+      ...current,
+      ...imported.map((provider, index) => ({ ...provider, id: `${provider.id}-${now}-${index}` })),
+    ]);
+    setCopied(false);
+  }
+
+  function removeSubscription(id: string) {
+    setSubscriptions((current) => current.filter((provider) => provider.id !== id));
+    setCopied(false);
+  }
+
+  async function copySubconverterUrl() {
+    if (!subconverterUrl) return;
+    await navigator.clipboard.writeText(subconverterUrl);
+    setCopied(true);
+  }
 
   return (
     <div className="app-shell">
@@ -162,6 +371,14 @@ export default function App() {
             <button className={viewMode === "ini" ? "active" : ""} type="button" onClick={() => setViewMode("ini")}>
               <FileCode2 size={16} />
               INI
+            </button>
+            <button
+              className={viewMode === "subscriptions" ? "active" : ""}
+              type="button"
+              onClick={() => setViewMode("subscriptions")}
+            >
+              <Link2 size={16} />
+              订阅
             </button>
           </div>
         </div>
@@ -200,13 +417,13 @@ export default function App() {
             <Metric label="规则行" value={routeRows.length} />
             <Metric label="策略组" value={config.proxyGroups.length} />
             <Metric label="Providers" value={providerCount} />
-            <Metric label="FINAL" value={config.final.policy} />
+            <Metric label="订阅源" value={subscriptions.length} />
           </div>
 
           <div className="panel preview-panel">
             <div className="panel-heading preview-heading">
               <div>
-                <h2>{viewMode === "rules" ? "规则顺序" : "INI 预览"}</h2>
+                <h2>{viewMode === "rules" ? "规则顺序" : viewMode === "ini" ? "INI 预览" : "订阅管理"}</h2>
                 <span>{config.template.output}</span>
               </div>
               {viewMode === "rules" ? (
@@ -218,7 +435,25 @@ export default function App() {
                 </select>
               ) : null}
             </div>
-            {viewMode === "rules" ? <RuleTable rows={activeRows} /> : <pre className="ini-preview">{iniPreview}</pre>}
+            {viewMode === "rules" ? <RuleTable rows={activeRows} /> : null}
+            {viewMode === "ini" ? <pre className="ini-preview">{iniPreview}</pre> : null}
+            {viewMode === "subscriptions" ? (
+              <SubscriptionPanel
+                copied={copied}
+                endpoint={subconverterEndpoint}
+                outputUrl={subconverterUrl}
+                providers={subscriptions}
+                onAdd={addSubscription}
+                onCopy={copySubconverterUrl}
+                onEndpointChange={(value) => {
+                  setSubconverterEndpoint(value);
+                  setCopied(false);
+                }}
+                onImport={importSubscriptions}
+                onRemove={removeSubscription}
+                onUpdate={updateSubscription}
+              />
+            ) : null}
           </div>
         </section>
 
