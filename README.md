@@ -12,8 +12,8 @@
 `output/` 不提交到 `main`，但会由 GitHub Actions 生成并发布到 `publish` 分支。最终公开产物 URL：
 
 ```text
-https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini
-https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/Developer_Domain.yaml
+https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish/templates/Custom_Clash.ini
+https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish/rules/Developer_Domain.yaml
 ```
 
 不提交到 `main`：订阅链接、最终 `config.yaml`、`output/`、`vendor/`、`dist/`、provider 缓存、`.mrs`、本地环境文件。
@@ -211,7 +211,7 @@ pnpm dev
 checkout project
 pnpm sync:vendor
 pnpm test/typecheck/build/check
-CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/<owner>/<repo>/publish pnpm generate
+CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish pnpm generate
 publish output/ -> publish branch
 ```
 
