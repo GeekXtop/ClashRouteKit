@@ -1,0 +1,4719 @@
+{
+  "providers": [
+    {
+      "name": "Custom_Direct",
+      "output": "Custom_Direct_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Direct_Domain.yaml",
+      "inputRules": 0,
+      "domainRules": 0,
+      "excludedRules": 0,
+      "outputRules": 0,
+      "sources": [
+        {
+          "name": "LocalDirect",
+          "type": "clash-list",
+          "inputRules": 0,
+          "domainRules": 0
+        }
+      ]
+    },
+    {
+      "name": "Custom_Proxy",
+      "output": "Custom_Proxy_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Proxy_Domain.yaml",
+      "inputRules": 0,
+      "domainRules": 0,
+      "excludedRules": 0,
+      "outputRules": 0,
+      "sources": [
+        {
+          "name": "LocalProxy",
+          "type": "clash-list",
+          "inputRules": 0,
+          "domainRules": 0
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "output": "AI_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/AI_Domain.yaml",
+      "inputRules": 205,
+      "domainRules": 132,
+      "excludedRules": 0,
+      "outputRules": 132,
+      "sources": [
+        {
+          "name": "DlerRules_AI_Suite",
+          "type": "clash-provider",
+          "inputRules": 92,
+          "domainRules": 91
+        },
+        {
+          "name": "DLC_openai",
+          "type": "domain-list-community",
+          "inputRules": 18,
+          "domainRules": 18
+        },
+        {
+          "name": "DLC_anthropic",
+          "type": "domain-list-community",
+          "inputRules": 8,
+          "domainRules": 8
+        },
+        {
+          "name": "DLC_google_gemini",
+          "type": "domain-list-community",
+          "inputRules": 39,
+          "domainRules": 39
+        },
+        {
+          "name": "DLC_google_deepmind",
+          "type": "domain-list-community",
+          "inputRules": 39,
+          "domainRules": 39
+        },
+        {
+          "name": "DLC_jetbrains_ai",
+          "type": "domain-list-community",
+          "inputRules": 3,
+          "domainRules": 3
+        },
+        {
+          "name": "DLC_github_copilot",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "domainRules": 6
+        }
+      ]
+    },
+    {
+      "name": "Developer",
+      "output": "Developer_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Developer_Domain.yaml",
+      "inputRules": 151,
+      "domainRules": 142,
+      "excludedRules": 0,
+      "outputRules": 142,
+      "sources": [
+        {
+          "name": "LocalDeveloper",
+          "type": "clash-list",
+          "inputRules": 13,
+          "domainRules": 13
+        },
+        {
+          "name": "ACL4SSR_Developer",
+          "type": "clash-list",
+          "inputRules": 20,
+          "domainRules": 20
+        },
+        {
+          "name": "DLC_github",
+          "type": "domain-list-community",
+          "inputRules": 61,
+          "domainRules": 61
+        },
+        {
+          "name": "DLC_gitlab",
+          "type": "domain-list-community",
+          "inputRules": 5,
+          "domainRules": 5
+        },
+        {
+          "name": "DLC_npmjs",
+          "type": "domain-list-community",
+          "inputRules": 3,
+          "domainRules": 3
+        },
+        {
+          "name": "DLC_nodejs",
+          "type": "domain-list-community",
+          "inputRules": 1,
+          "domainRules": 1
+        },
+        {
+          "name": "DLC_docker",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "domainRules": 6
+        },
+        {
+          "name": "DLC_debian",
+          "type": "domain-list-community",
+          "inputRules": 2,
+          "domainRules": 2
+        },
+        {
+          "name": "DLC_ubuntu",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "domainRules": 4
+        },
+        {
+          "name": "DLC_python",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "domainRules": 6
+        },
+        {
+          "name": "DLC_golang",
+          "type": "domain-list-community",
+          "inputRules": 8,
+          "domainRules": 8
+        },
+        {
+          "name": "DLC_rust",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "domainRules": 4
+        },
+        {
+          "name": "DLC_jetbrains",
+          "type": "domain-list-community",
+          "inputRules": 14,
+          "domainRules": 14
+        },
+        {
+          "name": "DLC_sourceforge",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "domainRules": 4
+        }
+      ]
+    },
+    {
+      "name": "Crypto",
+      "output": "Crypto_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Crypto_Domain.yaml",
+      "inputRules": 315,
+      "domainRules": 268,
+      "excludedRules": 0,
+      "outputRules": 268,
+      "sources": [
+        {
+          "name": "DlerRules_Crypto",
+          "type": "clash-provider",
+          "inputRules": 253,
+          "domainRules": 239
+        },
+        {
+          "name": "DLC_binance",
+          "type": "domain-list-community",
+          "inputRules": 38,
+          "domainRules": 38
+        },
+        {
+          "name": "DLC_okx",
+          "type": "domain-list-community",
+          "inputRules": 8,
+          "domainRules": 8
+        },
+        {
+          "name": "DLC_bybit",
+          "type": "domain-list-community",
+          "inputRules": 16,
+          "domainRules": 16
+        }
+      ]
+    },
+    {
+      "name": "Microsoft",
+      "output": "Microsoft_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Microsoft_Domain.yaml",
+      "inputRules": 1378,
+      "domainRules": 855,
+      "excludedRules": 0,
+      "outputRules": 855,
+      "sources": [
+        {
+          "name": "DlerRules_Microsoft",
+          "type": "clash-provider",
+          "inputRules": 589,
+          "domainRules": 585
+        },
+        {
+          "name": "DLC_microsoft_dev",
+          "type": "domain-list-community",
+          "inputRules": 71,
+          "domainRules": 71
+        },
+        {
+          "name": "DLC_microsoft",
+          "type": "domain-list-community",
+          "inputRules": 718,
+          "domainRules": 718
+        }
+      ]
+    }
+  ],
+  "duplicates": [
+    {
+      "provider": "AI",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,ai.studio",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aicode.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aida.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aisandbox-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aistudio.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,anthropic.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,antigravity-unleash.goog",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,antigravity.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bard.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,chatgpt.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claude.ai",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claude.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claudeusercontent.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,deepmind.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,deepmind.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,geller-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.gstatic.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,generativeai.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,generativelanguage.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,githubcopilot.com",
+          "sources": [
+            "DLC_github_copilot",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jetbrains.ai",
+          "sources": [
+            "DLC_jetbrains_ai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jules.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jules.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,labs.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,labs.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,makersuite.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,notebooklm.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,notebooklm.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oaistatic.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oaiusercontent.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opal.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opal.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,openai.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sora.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,stitch.withgoogle.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,ai.google.dev",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,alkalicore-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,alkalimakersuite-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,antigravity-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,antigravity.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,cloudaicompanion.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,cloudcode-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,daily-cloudcode-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,notebooklm-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,notebooklm.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,o33249.ingest.sentry.io",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaiapi-site.azureedge.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaicomproductionae4b.blob.core.windows.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,production-openaicom-storage.azureedge.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,webchannel-alkalimakersuite-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "Developer",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,crates.io",
+          "sources": [
+            "DLC_rust",
+            "LocalDeveloper"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,docker.com",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_docker"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,docker.io",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_docker"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gitlab.com",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_gitlab"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gitlab.io",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_gitlab"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npm.community",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npmjs.com",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npmjs.org",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,pypi.org",
+          "sources": [
+            "DLC_python",
+            "LocalDeveloper"
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "Crypto",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,binance.cc",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.charity",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.cloud",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.co",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.info",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.me",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.net",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.org",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.us",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.vision",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binanceapi.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.be",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.biz",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.cc",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.co",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.info",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.ink",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.kim",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.link",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.live",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.mobi",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.net",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.pro",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.sh",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.top",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bnbstatic.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bntrace.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bybit.com",
+          "sources": [
+            "DLC_bybit",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,okex.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oklink.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,okx.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "Microsoft",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,1drv.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,1drv.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,a-msedge.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aadrm.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,adaptivecards.io",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aka.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ankarazirvesi2018.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,api-extractor.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,apisof.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,appcenter.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,Applicationinsights.io",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,Applicationinsights.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aria.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,asp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aspnetcdn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-dns.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-dns.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-dns.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-dns.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-mobile.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-sphere.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure-test.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azure.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecomcdn.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecontainer.io",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecosmos.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecosmosdb.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecosmosdb.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurecosmosdb.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredatabricks.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredevopslaunch.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredigitaltwin.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredigitaltwins.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredigitaltwins.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredns-prd.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuredns-prd.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureedge-test.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureedge.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurefd.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureiotcentral.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureiotsolutions.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureiotsuite.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureplanetscale.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureplanetscale.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azureserviceprofiler.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azuresmartspaces.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurestackvalidation.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,azurewebsites.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,beth.games",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bethesda.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bethesdagamestudios.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bethsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binads.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bing",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bing.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bing.com.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bing.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bing123.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingads.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingagencyawards.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingapis.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingapistatistics.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingsandbox.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingvisualsearch.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bingworld.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,blazor.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bluehatil.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bluehatnights.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,boswp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,botframework.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,brazilpartneruniversity.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,breakdown.me",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,c-msedge.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,callersbane.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,centralvalidation.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ch9.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,charticulator.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,chinacloudapi.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,chinacloudapp.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,chinacloudsites.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cloudapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cloudappsecurity.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cn.bing.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cn.bing.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,codethemicrobit.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cortanaanalytics.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cortanaskills.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cosmosdb.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,cosmosdb.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,crmdynint-gcc.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,crmdynint.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,crossborderexpansion.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,devopsassessment.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,devopsms.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,dictate.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ditu.live.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,docs.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,dot.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,dynamics.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,efproject.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,engkoo.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,fasttrackreadysupport.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,femalefounderscomp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,flipwithsurface.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,fluidpreview.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,footprintdns.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,forzamotorsport.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,forzaracingchampionship.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,forzarc.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gamepass.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gamesstack.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gameuxmasterguide.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gears5.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gearspop.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gearstactics.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gfx.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gigjam.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gotcosmos.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,graphengine.io",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hololens.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hotmail.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,hummingbird.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ie10.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ie11.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ie8.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ie9.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,imaginecup.pl",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ingads.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,insiderdevtour.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,internetexplorer.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,internetexplorer.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,intunewiki.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,iotinactionevents.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jwt.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,kidgrid.tv",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,kumo.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,latampartneruniversity.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,live.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,live.com.au",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,live.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,live.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,livefilestore.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,livingyourambition.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,m12.vc",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,makecode.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,managedmeetingrooms.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,masalladeloslimites.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,meetfasttrack.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,meetyourdevices.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mepn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microbit.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-give.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-int.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-ppe.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-sap-events.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-sbs-domains.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft-smb.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.az",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.be",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.by",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ca",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.cat",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ch",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.cl",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.cz",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.de",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.dk",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ee",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.es",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.fi",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ge",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.hu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.io",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.is",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.it",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.jp",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.lt",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.lu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.lv",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.md",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.pl",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.pt",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.red",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ro",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.rs",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ru",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.se",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.si",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.tv",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.ua",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.uz",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft.vn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoft365.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftaccountguard.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftadc.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftads.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftadvertising.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftadvertisingregionalawards.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftaffiliates.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftazuread-sso.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftcloud.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftcloudsummit.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftcloudworkshop.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftcommunitytraining.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftdiplomados.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsofteca.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftedge.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftedgeinsider.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftgamestack.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsofthouse.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsofthouse.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftinternetsafety.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftiotcentral.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftiotinsiderlabs.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftlatamaitour.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftlatamholiday.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftlinc.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftmxfilantropia.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnews.cc",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnews.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnews.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnews.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnews.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewsforkids.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewsforkids.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewsforkids.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewskids.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewskids.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftnewskids.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftonline-p.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftonline.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftpartnercommunity.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftpartnersolutions.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftreactor.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftreactor.com.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftreactor.info",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftreactor.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftreactor.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftready.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftsilverlight.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftsilverlight.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftsilverlight.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftsiteselection.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftsqlserver.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftstore.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftstore.com.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftstore.com.hk",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftstream.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftteams.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsofttradein.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsofttranslator.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,microsoftuwp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,minecraft.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,minecraftshop.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mmdnn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mojang.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,momentumms.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mono-project.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,morphcharts.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mpnevolution.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ms-studiosmedia.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,ms365surfaceoffer.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msads.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msauth.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msauth.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mschallenge2018.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msdn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msecnd.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msedge.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msft.info",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msft.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msftauth.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msftauth.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msftauthimages.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msftconnecttest.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msfteducation.ca",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msftnet.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msgamesresearch.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msgamestudios.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msidentity.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msinnovationchallenge.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msn.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msnewskids.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msnewskids.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msnewskids.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msnkids.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msocdn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msocsp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mspairlift.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mspil.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msra.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msropendata.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msturing.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msudalosti.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,msunlimitedcloudsummit.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,mymicrosoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,nextechafrica.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,nuget.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,nugettest.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,nxta.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,o365cn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,o365files.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,o365weve-dev.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,o365weve-ppe.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,o365weve.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office365.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office365love.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,office365tw.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,officeplus.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.co.uk",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.live.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onedrive.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onenote.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onenote.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,onestore.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opentranslatorstothings.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opticsforthecloud.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,orithegame.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,outingsapp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,outlook.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,outlook.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,passport.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,pixapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,poshtestgallery.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,powerappscdn.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,powerautomate.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,powerbi.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,powershellgallery.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,projectmurphy.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,projectsangam.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,pwabuilder.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,pxt.io",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,reactorms.com.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,renovacionoffice.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,renovacionxboxlive.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,s-microsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,s-msedge.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,s-msft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,s-msn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sankie.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,serverlesslibrary.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sfbassets.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sfbassets.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sfx.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sharepoint.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sharepoint.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sharepointonline.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,signalr.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,skype",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,skype.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,skype.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,skypeassets.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,skypeassets.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sprinklesapp.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sqlserveronlinux.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,staffhub.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,storage.live.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,successwithteams.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,surface.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,svc.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sway-cdn.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sway.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sysinternals.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,tailwindtraders.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,techhub.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,tellmewhygame.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,tfsallin.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,timelinestoryteller.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,trafficmanager.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,translatetheweb.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,tryfunctions.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,unlocklimitlesslearning.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,userpxt.io",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,uwpcommunitytoolkit.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vfsforgit.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vfsforgit.org",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,videobreakdown.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,videoindexer.ai",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,virtualearth.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio-staging.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio.co",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio.co.uk",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,visualstudio.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vsallin.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vsassets.io",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vscode-cdn.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vscode-unpkg.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,vscode.dev",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,wbd.ms",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,what-fan.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windows-int.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windows.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windows.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windows.nl",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windows8.hk",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsazure.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsazure.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowscommunity.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsmarketplace.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsphone-int.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsphone.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowssearch.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,windowsupdate.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,winhec.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,winhec.net",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xamarin.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox360.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox360.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox360.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbox360.org",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxab.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxgamepass.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxgamestudios.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxlive.cn",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxlive.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxone.co",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxone.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxone.eu",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxplayanywhere.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxservices.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xboxstudios.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,xbx.lv",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,yammer.com",
+          "sources": [
+            "DLC_microsoft",
+            "DlerRules_Microsoft"
+          ]
+        },
+        {
+          "rule": "DOMAIN,az764295.vo.msecnd.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,bingsettingssearch.trafficmanager.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,default.exp-tas.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,developer.microsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,download.visualstudio.microsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,dtlgalleryint.cloudapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,packages.microsoft.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,poshtestgallery.cloudapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,psg-int-centralus.cloudapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,psg-int-eastus.cloudapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,rink.hockeyapp.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,vscode-sync-insiders.trafficmanager.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,vscode-sync.trafficmanager.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,vscode.blob.core.windows.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,vscode.search.windows.net",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        },
+        {
+          "rule": "DOMAIN,vsmarketplacebadge.apphb.com",
+          "sources": [
+            "DLC_microsoft",
+            "DLC_microsoft_dev"
+          ]
+        }
+      ]
+    }
+  ],
+  "overlaps": [
+    {
+      "rule": "DOMAIN-SUFFIX,atom.io",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,collector.github.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,dependabot.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,gh.io",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,ghcr.io",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,git.io",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.ai",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.blog",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.community",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.dev",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.io",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubapp.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubassets.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubcopilot.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubhackathon.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubnext.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubpreview.dev",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubstatus.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubuniverse.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubusercontent.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,microsoftonline.com",
+      "providers": [
+        "AI",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,myoctocat.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,npm.community",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,npmjs.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,npmjs.org",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,octocaptcha.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,opensource.guide",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,repo.new",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,thegithubshop.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-proxy.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-telemetry-service.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-telemetry.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-workspace.githubnext.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilotprodattachments.blob.core.windows.net",
+      "providers": [
+        "AI",
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-api.arkoselabs.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-cloud.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-production-release-asset-2e65be.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-production-repository-file-5c1aeb.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-production-repository-image-32fea6.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-production-upload-manifest-file-7fdce7.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,github-production-user-asset-6210df.s3.amazonaws.com",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa0.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa1.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa10.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa11.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa12.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa13.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa14.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa15.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa16.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa17.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa18.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa19.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa2.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa3.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa4.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa5.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa6.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa7.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa8.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    },
+    {
+      "rule": "DOMAIN,productionresultssa9.blob.core.windows.net",
+      "providers": [
+        "Developer",
+        "Microsoft"
+      ]
+    }
+  ]
+}
