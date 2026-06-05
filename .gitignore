@@ -8,6 +8,5 @@ coverage/
 .env
 .env.*
 !.env.example
-docs/
 AGENTS.md
 CLAUDE.md

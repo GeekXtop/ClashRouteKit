@@ -45,4 +45,20 @@ describe("requestLocalAction", () => {
 
     await expect(requestLocalAction("generate", fetcher)).rejects.toThrow("Invalid local action response");
   });
+
+  it("posts to the local git status endpoint", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ action: "git-status", ok: true, output: "clean" }), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      }),
+    );
+
+    await expect(requestLocalAction("git-status", fetcher)).resolves.toEqual({
+      action: "git-status",
+      ok: true,
+      output: "clean",
+    });
+    expect(fetcher).toHaveBeenCalledWith("/api/actions/git-status", { method: "POST" });
+  });
 });

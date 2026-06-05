@@ -1,4 +1,4 @@
-export type LocalRouteKitAction = "check" | "generate";
+export type LocalRouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
 
 export interface LocalActionResponse {
   action: LocalRouteKitAction;
@@ -10,8 +10,9 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 
 function isLocalActionResponse(value: unknown): value is LocalActionResponse {
   const candidate = value as LocalActionResponse;
+  const actions: LocalRouteKitAction[] = ["check", "generate", "git-status", "git-commit", "git-push"];
   return (
-    (candidate?.action === "check" || candidate?.action === "generate") &&
+    actions.includes(candidate?.action) &&
     typeof candidate.ok === "boolean" &&
     typeof candidate.output === "string"
   );

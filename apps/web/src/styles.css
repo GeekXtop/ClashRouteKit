@@ -381,6 +381,13 @@ button:disabled {
   gap: 10px;
 }
 
+.operation-hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .run-state {
   min-height: 30px;
   padding: 0 10px;
@@ -551,6 +558,23 @@ button:disabled {
   min-height: 118px;
   background: #10181d;
   color: #d8e7e9;
+}
+
+.local-project-actions {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.project-message {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.project-message.error {
+  color: var(--red);
 }
 
 .empty-state {

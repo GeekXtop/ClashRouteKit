@@ -1,3 +1,7 @@
+export {
+  parseRouteKitConfig,
+  serializeRouteKitConfig,
+} from "./configDocument.js";
 export { renderIni } from "./ini.js";
 export {
   collectDomainProviderRules,

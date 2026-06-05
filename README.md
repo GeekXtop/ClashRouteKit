@@ -4,6 +4,27 @@
 
 本项目的核心思路是自己声明策略组、规则模块和规则顺序，不再把 Aethersailor、ACL4SSR 或 dler 的 INI 当主模板继承。第三方项目只作为数据源：GEOSITE tag、Clash list、Clash provider YAML 或 domain-list-community data。
 
+## Local-first usage
+
+ClashRouteKit is intended to be used as a repository template.
+
+1. Fork this repository or create a new repository from the template.
+2. Clone your repository locally.
+3. Install dependencies with `pnpm install`.
+4. Start the local Web editor with `pnpm dev`.
+5. Edit route modules in the Web UI.
+6. Click `保存配置`, then run `检查`, `生成输出`, `提交配置`, and `推送发布`.
+7. Wait for GitHub Actions to publish the `publish` branch.
+
+Published files are available at:
+
+```text
+https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini
+https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/<Provider_File>.yaml
+```
+
+The Web UI does not require GitHub OAuth or a browser token. It uses the local dev server to write files and relies on your local Git credentials for `git push`.
+
 ## 产出与发布
 
 - `output/templates/Custom_Clash.ini`：给 SubConverter-Extended 使用的 INI。

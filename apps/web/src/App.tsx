@@ -17,7 +17,9 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { renderIni, type RouteKitProjectConfig, type RouteModule } from "@clash-route-kit/core";
 import { requestLocalAction, type LocalRouteKitAction } from "./actions.js";
-import { projectConfig } from "./config.js";
+import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
+import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
+import { toggleModuleEnabled } from "./projectState.js";
 import { createPolicyStats, createRouteSummary, type RouteSummaryRow } from "./routeSummary.js";
 import {
   buildSubconverterUrl,
@@ -36,23 +38,6 @@ interface LocalActionState {
 
 const subscriptionStorageKey = "clash-route-kit-subscriptions";
 const defaultSubconverterEndpoint = "10.0.0.3:25500";
-
-function defaultEnabled(modules: RouteModule[]): Record<string, boolean> {
-  return Object.fromEntries(modules.map((module) => [module.id, module.enabled !== false]));
-}
-
-function activeProjectConfig(
-  config: RouteKitProjectConfig,
-  enabled: Record<string, boolean>,
-): RouteKitProjectConfig {
-  return {
-    ...config,
-    modules: config.modules.map((module) => ({
-      ...module,
-      enabled: enabled[module.id],
-    })),
-  };
-}
 
 function isProviderSubscription(value: unknown): value is ProviderSubscription {
   const candidate = value as ProviderSubscription;
@@ -159,8 +144,23 @@ function LocalActionsPanel({
           <Play size={16} />
           生成输出
         </button>
+        <button className="command-button" disabled={running} type="button" onClick={() => onRun("git-status")}>
+          <Play size={16} />
+          Git 状态
+        </button>
+        <button className="command-button" disabled={running} type="button" onClick={() => onRun("git-commit")}>
+          <Play size={16} />
+          提交配置
+        </button>
+        <button className="command-button" disabled={running} type="button" onClick={() => onRun("git-push")}>
+          <Play size={16} />
+          推送发布
+        </button>
         <span className={`run-state ${actionState.status}`}>{statusLabel(actionState.status)}</span>
       </div>
+      <p className="operation-hint">
+        推荐顺序：保存配置 -&gt; 运行检查 -&gt; 生成输出 -&gt; 提交配置 -&gt; 推送发布。推送后 GitHub Actions 会生成 publish 分支。
+      </p>
       <pre className="action-output">{actionState.output}</pre>
     </div>
   );
@@ -324,8 +324,16 @@ function TagList({ title, tags }: { title: string; tags: string[] }) {
 }
 
 export default function App() {
-  const [enabled, setEnabled] = useState(() => defaultEnabled(projectConfig.modules));
-  const [selectedModuleId, setSelectedModuleId] = useState(projectConfig.modules[0]?.id ?? "");
+  const [config, setConfig] = useState<RouteKitProjectConfig>(bundledProjectConfig);
+  const [configYaml, setConfigYaml] = useState(bundledProjectConfigYaml);
+  const [projectState, setProjectState] = useState<{
+    status: "loading" | "ready" | "saving" | "error";
+    message: string;
+  }>({
+    status: "loading",
+    message: "正在读取本地 config/modules.yaml",
+  });
+  const [selectedModuleId, setSelectedModuleId] = useState(bundledProjectConfig.modules[0]?.id ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("rules");
   const [policyFilter, setPolicyFilter] = useState("全部");
   const [subscriptions, setSubscriptions] = useState(loadSubscriptions);
@@ -336,7 +344,6 @@ export default function App() {
     output: "尚未运行本地命令",
   });
 
-  const config = useMemo(() => activeProjectConfig(projectConfig, enabled), [enabled]);
   const routeRows = useMemo(() => createRouteSummary(config), [config]);
   const policyStats = useMemo(() => createPolicyStats(config), [config]);
   const iniPreview = useMemo(() => renderIni(config), [config]);
@@ -354,6 +361,33 @@ export default function App() {
       endpoint: subconverterEndpoint,
     });
   }, [config.publishBaseUrl, config.template.output, subconverterEndpoint, subscriptions]);
+
+  useEffect(() => {
+    let alive = true;
+
+    void loadLocalProjectConfig()
+      .then((result) => {
+        if (!alive) return;
+        setConfig(result.config);
+        setConfigYaml(result.yaml);
+        setSelectedModuleId(result.config.modules[0]?.id ?? "");
+        setProjectState({
+          status: "ready",
+          message: "已读取本地 config/modules.yaml",
+        });
+      })
+      .catch((error: unknown) => {
+        if (!alive) return;
+        setProjectState({
+          status: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(subscriptionStorageKey, JSON.stringify(subscriptions));
@@ -392,6 +426,28 @@ export default function App() {
     if (!subconverterUrl) return;
     await navigator.clipboard.writeText(subconverterUrl);
     setCopied(true);
+  }
+
+  async function saveLocalProject() {
+    setProjectState({
+      status: "saving",
+      message: "正在写入 config/modules.yaml",
+    });
+
+    try {
+      const result = await saveLocalProjectConfig(config);
+      setConfig(result.config);
+      setConfigYaml(result.yaml);
+      setProjectState({
+        status: "ready",
+        message: "已保存 config/modules.yaml，可运行检查、生成和提交",
+      });
+    } catch (error: unknown) {
+      setProjectState({
+        status: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async function runLocalRouteKitAction(action: LocalRouteKitAction) {
@@ -480,12 +536,13 @@ export default function App() {
                 module={module}
                 selected={selectedModule?.id === module.id}
                 onSelect={() => setSelectedModuleId(module.id)}
-                onToggle={() =>
-                  setEnabled((current) => ({
-                    ...current,
-                    [module.id]: !current[module.id],
-                  }))
-                }
+                onToggle={() => {
+                  setConfig((current) => toggleModuleEnabled(current, module.id));
+                  setProjectState({
+                    status: "ready",
+                    message: "有未保存的本地配置修改",
+                  });
+                }}
               />
             ))}
           </div>
@@ -548,6 +605,28 @@ export default function App() {
         </section>
 
         <aside className="right-rail">
+          <section className="panel local-project-panel">
+            <div className="panel-heading">
+              <div>
+                <h2>本地项目</h2>
+                <span>{projectState.status}</span>
+              </div>
+              <Settings2 size={18} />
+            </div>
+            <div className="local-project-actions">
+              <button
+                className="command-button"
+                disabled={projectState.status === "saving"}
+                type="button"
+                onClick={saveLocalProject}
+              >
+                保存配置
+              </button>
+              <p className={`project-message ${projectState.status}`}>{projectState.message}</p>
+              <p className="project-message">当前 YAML {configYaml.length} 字符</p>
+            </div>
+          </section>
+
           <section className="panel detail-panel">
             <div className="panel-heading">
               <div>
