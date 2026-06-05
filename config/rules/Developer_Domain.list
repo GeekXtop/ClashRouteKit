@@ -1,0 +1,14 @@
+# Developer domains that should stay in Tech even if upstream GEOSITE coverage changes.
+DOMAIN-SUFFIX,deb.debian.org
+DOMAIN-SUFFIX,security.debian.org
+DOMAIN-SUFFIX,debian.map.fastlydns.net
+DOMAIN-SUFFIX,archive.ubuntu.com
+DOMAIN-SUFFIX,security.ubuntu.com
+DOMAIN-SUFFIX,launchpad.net
+DOMAIN-SUFFIX,packages.microsoft.com
+DOMAIN-SUFFIX,download.docker.com
+DOMAIN-SUFFIX,registry.npmjs.org
+DOMAIN-SUFFIX,pypi.org
+DOMAIN-SUFFIX,files.pythonhosted.org
+DOMAIN-SUFFIX,static.rust-lang.org
+DOMAIN-SUFFIX,crates.io

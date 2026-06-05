@@ -1,0 +1,4 @@
+# Domains that should always use Direct.
+# Format examples:
+# DOMAIN-SUFFIX,example.cn
+# DOMAIN,exact.example.cn

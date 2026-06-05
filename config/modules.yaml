@@ -1,0 +1,313 @@
+publishBaseUrl: http://127.0.0.1:8787
+
+template:
+  output: Custom_Clash.ini
+
+proxyGroups:
+  - name: Proxy
+    type: select
+    options:
+      - Auto
+      - Direct
+    nodeFilters:
+      - .*
+
+  - name: Auto
+    type: url-test
+    options: []
+    nodeFilters:
+      - .*
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    tolerance: 50
+
+  - name: AI
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Tech
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Crypto
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Microsoft
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Streaming
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Games
+    type: select
+    options:
+      - Proxy
+      - Auto
+      - Direct
+
+  - name: Direct
+    type: select
+    options:
+      - DIRECT
+
+modules:
+  - id: private
+    policy: Direct
+    geosite:
+      - private
+
+  - id: custom-direct
+    policy: Direct
+    providers:
+      - behavior: domain
+        file: Custom_Direct_Domain.yaml
+
+  - id: custom-proxy
+    policy: Proxy
+    providers:
+      - behavior: domain
+        file: Custom_Proxy_Domain.yaml
+
+  - id: ai
+    policy: AI
+    providers:
+      - behavior: domain
+        file: AI_Domain.yaml
+    geosite:
+      - openai
+      - anthropic
+      - google-gemini
+      - google-deepmind
+      - jetbrains-ai
+      - github-copilot
+
+  - id: developer
+    policy: Tech
+    providers:
+      - behavior: domain
+        file: Developer_Domain.yaml
+    geosite:
+      - github
+      - gitlab
+      - npmjs
+      - nodejs
+      - docker
+      - debian
+      - ubuntu
+      - python
+      - golang
+      - rust
+      - jetbrains
+      - sourceforge
+
+  - id: crypto
+    policy: Crypto
+    providers:
+      - behavior: domain
+        file: Crypto_Domain.yaml
+    geosite:
+      - binance
+      - okx
+      - bybit
+
+  - id: microsoft
+    policy: Microsoft
+    providers:
+      - behavior: domain
+        file: Microsoft_Domain.yaml
+    geosite:
+      - microsoft-dev
+      - microsoft
+
+  - id: streaming
+    enabled: false
+    policy: Streaming
+    geosite:
+      - youtube
+      - netflix
+      - disney
+
+  - id: games
+    enabled: false
+    policy: Games
+    geosite:
+      - steam
+      - epicgames
+
+  - id: global-proxy
+    policy: Proxy
+    geosite:
+      - geolocation-!cn
+
+  - id: china
+    policy: Direct
+    geosite:
+      - geolocation-cn
+      - cn
+    geoip:
+      - cn
+
+final:
+  policy: Proxy
+
+ruleProviders:
+  - name: Custom_Direct
+    output: Custom_Direct_Domain.yaml
+    behavior: domain
+    sources:
+      - name: LocalDirect
+        type: clash-list
+        path: config/rules/Custom_Direct_Domain.list
+
+  - name: Custom_Proxy
+    output: Custom_Proxy_Domain.yaml
+    behavior: domain
+    sources:
+      - name: LocalProxy
+        type: clash-list
+        path: config/rules/Custom_Proxy_Domain.list
+
+  - name: AI
+    output: AI_Domain.yaml
+    behavior: domain
+    sources:
+      - name: DlerRules_AI_Suite
+        type: clash-provider
+        path: ../../Github-GeekXtop/Rules/Clash/Provider/AI Suite.yaml
+      - name: DLC_openai
+        type: domain-list-community
+        entry: openai
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_anthropic
+        type: domain-list-community
+        entry: anthropic
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_google_gemini
+        type: domain-list-community
+        entry: google-gemini
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_google_deepmind
+        type: domain-list-community
+        entry: google-deepmind
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_jetbrains_ai
+        type: domain-list-community
+        entry: jetbrains-ai
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_github_copilot
+        type: domain-list-community
+        entry: github-copilot
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+
+  - name: Developer
+    output: Developer_Domain.yaml
+    behavior: domain
+    sources:
+      - name: LocalDeveloper
+        type: clash-list
+        path: config/rules/Developer_Domain.list
+      - name: ACL4SSR_Developer
+        type: clash-list
+        path: ../../Github-GeekXtop/ACL4SSR/Clash/Ruleset/Developer.list
+      - name: DLC_github
+        type: domain-list-community
+        entry: github
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_gitlab
+        type: domain-list-community
+        entry: gitlab
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_npmjs
+        type: domain-list-community
+        entry: npmjs
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_nodejs
+        type: domain-list-community
+        entry: nodejs
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_docker
+        type: domain-list-community
+        entry: docker
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_debian
+        type: domain-list-community
+        entry: debian
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_ubuntu
+        type: domain-list-community
+        entry: ubuntu
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_python
+        type: domain-list-community
+        entry: python
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_golang
+        type: domain-list-community
+        entry: golang
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_rust
+        type: domain-list-community
+        entry: rust
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_jetbrains
+        type: domain-list-community
+        entry: jetbrains
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_sourceforge
+        type: domain-list-community
+        entry: sourceforge
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+
+  - name: Crypto
+    output: Crypto_Domain.yaml
+    behavior: domain
+    sources:
+      - name: DlerRules_Crypto
+        type: clash-provider
+        path: ../../Github-GeekXtop/Rules/Clash/Provider/Crypto.yaml
+      - name: DLC_binance
+        type: domain-list-community
+        entry: binance
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_okx
+        type: domain-list-community
+        entry: okx
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_bybit
+        type: domain-list-community
+        entry: bybit
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+
+  - name: Microsoft
+    output: Microsoft_Domain.yaml
+    behavior: domain
+    sources:
+      - name: DlerRules_Microsoft
+        type: clash-provider
+        path: ../../Github-GeekXtop/Rules/Clash/Provider/Microsoft.yaml
+      - name: DLC_microsoft_dev
+        type: domain-list-community
+        entry: microsoft-dev
+        basePath: ../../Github-GeekXtop/domain-list-community/data
+      - name: DLC_microsoft
+        type: domain-list-community
+        entry: microsoft
+        basePath: ../../Github-GeekXtop/domain-list-community/data

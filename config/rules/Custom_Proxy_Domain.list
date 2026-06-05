@@ -1,0 +1,4 @@
+# Domains that should always use Proxy before broader GEO rules.
+# Format examples:
+# DOMAIN-SUFFIX,example.com
+# DOMAIN,exact.example.com

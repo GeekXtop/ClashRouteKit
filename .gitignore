@@ -1,0 +1,10 @@
+node_modules/
+dist/
+output/
+vendor/
+*.tsbuildinfo
+.playwright-mcp/
+coverage/
+.env
+.env.*
+!.env.example
