@@ -6,14 +6,17 @@ import {
   Layers3,
   Link2,
   ListTree,
+  Play,
   Plus,
   Power,
   Route,
   Settings2,
+  Terminal,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { renderIni, type RouteKitProjectConfig, type RouteModule } from "@clash-route-kit/core";
+import { requestLocalAction, type LocalRouteKitAction } from "./actions.js";
 import { projectConfig } from "./config.js";
 import { createPolicyStats, createRouteSummary, type RouteSummaryRow } from "./routeSummary.js";
 import {
@@ -22,7 +25,14 @@ import {
   type ProviderSubscription,
 } from "./subscriptions.js";
 
-type ViewMode = "rules" | "ini" | "subscriptions";
+type ViewMode = "rules" | "ini" | "subscriptions" | "actions";
+type ActionStatus = "idle" | "running" | "success" | "error";
+
+interface LocalActionState {
+  status: ActionStatus;
+  action?: LocalRouteKitAction;
+  output: string;
+}
 
 const subscriptionStorageKey = "clash-route-kit-subscriptions";
 const defaultSubconverterEndpoint = "10.0.0.3:25500";
@@ -118,6 +128,40 @@ function Metric({ label, value }: { label: string; value: number | string }) {
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function statusLabel(status: ActionStatus): string {
+  if (status === "running") return "运行中";
+  if (status === "success") return "通过";
+  if (status === "error") return "失败";
+  return "未运行";
+}
+
+function LocalActionsPanel({
+  actionState,
+  onRun,
+}: {
+  actionState: LocalActionState;
+  onRun: (action: LocalRouteKitAction) => void;
+}) {
+  const running = actionState.status === "running";
+
+  return (
+    <div className="local-actions">
+      <div className="action-toolbar">
+        <button className="command-button" disabled={running} type="button" onClick={() => onRun("check")}>
+          <Play size={16} />
+          运行检查
+        </button>
+        <button className="command-button" disabled={running} type="button" onClick={() => onRun("generate")}>
+          <Play size={16} />
+          生成输出
+        </button>
+        <span className={`run-state ${actionState.status}`}>{statusLabel(actionState.status)}</span>
+      </div>
+      <pre className="action-output">{actionState.output}</pre>
     </div>
   );
 }
@@ -287,6 +331,10 @@ export default function App() {
   const [subscriptions, setSubscriptions] = useState(loadSubscriptions);
   const [subconverterEndpoint, setSubconverterEndpoint] = useState(defaultSubconverterEndpoint);
   const [copied, setCopied] = useState(false);
+  const [actionState, setActionState] = useState<LocalActionState>({
+    status: "idle",
+    output: "尚未运行本地命令",
+  });
 
   const config = useMemo(() => activeProjectConfig(projectConfig, enabled), [enabled]);
   const routeRows = useMemo(() => createRouteSummary(config), [config]);
@@ -346,6 +394,29 @@ export default function App() {
     setCopied(true);
   }
 
+  async function runLocalRouteKitAction(action: LocalRouteKitAction) {
+    setActionState({
+      action,
+      status: "running",
+      output: `[${action}] running...`,
+    });
+
+    try {
+      const result = await requestLocalAction(action);
+      setActionState({
+        action: result.action,
+        status: result.ok ? "success" : "error",
+        output: result.output,
+      });
+    } catch (error: unknown) {
+      setActionState({
+        action,
+        status: "error",
+        output: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -379,6 +450,14 @@ export default function App() {
             >
               <Link2 size={16} />
               订阅
+            </button>
+            <button
+              className={viewMode === "actions" ? "active" : ""}
+              type="button"
+              onClick={() => setViewMode("actions")}
+            >
+              <Terminal size={16} />
+              操作
             </button>
           </div>
         </div>
@@ -423,7 +502,15 @@ export default function App() {
           <div className="panel preview-panel">
             <div className="panel-heading preview-heading">
               <div>
-                <h2>{viewMode === "rules" ? "规则顺序" : viewMode === "ini" ? "INI 预览" : "订阅管理"}</h2>
+                <h2>
+                  {viewMode === "rules"
+                    ? "规则顺序"
+                    : viewMode === "ini"
+                      ? "INI 预览"
+                      : viewMode === "subscriptions"
+                        ? "订阅管理"
+                        : "本地操作"}
+                </h2>
                 <span>{config.template.output}</span>
               </div>
               {viewMode === "rules" ? (
@@ -453,6 +540,9 @@ export default function App() {
                 onRemove={removeSubscription}
                 onUpdate={updateSubscription}
               />
+            ) : null}
+            {viewMode === "actions" ? (
+              <LocalActionsPanel actionState={actionState} onRun={runLocalRouteKitAction} />
             ) : null}
           </div>
         </section>
