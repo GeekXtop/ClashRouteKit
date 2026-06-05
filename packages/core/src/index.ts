@@ -14,4 +14,5 @@ export type {
   RouteModule,
   RuleProviderConfig,
   RuleProviderSource,
+  SourceBase,
 } from "./types.js";

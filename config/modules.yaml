@@ -191,31 +191,39 @@ ruleProviders:
     sources:
       - name: DlerRules_AI_Suite
         type: clash-provider
-        path: ../../Github-GeekXtop/Rules/Clash/Provider/AI Suite.yaml
+        baseEnv: CLASH_ROUTE_KIT_RULES_ROOT
+        basePath: vendor/Rules
+        path: Clash/Provider/AI Suite.yaml
       - name: DLC_openai
         type: domain-list-community
         entry: openai
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_anthropic
         type: domain-list-community
         entry: anthropic
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_google_gemini
         type: domain-list-community
         entry: google-gemini
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_google_deepmind
         type: domain-list-community
         entry: google-deepmind
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_jetbrains_ai
         type: domain-list-community
         entry: jetbrains-ai
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_github_copilot
         type: domain-list-community
         entry: github-copilot
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
 
   - name: Developer
     output: Developer_Domain.yaml
@@ -226,55 +234,69 @@ ruleProviders:
         path: config/rules/Developer_Domain.list
       - name: ACL4SSR_Developer
         type: clash-list
-        path: ../../Github-GeekXtop/ACL4SSR/Clash/Ruleset/Developer.list
+        baseEnv: CLASH_ROUTE_KIT_ACL4SSR_ROOT
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/Developer.list
       - name: DLC_github
         type: domain-list-community
         entry: github
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_gitlab
         type: domain-list-community
         entry: gitlab
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_npmjs
         type: domain-list-community
         entry: npmjs
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_nodejs
         type: domain-list-community
         entry: nodejs
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_docker
         type: domain-list-community
         entry: docker
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_debian
         type: domain-list-community
         entry: debian
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_ubuntu
         type: domain-list-community
         entry: ubuntu
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_python
         type: domain-list-community
         entry: python
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_golang
         type: domain-list-community
         entry: golang
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_rust
         type: domain-list-community
         entry: rust
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_jetbrains
         type: domain-list-community
         entry: jetbrains
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_sourceforge
         type: domain-list-community
         entry: sourceforge
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
 
   - name: Crypto
     output: Crypto_Domain.yaml
@@ -282,19 +304,24 @@ ruleProviders:
     sources:
       - name: DlerRules_Crypto
         type: clash-provider
-        path: ../../Github-GeekXtop/Rules/Clash/Provider/Crypto.yaml
+        baseEnv: CLASH_ROUTE_KIT_RULES_ROOT
+        basePath: vendor/Rules
+        path: Clash/Provider/Crypto.yaml
       - name: DLC_binance
         type: domain-list-community
         entry: binance
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_okx
         type: domain-list-community
         entry: okx
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_bybit
         type: domain-list-community
         entry: bybit
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
 
   - name: Microsoft
     output: Microsoft_Domain.yaml
@@ -302,12 +329,16 @@ ruleProviders:
     sources:
       - name: DlerRules_Microsoft
         type: clash-provider
-        path: ../../Github-GeekXtop/Rules/Clash/Provider/Microsoft.yaml
+        baseEnv: CLASH_ROUTE_KIT_RULES_ROOT
+        basePath: vendor/Rules
+        path: Clash/Provider/Microsoft.yaml
       - name: DLC_microsoft_dev
         type: domain-list-community
         entry: microsoft-dev
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data
       - name: DLC_microsoft
         type: domain-list-community
         entry: microsoft
-        basePath: ../../Github-GeekXtop/domain-list-community/data
+        baseEnv: CLASH_ROUTE_KIT_DLC_DATA
+        basePath: vendor/domain-list-community/data

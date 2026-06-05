@@ -1,0 +1,81 @@
+name: Publish Generated Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish.yml"
+      - "apps/**"
+      - "config/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "vitest.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Checkout domain-list-community
+        uses: actions/checkout@v4
+        with:
+          repository: v2fly/domain-list-community
+          path: vendor/domain-list-community
+
+      - name: Checkout ACL4SSR
+        uses: actions/checkout@v4
+        with:
+          repository: ACL4SSR/ACL4SSR
+          path: vendor/ACL4SSR
+
+      - name: Checkout dler Rules
+        uses: actions/checkout@v4
+        with:
+          repository: dler-io/Rules
+          path: vendor/Rules
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate
+        run: |
+          pnpm test
+          pnpm typecheck
+          pnpm build
+          pnpm check
+
+      - name: Generate publish files
+        env:
+          CLASH_ROUTE_KIT_PUBLISH_BASE_URL: https://raw.githubusercontent.com/${{ github.repository }}/publish
+        run: pnpm generate
+
+      - name: Publish to publish branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: publish
+          publish_dir: ./output
+          force_orphan: true
+          commit_message: publish generated routes from ${{ github.sha }}

@@ -9,7 +9,7 @@
 - `apps/web/`：React/Vite 本地控制台；界面源码在 `src/`，静态资源在 `public/`。
 - `config/modules.yaml`：策略组、模块顺序、GEOSITE/GEOIP 条目和 provider 声明。
 - `config/rules/`：手工维护的规则列表。
-- `output/`：生成的 INI 和 provider YAML；应通过命令重新生成，不要手动编辑。
+- `output/`：生成的 INI 和 provider YAML；本地 ignored，不提交到 `main`，由 GitHub Actions 发布到 `publish` 分支。
 
 ## 构建、测试与开发命令
 
@@ -37,4 +37,4 @@
 
 ## 安全与 Agent 专用说明
 
-不要提交密钥、订阅 URL、私有代理端点或最终 `config.yaml`。当前 `config/modules.yaml` 可引用相对路径的本地公开规则仓库；避免写入绝对机器路径。确保 `output/` 文件可由 `config/` 重新生成。Agent 工作时默认使用简体中文回复，假定系统为 Windows 11；修改文件内容时使用 `apply_patch`，避免编码漂移。
+不要提交密钥、订阅 URL、私有代理端点或最终 `config.yaml`。当前 `config/modules.yaml` 通过 `baseEnv` 支持本地上游 clone，并通过 `basePath` 回退到 CI 的 `vendor/` checkout；避免写入绝对机器路径。确保 `output/` 文件可由 `config/` 重新生成，并由 `publish` 分支公开。Agent 工作时默认使用简体中文回复，假定系统为 Windows 11；修改文件内容时使用 `apply_patch`，避免编码漂移。

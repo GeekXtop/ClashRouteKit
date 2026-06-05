@@ -4,12 +4,19 @@
 
 本项目的核心思路是自己声明策略组、规则模块和规则顺序，不再把 Aethersailor、ACL4SSR 或 dler 的 INI 当主模板继承。第三方项目只作为数据源：GEOSITE tag、Clash list、Clash provider YAML 或 domain-list-community data。
 
-## 产出
+## 产出与发布
 
 - `output/templates/Custom_Clash.ini`：给 SubConverter-Extended 使用的 INI。
 - `output/rules/*.yaml`：INI 引用的 Clash rule-provider。
 
-不提交：订阅链接、最终 `config.yaml`、`output/`、`vendor/`、`dist/`、provider 缓存、`.mrs`、本地环境文件。
+`output/` 不提交到 `main`，但会由 GitHub Actions 生成并发布到 `publish` 分支。最终公开产物 URL：
+
+```text
+https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini
+https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/Developer_Domain.yaml
+```
+
+不提交到 `main`：订阅链接、最终 `config.yaml`、`output/`、`vendor/`、`dist/`、provider 缓存、`.mrs`、本地环境文件。
 
 最终 `config.yaml` 仍由本地 SubConverter-Extended 生成，再导入 OpenClash。
 
@@ -21,7 +28,7 @@
 <publishBaseUrl>/rules/<provider>.yaml
 ```
 
-当前默认值：
+本地默认值：
 
 ```text
 http://127.0.0.1:8787
@@ -42,6 +49,14 @@ http://127.0.0.1:8787/rules/Developer_Domain.yaml
 ```
 
 注意：如果 SubConverter 或 OpenClash 跑在路由器上，`127.0.0.1` 指的是路由器自己，不是你的电脑。此时要把 `publishBaseUrl` 改成电脑的 LAN 地址，例如 `http://192.168.1.10:8787`，或者改成 GitHub/raw/CDN 等公开地址。
+
+GitHub Actions 发布时不会使用本地默认值，而是通过环境变量覆盖为：
+
+```text
+https://raw.githubusercontent.com/${{ github.repository }}/publish
+```
+
+因此 `publish` 分支里的 INI 会引用同一分支下的 `rules/*.yaml`。
 
 ## 数据流
 
@@ -79,15 +94,24 @@ FINAL -> Proxy
 
 ## 真实数据源
 
-当前默认配置引用这些本地数据：
+当前默认配置在 CI 中引用 `vendor/` 里的上游 checkout：
 
-- `../../Github-GeekXtop/domain-list-community/data`：DLC tag，例如 `github`、`debian`、`ubuntu`、`openai`。
-- `../../Github-GeekXtop/ACL4SSR/Clash/Ruleset/Developer.list`：Developer 补充列表。
-- `../../Github-GeekXtop/Rules/Clash/Provider/AI Suite.yaml`：AI provider。
-- `../../Github-GeekXtop/Rules/Clash/Provider/Crypto.yaml`：Crypto provider。
-- `../../Github-GeekXtop/Rules/Clash/Provider/Microsoft.yaml`：Microsoft provider。
+- `vendor/domain-list-community/data`：DLC tag，例如 `github`、`debian`、`ubuntu`、`openai`。
+- `vendor/ACL4SSR/Clash/Ruleset/Developer.list`：Developer 补充列表。
+- `vendor/Rules/Clash/Provider/AI Suite.yaml`：AI provider。
+- `vendor/Rules/Clash/Provider/Crypto.yaml`：Crypto provider。
+- `vendor/Rules/Clash/Provider/Microsoft.yaml`：Microsoft provider。
 
-这些路径按当前目录结构从仓库根目录解析。如果你把上游仓库放到别的位置，可以修改 `config/modules.yaml` 里的 `path` / `basePath`，或后续改成环境变量驱动。
+本地不需要复制一份 `vendor/`，可以直接用你已经下载的上游仓库：
+
+```powershell
+$env:CLASH_ROUTE_KIT_DLC_DATA = "E:\Developer\Github-GeekXtop\domain-list-community\data"
+$env:CLASH_ROUTE_KIT_ACL4SSR_ROOT = "E:\Developer\Github-GeekXtop\ACL4SSR"
+$env:CLASH_ROUTE_KIT_RULES_ROOT = "E:\Developer\Github-GeekXtop\Rules"
+pnpm generate
+```
+
+如果这些环境变量不存在，CLI 会回退到 `config/modules.yaml` 中声明的 `basePath`。
 
 支持的 source 类型：
 
@@ -124,6 +148,22 @@ Web 控制台：
 
 ```powershell
 pnpm dev
+```
+
+## GitHub Actions
+
+`Publish Generated Files` 会在 `main` 分支相关文件变更时自动触发，也可以手动触发。
+
+流程：
+
+```text
+checkout project
+checkout v2fly/domain-list-community -> vendor/domain-list-community
+checkout ACL4SSR/ACL4SSR -> vendor/ACL4SSR
+checkout dler-io/Rules -> vendor/Rules
+pnpm test/typecheck/build/check
+CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/<owner>/<repo>/publish pnpm generate
+publish output/ -> publish branch
 ```
 
 ## 目录

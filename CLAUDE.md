@@ -44,7 +44,7 @@ pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
 
 修改配置的 schema 时，这三处消费方和 `types.ts` 都要同步考虑。
 
-`publishBaseUrl` 是写入 INI 的 provider URL 根地址。当前本地默认值是 `http://127.0.0.1:8787`，脚本会生成 `<publishBaseUrl>/rules/<file>.yaml`。如果 SubConverter 或 OpenClash 不在同一台机器运行，需要改成可被它访问的 LAN IP 或公开 URL。
+`publishBaseUrl` 是写入 INI 的 provider URL 根地址。当前本地默认值是 `http://127.0.0.1:8787`，脚本会生成 `<publishBaseUrl>/rules/<file>.yaml`。如果 SubConverter 或 OpenClash 不在同一台机器运行，需要改成可被它访问的 LAN IP 或公开 URL。GitHub Actions 发布时通过 `CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/publish` 覆盖本地默认值，所以 `publish` 分支里的 INI 会引用同一分支的 `rules/*.yaml`。
 
 ### core 的三个核心函数
 
@@ -69,7 +69,16 @@ pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
 - `clash-provider`：读取 Clash provider YAML 的 `payload` 数组。
 - `domain-list-community`：读取本地 domain-list-community data 文件，递归展开 `include:`。
 
-当前默认配置引用相对路径的本地上游仓库：`../../Github-GeekXtop/domain-list-community/data`、`../../Github-GeekXtop/ACL4SSR/...`、`../../Github-GeekXtop/Rules/...`。不要把绝对机器路径写进提交。
+当前默认配置使用 `baseEnv` + `basePath`：本地可以设置 `CLASH_ROUTE_KIT_DLC_DATA`、`CLASH_ROUTE_KIT_ACL4SSR_ROOT`、`CLASH_ROUTE_KIT_RULES_ROOT` 指向已有 clone；CI 在 `vendor/domain-list-community`、`vendor/ACL4SSR`、`vendor/Rules` checkout 上游仓库。不要把绝对机器路径写进提交。
+
+### 发布模型
+
+`output/` 本地 ignored，不提交到 `main`。`.github/workflows/publish.yml` 在 `main` 变更或手动触发时运行：
+
+1. checkout 本仓库和三个上游仓库到 `vendor/`。
+2. 运行 `pnpm test`、`pnpm typecheck`、`pnpm build`、`pnpm check`。
+3. 用公开 raw URL 覆盖 `publishBaseUrl` 并运行 `pnpm generate`。
+4. 将 `output/` 发布到 `publish` 分支。
 
 ## 关键约定
 

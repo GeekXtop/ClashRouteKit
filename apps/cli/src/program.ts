@@ -8,6 +8,7 @@ import {
   renderIni,
   type RouteKitProjectConfig,
   type RuleProviderSource,
+  type SourceBase,
 } from "@clash-route-kit/core";
 import YAML from "yaml";
 
@@ -21,8 +22,24 @@ export interface GenerateResult {
   rulePaths: string[];
 }
 
+function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
+  if (source.baseEnv) {
+    const envValue = process.env[source.baseEnv];
+    if (envValue) return resolveInputPath(root, envValue);
+  }
+
+  if (source.basePath) return resolveInputPath(root, source.basePath);
+  if (fallbackBasePath) return resolveInputPath(root, fallbackBasePath);
+  return root;
+}
+
 function resolveInputPath(root: string, inputPath: string): string {
   return path.isAbsolute(inputPath) ? inputPath : path.resolve(root, inputPath);
+}
+
+function resolveSourceFile(root: string, source: SourceBase, sourcePath: string): string {
+  if (path.isAbsolute(sourcePath)) return sourcePath;
+  return path.join(resolveBasePath(root, source), sourcePath);
 }
 
 export function resolveProjectRoot(start: string, configFile: string): string {
@@ -46,11 +63,13 @@ export function resolveProjectRoot(start: string, configFile: string): string {
 
 async function readConfig(options: ProgramOptions): Promise<RouteKitProjectConfig> {
   const text = await readFile(path.join(options.root, options.configFile), "utf8");
-  return YAML.parse(text) as RouteKitProjectConfig;
+  const config = YAML.parse(text) as RouteKitProjectConfig;
+  const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+  return publishBaseUrl ? { ...config, publishBaseUrl } : config;
 }
 
-async function readClashList(root: string, sourcePath: string): Promise<string[]> {
-  const text = await readFile(resolveInputPath(root, sourcePath), "utf8");
+async function readClashList(root: string, source: Extract<RuleProviderSource, { type: "clash-list" }>): Promise<string[]> {
+  const text = await readFile(resolveSourceFile(root, source, source.path), "utf8");
   return text
     .replace(/\r\n?/g, "\n")
     .split("\n")
@@ -58,18 +77,15 @@ async function readClashList(root: string, sourcePath: string): Promise<string[]
     .filter((line) => line && !line.startsWith("#"));
 }
 
-async function readClashProvider(root: string, sourcePath: string): Promise<string[]> {
-  const text = await readFile(resolveInputPath(root, sourcePath), "utf8");
+async function readClashProvider(root: string, source: Extract<RuleProviderSource, { type: "clash-provider" }>): Promise<string[]> {
+  const text = await readFile(resolveSourceFile(root, source, source.path), "utf8");
   const parsed = YAML.parse(text) as { payload?: unknown };
   if (!Array.isArray(parsed.payload)) return [];
   return parsed.payload.filter((entry): entry is string => typeof entry === "string");
 }
 
 async function readDomainListCommunity(root: string, source: Extract<RuleProviderSource, { type: "domain-list-community" }>): Promise<string[]> {
-  const basePath = resolveInputPath(
-    root,
-    source.basePath ?? process.env.CLASH_ROUTE_KIT_DLC_DATA ?? "vendor/domain-list-community/data",
-  );
+  const basePath = resolveBasePath(root, source, "vendor/domain-list-community/data");
   const entryPath = path.join(basePath, source.entry);
   const sourceUrl = pathToFileURL(entryPath).toString();
 
@@ -81,10 +97,10 @@ async function readDomainListCommunity(root: string, source: Extract<RuleProvide
 
 async function readRules(root: string, source: RuleProviderSource): Promise<string[]> {
   if (source.type === "clash-list") {
-    return readClashList(root, source.path);
+    return readClashList(root, source);
   }
   if (source.type === "clash-provider") {
-    return readClashProvider(root, source.path);
+    return readClashProvider(root, source);
   }
   if (source.type === "domain-list-community") {
     return readDomainListCommunity(root, source);

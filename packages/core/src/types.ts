@@ -34,23 +34,27 @@ export interface RouteKitConfig {
   };
 }
 
-export interface ClashListSource {
+export interface SourceBase {
+  baseEnv?: string;
+  basePath?: string;
+}
+
+export interface ClashListSource extends SourceBase {
   name: string;
   type: "clash-list";
   path: string;
 }
 
-export interface ClashProviderSource {
+export interface ClashProviderSource extends SourceBase {
   name: string;
   type: "clash-provider";
   path: string;
 }
 
-export interface DomainListCommunitySource {
+export interface DomainListCommunitySource extends SourceBase {
   name: string;
   type: "domain-list-community";
   entry: string;
-  basePath?: string;
 }
 
 export type RuleProviderSource = ClashListSource | ClashProviderSource | DomainListCommunitySource;

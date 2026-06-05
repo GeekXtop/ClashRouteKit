@@ -63,6 +63,29 @@ describe("CLI program", () => {
     );
   });
 
+  it("overrides publishBaseUrl from the environment for publish builds", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await mkdir(path.join(root, "config/rules"), { recursive: true });
+    await writeFile(path.join(root, "config/rules/Developer.list"), "DOMAIN-SUFFIX,debian.org\n", "utf8");
+
+    const previous = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+    process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL = "https://raw.githubusercontent.com/owner/repo/publish";
+    try {
+      const result = await generateOutputs({ root, configFile: "modules.yaml" });
+
+      expect(await readFile(result.templatePath, "utf8")).toContain(
+        "clash-domain:https://raw.githubusercontent.com/owner/repo/publish/rules/External_Developer_Domain.yaml",
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+      } else {
+        process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL = previous;
+      }
+    }
+  });
+
   it("generates provider outputs from local domain-list-community entries", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     const dlcRoot = path.join(root, "vendor/domain-list-community/data");
@@ -149,6 +172,55 @@ ruleProviders:
     expect(output).toContain("'chat.openai.com'");
     expect(output).toContain("'+.openai.com'");
     expect(output).not.toContain("192.0.2.0/24");
+  });
+
+  it("resolves provider source files from baseEnv before basePath", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    const localRulesRoot = path.join(root, "local-rules");
+    await mkdir(localRulesRoot, { recursive: true });
+    await writeFile(path.join(localRulesRoot, "Developer.list"), "DOMAIN-SUFFIX,local-dev.example\n", "utf8");
+    await writeFile(
+      path.join(root, "modules.yaml"),
+      `
+publishBaseUrl: http://127.0.0.1:8787
+template:
+  output: Custom_Clash.ini
+proxyGroups:
+  - name: Proxy
+    type: select
+    options:
+      - DIRECT
+modules: []
+final:
+  policy: Proxy
+ruleProviders:
+  - name: Developer
+    output: Developer_Domain.yaml
+    behavior: domain
+    sources:
+      - name: DeveloperList
+        type: clash-list
+        baseEnv: CLASH_ROUTE_KIT_TEST_RULES_ROOT
+        basePath: vendor/missing
+        path: Developer.list
+`,
+      "utf8",
+    );
+
+    const previous = process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT;
+    process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT = localRulesRoot;
+    try {
+      await generateOutputs({ root, configFile: "modules.yaml" });
+
+      const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
+      expect(output).toContain("'+.local-dev.example'");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT;
+      } else {
+        process.env.CLASH_ROUTE_KIT_TEST_RULES_ROOT = previous;
+      }
+    }
   });
 
   it("previews rule order and checks missing policy groups", async () => {
