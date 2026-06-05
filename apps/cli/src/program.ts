@@ -84,6 +84,16 @@ function publishTemplateUrl(config: RouteKitProjectConfig): string {
   return `${config.publishBaseUrl.replace(/\/+$/, "")}/templates/${config.template.output}`;
 }
 
+function normalizeSubconverterEndpoint(baseUrl?: string): URL {
+  const raw = baseUrl?.trim() || "http://127.0.0.1:25500/sub";
+  const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(raw) ? raw : `http://${raw}`;
+  const endpoint = new URL(withProtocol);
+  if (endpoint.pathname === "/" || endpoint.pathname === "") {
+    endpoint.pathname = "/sub";
+  }
+  return endpoint;
+}
+
 export async function buildSubconverterUrl(options: SubconverterUrlOptions): Promise<string> {
   const subscriptionUrl = options.subscriptionUrl?.trim();
   if (!subscriptionUrl) {
@@ -91,10 +101,7 @@ export async function buildSubconverterUrl(options: SubconverterUrlOptions): Pro
   }
 
   const config = await readConfig(options);
-  const endpoint = new URL(options.subconverterBaseUrl ?? "http://127.0.0.1:25500/sub");
-  if (endpoint.pathname === "/" || endpoint.pathname === "") {
-    endpoint.pathname = "/sub";
-  }
+  const endpoint = normalizeSubconverterEndpoint(options.subconverterBaseUrl);
   endpoint.searchParams.set("target", options.target ?? "clash");
   endpoint.searchParams.set("url", subscriptionUrl);
   endpoint.searchParams.set("config", publishTemplateUrl(config));

@@ -516,6 +516,21 @@ final:
     expect(parsed.searchParams.get("config")).toBe("https://example.com/publish/templates/Custom_Clash.ini");
   });
 
+  it("accepts a host and port SubConverter endpoint", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+
+    const url = await buildSubconverterUrl({
+      root,
+      configFile: "modules.yaml",
+      subscriptionUrl: "https://subscribe.example/token",
+      subconverterBaseUrl: "10.0.0.3:25500",
+    });
+    const parsed = new URL(url);
+
+    expect(`${parsed.origin}${parsed.pathname}`).toBe("http://10.0.0.3:25500/sub");
+  });
+
   it("requires a subscription URL when building a SubConverter URL", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");

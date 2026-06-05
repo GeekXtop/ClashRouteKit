@@ -205,6 +205,7 @@ pnpm subconvert-url
 ```
 
 默认 SubConverter endpoint 是 `http://127.0.0.1:25500/sub`，可用 `CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL` 覆盖。订阅 URL 只从环境变量读取，不写入仓库配置。
+`CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL` 可以写完整 URL，例如 `http://10.0.0.3:25500/sub`，也可以只写 host:port，例如 `10.0.0.3:25500`。
 
 Web 控制台：
 
