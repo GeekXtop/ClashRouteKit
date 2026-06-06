@@ -221,13 +221,13 @@ Manual browser checks:
 
 ## Task 7: Final QA For This Phase
 
-- [ ] `pnpm test`
-- [ ] `pnpm typecheck`
-- [ ] `pnpm build`
-- [ ] `pnpm check`
-- [ ] `pnpm generate`
-- [ ] Browser smoke test on desktop and mobile.
-- [ ] Verify `config/modules.yaml` can be edited, saved, checked, generated, and committed locally.
+- [x] `pnpm test`
+- [x] `pnpm typecheck`
+- [x] `pnpm build`
+- [x] `pnpm check`
+- [x] `pnpm generate`
+- [x] Browser smoke test on desktop and mobile.
+- [x] Verify `config/modules.yaml` can be edited, saved, checked, generated, and committed locally.
 
 Do not mark this phase complete until one real edit/save/check/generate loop works from the Web UI without touching YAML manually.
 
