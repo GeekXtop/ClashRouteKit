@@ -4,7 +4,6 @@ import { requestLocalAction, type LocalRouteKitAction } from "./actions.js";
 import { AppShell } from "./components/AppShell.js";
 import { InspectorPanel } from "./components/InspectorPanel.js";
 import type { PreviewMode } from "./components/PreviewWorkspace.js";
-import type { LocalActionState } from "./components/PublishPanel.js";
 import { SubscriptionPanel } from "./components/SubscriptionPanel.js";
 import { WorkspaceRouter } from "./components/WorkspaceRouter.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
@@ -17,6 +16,7 @@ import {
   setProjectStatus,
   updateProjectValidation,
 } from "./projectController.js";
+import { createInitialActionStates, updateActionState } from "./publishWorkflow.js";
 import { createPolicyStats, createRouteSummary } from "./routeSummary.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
 import { useSubscriptions } from "./useSubscriptions.js";
@@ -28,10 +28,7 @@ export default function App() {
   const [moduleSearch, setModuleSearch] = useState("");
   const [policyFilter, setPolicyFilter] = useState("全部");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("rules");
-  const [actionState, setActionState] = useState<LocalActionState>({
-    status: "idle",
-    output: "尚未运行本地命令",
-  });
+  const [actionStates, setActionStates] = useState(createInitialActionStates);
 
   const config = project.draftConfig;
   const subscriptions = useSubscriptions(config);
@@ -81,14 +78,16 @@ export default function App() {
   }
 
   async function runLocalRouteKitAction(action: LocalRouteKitAction) {
-    setActionState({ action, status: "running", output: `[${action}] running...` });
+    setActionStates((current) => updateActionState(current, action, { status: "running", output: `[${action}] running...` }));
     if (action === "check") {
       setProject((current) => updateProjectValidation(current, { status: "running", output: "[check] running..." }));
     }
 
     try {
       const result = await requestLocalAction(action);
-      setActionState({ action: result.action, status: result.ok ? "success" : "error", output: result.output });
+      setActionStates((current) =>
+        updateActionState(current, result.action, { status: result.ok ? "success" : "error", output: result.output }),
+      );
       if (action === "check") {
         setProject((current) =>
           updateProjectValidation(current, { status: result.ok ? "success" : "error", output: result.output }),
@@ -96,7 +95,7 @@ export default function App() {
       }
     } catch (error: unknown) {
       const output = error instanceof Error ? error.message : String(error);
-      setActionState({ action, status: "error", output });
+      setActionStates((current) => updateActionState(current, action, { status: "error", output }));
       if (action === "check") {
         setProject((current) => updateProjectValidation(current, { status: "error", output }));
       }
@@ -137,7 +136,7 @@ export default function App() {
       onSelectView={(selectedView) => setProject((current) => setProjectSelection(current, { selectedView }))}
     >
       <WorkspaceRouter
-        actionState={actionState}
+        actionStates={actionStates}
         config={config}
         iniPreview={iniPreview}
         moduleSearch={moduleSearch}

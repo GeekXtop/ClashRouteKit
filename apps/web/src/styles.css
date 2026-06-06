@@ -528,6 +528,51 @@ button:disabled {
     12px/1.55 "Cascadia Code", "JetBrains Mono", Consolas, monospace;
 }
 
+.action-output-compact {
+  min-height: 74px;
+  max-height: 180px;
+}
+
+.publish-sequence {
+  display: grid;
+  gap: 12px;
+}
+
+.publish-step {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  overflow: hidden;
+}
+
+.publish-step-header {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--teal-soft);
+  color: var(--teal);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.action-warning {
+  margin: 0;
+  padding: 0 10px 10px 50px;
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .subscription-toolbar,
 .subscription-import,
 .subscription-row,
@@ -673,6 +718,73 @@ button:disabled {
   grid-template-columns: 140px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
+}
+
+.raw-url-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.compact-heading {
+  height: 50px;
+  background: #fbfcfd;
+}
+
+.repo-inputs {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.repo-inputs label {
+  display: grid;
+  gap: 6px;
+}
+
+.repo-inputs span,
+.raw-url-row span,
+.raw-url-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.repo-inputs input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.raw-url-list {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.raw-url-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 36px 42px;
+  align-items: center;
+  gap: 8px;
+}
+
+.raw-url-row code {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 7px;
+  background: #10181d;
+  color: #d8e7e9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    12px/1.4 "Cascadia Code", "JetBrains Mono", Consolas, monospace;
 }
 
 .project-message {
@@ -1165,7 +1277,8 @@ button.state {
   }
 
   .project-grid,
-  .publish-save-row {
+  .publish-save-row,
+  .repo-inputs {
     grid-template-columns: 1fr;
   }
 }
@@ -1178,6 +1291,12 @@ button.state {
   .textarea-grid,
   .provider-edit-row {
     grid-template-columns: 1fr;
+  }
+
+  .publish-step-header,
+  .raw-url-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .subscription-toolbar,

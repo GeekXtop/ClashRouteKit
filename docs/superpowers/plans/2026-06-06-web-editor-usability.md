@@ -197,12 +197,12 @@ Browser QA:
 
 ## Task 6: Make Publish Workflow Understandable
 
-- [ ] Publish view shows the recommended sequence:
+- [x] Publish view shows the recommended sequence:
   Save -> Check -> Generate -> Git Status -> Commit -> Push.
-- [ ] Each action displays last run status and output.
-- [ ] `Commit` button should warn when there are no changes or when check/generate has not run in this session.
-- [ ] `Push` button should explain that Git credentials come from the local machine.
-- [ ] Add copyable final raw URL templates based on repository owner/repo once that metadata is detectable or user-entered.
+- [x] Each action displays last run status and output.
+- [x] `Commit` button should warn when there are no changes or when check/generate has not run in this session.
+- [x] `Push` button should explain that Git credentials come from the local machine.
+- [x] Add copyable final raw URL templates based on repository owner/repo once that metadata is detectable or user-entered.
 
 Verification:
 

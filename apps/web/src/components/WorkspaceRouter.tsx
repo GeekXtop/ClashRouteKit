@@ -9,10 +9,11 @@ import { PolicyWorkspace } from "./PolicyWorkspace.js";
 import { PreviewWorkspace, type PreviewMode } from "./PreviewWorkspace.js";
 import { ProjectWorkspace } from "./ProjectWorkspace.js";
 import { ProviderWorkspace } from "./ProviderWorkspace.js";
-import { PublishPanel, type LocalActionState } from "./PublishPanel.js";
+import { PublishPanel } from "./PublishPanel.js";
+import type { LocalActionStates } from "../publishWorkflow.js";
 
 export function WorkspaceRouter({
-  actionState,
+  actionStates,
   config,
   iniPreview,
   moduleSearch,
@@ -37,7 +38,7 @@ export function WorkspaceRouter({
   selectedModule,
   subscriptionPanel,
 }: {
-  actionState: LocalActionState;
+  actionStates: LocalActionStates;
   config: RouteKitProjectConfig;
   iniPreview: string;
   moduleSearch: string;
@@ -83,12 +84,14 @@ export function WorkspaceRouter({
   if (project.selectedView === "publish") {
     return (
       <PublishPanel
-        actionState={actionState}
+        actionStates={actionStates}
         dirty={project.dirty}
         draftYamlLength={project.draftYaml.length}
         projectMessage={project.message}
         projectStatus={project.status}
+        publishBaseUrl={config.publishBaseUrl}
         saveReadiness={saveReadiness}
+        templateOutput={config.template.output}
         onRun={onRunAction}
         onSave={onSave}
       />
