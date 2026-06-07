@@ -1,0 +1,467 @@
+# ClashRouteKit 控制台重设计 · 计划 2/4：core 解析能力
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 给 `@clash-route-kit/core` 增加两个纯函数：`parseDomainListEntry`（解析一个 domain-list-community 数据文件的 `include:` 成员与自身条目数，供「规则目录」按 category 展开浏览）与 `parseIniToConfig`（反向解析一份 SubConverter `[custom]` INI 的 `ruleset=`/`custom_proxy_group=` 行成 `RuleSet[]`/`CustomProxyGroup[]`，供「导入 INI」#8）。
+
+**Architecture:** 两者均为纯函数、无文件 IO（读文件由 cli/web 负责）。`parseDomainListEntry` 放入既有 `rules.ts`（复用其 `stripComment`）。`parseIniToConfig` 放入新文件 `import.ts`，与 `renderIni` 的输出语法对称（含 `; 段名` 注释→`section`、`[]` 前缀→options、其余→nodeFilters、url-test/fallback/load-balance 尾部 url+`interval,,tolerance`）。
+
+**Tech Stack:** TypeScript（NodeNext，`.js` 后缀）、vitest。依赖计划 1 已加的 `RuleSet.section`。
+
+**前置：** 计划 1 已合并（`RuleSet.section?` 已存在）。
+
+---
+
+## 文件结构
+
+- **Modify** `packages/core/src/rules.ts` — 新增 `parseDomainListEntry` + 导出类型 `DomainListEntryInfo`。
+- **Create** `packages/core/src/import.ts` — `parseIniToConfig` 及内部解析辅助、导出 `ImportedConfig`。
+- **Modify** `packages/core/src/types.ts` — 新增 `DomainListEntryInfo`、`ImportedConfig` 类型。
+- **Modify** `packages/core/src/index.ts` — re-export 两个函数与两个类型。
+- **Test** `packages/core/tests/rules.test.ts` — `parseDomainListEntry`。
+- **Test** `packages/core/tests/importIni.test.ts` — `parseIniToConfig`。
+
+---
+
+## Task 1：parseDomainListEntry —— 解析 geosite 数据文件的 include 与条目数
+
+**Files:**
+- Modify: `packages/core/src/types.ts`
+- Modify: `packages/core/src/rules.ts`
+- Modify: `packages/core/src/index.ts`
+- Test: `packages/core/tests/rules.test.ts`
+
+- [ ] **Step 1: 写失败测试**
+
+新建 `packages/core/tests/rules.test.ts`：
+
+```ts
+import { describe, expect, it } from "vitest";
+import { parseDomainListEntry } from "../src/index.js";
+
+describe("parseDomainListEntry", () => {
+  it("collects deduped includes and counts own non-include rules", () => {
+    const info = parseDomainListEntry(
+      [
+        "# comment line",
+        "include:npmjs",
+        "github.com",
+        "full:api.github.com  # trailing comment",
+        "include:npmjs", // duplicate include
+        "domain:githubusercontent.com",
+        "",
+      ].join("\n"),
+    );
+
+    expect(info.includes).toEqual(["npmjs"]);
+    expect(info.ruleCount).toBe(3); // github.com, full:api.github.com, domain:githubusercontent.com
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `pnpm exec vitest run packages/core/tests/rules.test.ts`
+Expected: FAIL（`parseDomainListEntry` 未导出）。
+
+- [ ] **Step 3: 加类型**
+
+在 `packages/core/src/types.ts` 末尾追加：
+
+```ts
+export interface DomainListEntryInfo {
+  includes: string[];
+  ruleCount: number;
+}
+```
+
+- [ ] **Step 4: 实现 parseDomainListEntry**
+
+在 `packages/core/src/rules.ts` 顶部 import 处加入类型（与现有 import 合并）：
+
+```ts
+import type {
+  DomainListCommunityOptions,
+  DomainListEntryInfo,
+  DomainProviderInput,
+  DomainProviderRule,
+  DomainProviderSummary,
+} from "./types.js";
+```
+
+在 `packages/core/src/rules.ts` 的 `convertDomainListCommunity` 之后追加（复用文件内已有的 `stripComment`）：
+
+```ts
+export function parseDomainListEntry(content: string): DomainListEntryInfo {
+  const includes: string[] = [];
+  let ruleCount = 0;
+  for (const rawLine of content.replace(/\r\n?/g, "\n").split("\n")) {
+    const token = stripComment(rawLine).split(/\s+/)[0];
+    if (!token) continue;
+    if (token.startsWith("include:")) {
+      const name = token.slice("include:".length);
+      if (name && !includes.includes(name)) includes.push(name);
+    } else {
+      ruleCount += 1;
+    }
+  }
+  return { includes, ruleCount };
+}
+```
+
+- [ ] **Step 5: 导出**
+
+在 `packages/core/src/index.ts` 的 `export { ... } from "./rules.js";` 块加入 `parseDomainListEntry`：
+
+```ts
+export {
+  collectDomainProviderRules,
+  convertDomainListCommunity,
+  generateDomainProvider,
+  parseDomainListEntry,
+  summarizeDomainProvider,
+} from "./rules.js";
+```
+
+并在 `export type { ... } from "./types.js";` 块按字母序加入 `DomainListEntryInfo`。
+
+- [ ] **Step 6: 运行测试确认通过**
+
+Run: `pnpm exec vitest run packages/core/tests/rules.test.ts`
+Expected: PASS。
+
+- [ ] **Step 7: 提交**
+
+```bash
+git add packages/core/src/types.ts packages/core/src/rules.ts packages/core/src/index.ts packages/core/tests/rules.test.ts
+git commit -m "feat(core): add parseDomainListEntry for catalog browsing"
+```
+
+---
+
+## Task 2：parseIniToConfig —— 解析 ruleset 行
+
+**Files:**
+- Modify: `packages/core/src/types.ts`
+- Create: `packages/core/src/import.ts`
+- Test: `packages/core/tests/importIni.test.ts`
+
+- [ ] **Step 1: 写失败测试**
+
+新建 `packages/core/tests/importIni.test.ts`：
+
+```ts
+import { describe, expect, it } from "vitest";
+import { parseIniToConfig } from "../src/index.js";
+
+describe("parseIniToConfig · rulesets", () => {
+  it("parses geosite / geoip / final / provider ruleset lines with sections", () => {
+    const ini = [
+      "; Generated by ClashRouteKit",
+      "[custom]",
+      "; 海外类目",
+      "ruleset=AI,[]GEOSITE,openai",
+      "ruleset=Proxy,[]GEOIP,telegram,no-resolve",
+      "ruleset=Direct,[]GEOIP,cn",
+      "ruleset=AI,clash-domain:https://raw.example/x/publish/rules/AI_Domain.yaml,300",
+      "ruleset=AI,[]FINAL",
+      "ruleset=Proxy,https://raw.example/list/extra.list",
+      "",
+    ].join("\n");
+
+    const out = parseIniToConfig(ini);
+
+    expect(out.ruleSets).toContainEqual({
+      id: "openai",
+      section: "海外类目",
+      policy: "AI",
+      source: { type: "geosite", value: "openai" },
+    });
+    expect(out.ruleSets.find((r) => r.policy === "Proxy" && r.source.type === "geoip")?.source).toEqual({
+      type: "geoip",
+      value: "telegram",
+      noResolve: true,
+    });
+    expect(out.ruleSets.find((r) => r.policy === "Direct")?.source).toEqual({
+      type: "geoip",
+      value: "cn",
+      noResolve: false,
+    });
+    expect(out.ruleSets.find((r) => r.source.type === "rule-provider")?.source).toEqual({
+      type: "rule-provider",
+      behavior: "domain",
+      file: "AI_Domain.yaml",
+      interval: 300,
+    });
+    expect(out.ruleSets.find((r) => r.source.type === "final")).toBeTruthy();
+    // 不识别的远程 .list 进 warnings、不进 ruleSets
+    expect(out.warnings.some((w) => w.includes("extra.list"))).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
+Expected: FAIL（`parseIniToConfig` 未导出）。
+
+- [ ] **Step 3: 加 `ImportedConfig` 类型**
+
+在 `packages/core/src/types.ts` 末尾追加：
+
+```ts
+export interface ImportedConfig {
+  customProxyGroups: CustomProxyGroup[];
+  ruleSets: RuleSet[];
+  warnings: string[];
+}
+```
+
+- [ ] **Step 4: 创建 import.ts（先实现 ruleset 解析与主循环骨架）**
+
+新建 `packages/core/src/import.ts`：
+
+```ts
+import type { CustomProxyGroup, ImportedConfig, RuleSet, RuleSetSource } from "./types.js";
+
+function basename(url: string): string {
+  const noQuery = url.split(/[?#]/)[0];
+  const segments = noQuery.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? noQuery;
+}
+
+function parseRulesetSource(rest: string): RuleSetSource | { warning: string } {
+  if (rest.startsWith("[]GEOSITE,")) {
+    return { type: "geosite", value: rest.slice("[]GEOSITE,".length).trim() };
+  }
+  if (rest.startsWith("[]GEOIP,")) {
+    const parts = rest.slice("[]GEOIP,".length).split(",").map((part) => part.trim());
+    return { type: "geoip", value: parts[0], noResolve: parts.includes("no-resolve") };
+  }
+  if (rest === "[]FINAL") {
+    return { type: "final" };
+  }
+  const provider = /^clash-(domain|classic|ipcidr):(.+),(\d+)\s*$/.exec(rest);
+  if (provider) {
+    const behavior =
+      provider[1] === "domain" ? "domain" : provider[1] === "classic" ? "classical" : "ipcidr";
+    return { type: "rule-provider", behavior, file: basename(provider[2]), interval: Number(provider[3]) };
+  }
+  return { warning: `无法识别的 ruleset 源：${rest}` };
+}
+
+export function parseIniToConfig(ini: string): ImportedConfig {
+  const customProxyGroups: CustomProxyGroup[] = [];
+  const ruleSets: RuleSet[] = [];
+  const warnings: string[] = [];
+  const usedIds = new Set<string>();
+  let currentSection: string | undefined;
+
+  const uniqueId = (base: string): string => {
+    let id = base || "rule";
+    let counter = 1;
+    while (usedIds.has(id)) id = `${base}-${counter++}`;
+    usedIds.add(id);
+    return id;
+  };
+
+  for (const rawLine of ini.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith(";") || line.startsWith("#")) {
+      const text = line.replace(/^[;#]\s*/, "").trim();
+      if (text && !/^Generated by/i.test(text)) currentSection = text;
+      continue;
+    }
+    if (line.startsWith("[") && line.endsWith("]")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1);
+
+    if (key === "ruleset") {
+      const comma = value.indexOf(",");
+      if (comma === -1) {
+        warnings.push(`ruleset 缺少策略：${value}`);
+        continue;
+      }
+      const policy = value.slice(0, comma).trim();
+      const parsed = parseRulesetSource(value.slice(comma + 1).trim());
+      if ("warning" in parsed) {
+        warnings.push(parsed.warning);
+        continue;
+      }
+      const base =
+        parsed.type === "geosite"
+          ? parsed.value
+          : parsed.type === "geoip"
+            ? `geoip-${parsed.value}`
+            : parsed.type === "rule-provider"
+              ? parsed.file.replace(/\.[^.]+$/, "")
+              : "final";
+      const ruleSet: RuleSet = { id: uniqueId(base), policy, source: parsed };
+      if (currentSection) ruleSet.section = currentSection;
+      ruleSets.push(ruleSet);
+    }
+  }
+
+  return { customProxyGroups, ruleSets, warnings };
+}
+```
+
+- [ ] **Step 5: 导出 parseIniToConfig 与 ImportedConfig**
+
+在 `packages/core/src/index.ts` 顶部追加：
+
+```ts
+export { parseIniToConfig } from "./import.js";
+```
+
+并在 `export type { ... } from "./types.js";` 块按字母序加入 `ImportedConfig`。
+
+- [ ] **Step 6: 运行测试确认通过**
+
+Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
+Expected: PASS。
+
+- [ ] **Step 7: 提交**
+
+```bash
+git add packages/core/src/types.ts packages/core/src/import.ts packages/core/src/index.ts packages/core/tests/importIni.test.ts
+git commit -m "feat(core): parse ruleset lines in parseIniToConfig"
+```
+
+---
+
+## Task 3：parseIniToConfig —— 解析 custom_proxy_group 行
+
+**Files:**
+- Modify: `packages/core/src/import.ts`
+- Test: `packages/core/tests/importIni.test.ts`
+
+- [ ] **Step 1: 写失败测试**
+
+在 `packages/core/tests/importIni.test.ts` 追加一个 `describe`：
+
+```ts
+describe("parseIniToConfig · proxy groups", () => {
+  it("parses select groups (options + node filters)", () => {
+    const out = parseIniToConfig("custom_proxy_group=AI`select`[]Proxy`[]DIRECT`.*\n");
+    expect(out.customProxyGroups[0]).toEqual({
+      name: "AI",
+      type: "select",
+      options: ["Proxy", "DIRECT"],
+      nodeFilters: [".*"],
+    });
+  });
+
+  it("parses test-type groups with url, interval and tolerance", () => {
+    const out = parseIniToConfig(
+      "custom_proxy_group=🇭🇰`url-test`!!GROUPID=0!!(港|HK)`https://cp.cloudflare.com/generate_204`300,,50\n",
+    );
+    expect(out.customProxyGroups[0]).toEqual({
+      name: "🇭🇰",
+      type: "url-test",
+      options: [],
+      nodeFilters: ["!!GROUPID=0!!(港|HK)"],
+      url: "https://cp.cloudflare.com/generate_204",
+      interval: 300,
+      tolerance: 50,
+    });
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试确认失败**
+
+Run: `pnpm exec vitest run -t "proxy groups"`
+Expected: FAIL（当前 `parseIniToConfig` 不处理 `custom_proxy_group`，`customProxyGroups` 为空）。
+
+- [ ] **Step 3: 实现 parseProxyGroupLine 并接入主循环**
+
+在 `packages/core/src/import.ts` 的 `parseRulesetSource` 之后、`parseIniToConfig` 之前插入：
+
+```ts
+const GROUP_TYPES = new Set(["select", "url-test", "fallback", "load-balance"]);
+
+function parseProxyGroupLine(body: string, warnings: string[]): CustomProxyGroup | null {
+  const parts = body.split("`");
+  if (parts.length < 2) {
+    warnings.push(`策略组格式不全：${body}`);
+    return null;
+  }
+  const [name, type, ...rest] = parts;
+  if (!GROUP_TYPES.has(type)) {
+    warnings.push(`未知策略组类型：${type}`);
+    return null;
+  }
+  const groupType = type as CustomProxyGroup["type"];
+
+  let url: string | undefined;
+  let interval: number | undefined;
+  let tolerance: number | undefined;
+  let refsAndFilters = rest;
+  if (groupType !== "select" && rest.length >= 2) {
+    const intervalSpec = rest[rest.length - 1];
+    url = rest[rest.length - 2];
+    refsAndFilters = rest.slice(0, rest.length - 2);
+    const segments = intervalSpec.split(",");
+    const parsedInterval = Number(segments[0]);
+    if (!Number.isNaN(parsedInterval)) interval = parsedInterval;
+    if (segments[2] !== undefined && segments[2] !== "") {
+      const parsedTolerance = Number(segments[2]);
+      if (!Number.isNaN(parsedTolerance)) tolerance = parsedTolerance;
+    }
+  }
+
+  const options: string[] = [];
+  const nodeFilters: string[] = [];
+  for (const item of refsAndFilters) {
+    if (item.startsWith("[]")) options.push(item.slice(2));
+    else nodeFilters.push(item);
+  }
+
+  const group: CustomProxyGroup = { name, type: groupType, options };
+  if (nodeFilters.length > 0) group.nodeFilters = nodeFilters;
+  if (url) group.url = url;
+  if (interval !== undefined) group.interval = interval;
+  if (tolerance !== undefined) group.tolerance = tolerance;
+  return group;
+}
+```
+
+然后在 `parseIniToConfig` 主循环里，`if (key === "ruleset") { ... }` 之后追加 `else if`：
+
+```ts
+    } else if (key === "custom_proxy_group") {
+      const group = parseProxyGroupLine(value, warnings);
+      if (group) customProxyGroups.push(group);
+    }
+```
+
+（即把现有 `if (key === "ruleset") { ... }` 的闭合 `}` 改为 `} else if (key === "custom_proxy_group") { ... }`。）
+
+- [ ] **Step 4: 运行测试确认通过**
+
+Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
+Expected: PASS（ruleset 与 proxy group 两组用例全过）。
+
+- [ ] **Step 5: 类型检查 + 全量测试 + 提交**
+
+Run: `pnpm typecheck && pnpm test`
+Expected: PASS。
+
+```bash
+git add packages/core/src/import.ts packages/core/tests/importIni.test.ts
+git commit -m "feat(core): parse custom_proxy_group lines in parseIniToConfig"
+```
+
+---
+
+## Self-Review
+
+**1. Spec coverage：** 规则目录按 category 展开浏览所需的成员/计数 → `parseDomainListEntry`（Task 1）；导入 INI #8 的反解析 → `parseIniToConfig`（Task 2 rulesets + Task 3 groups）。warnings 收集不识别项（如 ACL4SSR 远程 `.list` URL）。
+
+**2. Placeholder 扫描：** 无；每步含完整代码。
+
+**3. 类型一致性：** `DomainListEntryInfo`（types.ts → rules.ts 返回 → index 导出）、`ImportedConfig`（types.ts → import.ts 返回 → index 导出）、`RuleSetSource`/`CustomProxyGroup`/`RuleSet` 复用 core 既有定义。`parseRulesetSource` 的 provider 分支映射 `domain→domain / classic→classical / ipcidr→ipcidr` 与 [ini.ts:3-8](packages/core/src/ini.ts#L3) 的 `providerKind` 互逆；group 解析的 `[]`→options、尾部 url+`interval,,tolerance` 与 [ini.ts:42-52](packages/core/src/ini.ts#L42) 的渲染互逆 → 保证 renderIni↔parseIniToConfig 往返一致。
