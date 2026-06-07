@@ -1,5 +1,5 @@
 import { parseRouteKitConfig } from "@clash-route-kit/core";
-import modulesYaml from "../../../config/modules.yaml?raw";
+import routesYaml from "../../../config/routes.yaml?raw";
 
-export const bundledProjectConfig = parseRouteKitConfig(modulesYaml);
-export const bundledProjectConfigYaml = modulesYaml;
+export const bundledProjectConfig = parseRouteKitConfig(routesYaml);
+export const bundledProjectConfigYaml = routesYaml;

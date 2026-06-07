@@ -398,43 +398,64 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
 export async function previewRules(options: ProgramOptions): Promise<string[]> {
   const config = await readConfig(options);
   const lines: string[] = [];
-  for (const module of config.modules) {
-    if (module.enabled === false) continue;
-    for (const provider of module.providers ?? []) {
-      lines.push(`${provider.behavior.toUpperCase()} ${provider.file} -> ${module.policy}`);
+  for (const ruleSet of config.ruleSets) {
+    if (ruleSet.enabled === false) continue;
+
+    const source = ruleSet.source;
+    if (source.type === "rule-provider") {
+      lines.push(`${source.behavior.toUpperCase()} ${source.file} -> ${ruleSet.policy}`);
+      continue;
     }
-    for (const tag of module.geosite ?? []) {
-      lines.push(`GEOSITE ${tag} -> ${module.policy}`);
+    if (source.type === "geosite") {
+      lines.push(`GEOSITE ${source.value} -> ${ruleSet.policy}`);
+      continue;
     }
-    for (const tag of module.geoip ?? []) {
-      lines.push(`GEOIP ${tag} -> ${module.policy}`);
+    if (source.type === "geoip") {
+      lines.push(`GEOIP ${source.value} -> ${ruleSet.policy}`);
+      continue;
     }
+    if (source.type === "final") {
+      lines.push(`FINAL -> ${ruleSet.policy}`);
+      continue;
+    }
+
+    const unsupported: never = source;
+    throw new Error(`Unsupported ruleSet source: ${String(unsupported)}`);
   }
-  lines.push(`FINAL -> ${config.final.policy}`);
   return lines;
 }
 
 export async function checkConfig(options: ProgramOptions): Promise<string[]> {
   const config = await readConfig(options);
-  const groupNames = new Set(config.proxyGroups.map((group) => group.name));
+  const groupNames = new Set(config.customProxyGroups.map((group) => group.name));
+  const builtInPolicies = new Set(["DIRECT", "REJECT"]);
   const geositeTags = await readLocalGeositeTags(options.root);
   const diagnostics: string[] = [];
+  let finalRuleCount = 0;
 
-  for (const module of config.modules) {
-    if (module.enabled === false) continue;
-    if (!groupNames.has(module.policy)) {
-      diagnostics.push(`Module ${module.id} references missing policy group: ${module.policy}`);
+  for (const ruleSet of config.ruleSets) {
+    if (ruleSet.enabled === false) continue;
+    if (!groupNames.has(ruleSet.policy) && !builtInPolicies.has(ruleSet.policy)) {
+      diagnostics.push(`RuleSet ${ruleSet.id} references missing custom_proxy_group: ${ruleSet.policy}`);
     }
+
+    const source = ruleSet.source;
     if (geositeTags) {
-      for (const tag of module.geosite ?? []) {
-        if (!geositeTags.has(tag)) {
-          diagnostics.push(`Module ${module.id} references missing geosite tag: ${tag}`);
-        }
+      if (source.type === "geosite" && !geositeTags.has(source.value)) {
+        diagnostics.push(`RuleSet ${ruleSet.id} references missing geosite tag: ${source.value}`);
       }
     }
+
+    if (source.type === "final") {
+      finalRuleCount += 1;
+    }
   }
-  if (!groupNames.has(config.final.policy)) {
-    diagnostics.push(`Final references missing policy group: ${config.final.policy}`);
+
+  if (finalRuleCount === 0) {
+    diagnostics.push("Missing FINAL ruleSet");
+  }
+  if (finalRuleCount > 1) {
+    diagnostics.push("FINAL ruleSet must be declared once");
   }
 
   return diagnostics;

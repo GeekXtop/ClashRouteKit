@@ -1,13 +1,29 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { ProviderReference, RouteModule } from "@clash-route-kit/core";
+import type {
+  CustomProxyGroup,
+  RuleProviderConfig,
+  RuleProviderSource,
+  RuleSet,
+  RuleSetSource,
+} from "@clash-route-kit/core";
 import {
-  addModule,
-  createModule,
-  deleteModule,
-  setModuleProviderRefs,
-  setModuleTags,
-  toggleModule,
-  updateModule,
+  addCustomProxyGroup,
+  addRuleProvider,
+  addRuleSet,
+  createCustomProxyGroup,
+  createRuleProvider,
+  createRuleSet,
+  deleteCustomProxyGroup,
+  deleteRuleProvider,
+  deleteRuleSet,
+  renameCustomProxyGroup,
+  setCustomProxyGroupListField,
+  setRuleProviderListField,
+  setRuleProviderSources,
+  toggleRuleSet,
+  updateCustomProxyGroup,
+  updateRuleProvider,
+  updateRuleSet,
 } from "./configMutations.js";
 import {
   applyDraftConfig,
@@ -23,45 +39,135 @@ function dirtyMessage(next: ProjectControllerState): ProjectControllerState {
   };
 }
 
+function mutationError(current: ProjectControllerState, error: unknown): ProjectControllerState {
+  return {
+    ...current,
+    status: "error",
+    message: error instanceof Error ? error.message : String(error),
+  };
+}
+
 export function useProjectDraftActions(setProject: Dispatch<SetStateAction<ProjectControllerState>>) {
   function mutate(mutator: (config: ProjectControllerState["draftConfig"]) => ProjectControllerState["draftConfig"]) {
-    setProject((current) => dirtyMessage(applyDraftConfig(current, mutator(current.draftConfig))));
+    setProject((current) => {
+      try {
+        return dirtyMessage(applyDraftConfig(current, mutator(current.draftConfig)));
+      } catch (error: unknown) {
+        return mutationError(current, error);
+      }
+    });
   }
 
   return {
-    createModule() {
+    createRuleSet(sourceType: RuleSetSource["type"] = "geosite") {
       setProject((current) => {
-        const module = createModule(current.draftConfig);
-        const next = applyDraftConfig(current, addModule(current.draftConfig, module));
-        return {
-          ...dirtyMessage(next),
-          selectedModuleId: module.id,
-          selectedView: "modules",
-        };
+        try {
+          const ruleSet = createRuleSet(current.draftConfig, { sourceType });
+          const next = applyDraftConfig(current, addRuleSet(current.draftConfig, ruleSet));
+          return {
+            ...dirtyMessage(next),
+            selectedRuleSetId: ruleSet.id,
+            selectedView: "ruleSets",
+          };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
       });
     },
-    deleteModule(moduleId: string) {
-      mutate((current) => deleteModule(current, moduleId));
-    },
-    selectModule(selectedModuleId: string) {
-      setProject((current) => setProjectSelection(current, { selectedModuleId }));
-    },
-    setModuleProviderRefs(moduleId: string, providers: ProviderReference[]) {
-      mutate((current) => setModuleProviderRefs(current, moduleId, providers));
-    },
-    setModuleTags(moduleId: string, field: "geosite" | "geoip", tags: string[]) {
-      mutate((current) => setModuleTags(current, moduleId, field, tags));
-    },
-    toggleModule(moduleId: string) {
-      mutate((current) => toggleModule(current, moduleId));
-    },
-    updateModule(moduleId: string, patch: Partial<RouteModule>) {
+    createCustomProxyGroup() {
       setProject((current) => {
-        const next = applyDraftConfig(current, updateModule(current.draftConfig, moduleId, patch));
-        return dirtyMessage({
-          ...next,
-          selectedModuleId: patch.id ?? next.selectedModuleId,
-        });
+        try {
+          const group = createCustomProxyGroup(current.draftConfig);
+          const next = applyDraftConfig(current, addCustomProxyGroup(current.draftConfig, group));
+          return {
+            ...dirtyMessage(next),
+            selectedCustomProxyGroupName: group.name,
+            selectedView: "customProxyGroups",
+          };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    createProvider() {
+      setProject((current) => {
+        try {
+          const provider = createRuleProvider(current.draftConfig);
+          const next = applyDraftConfig(current, addRuleProvider(current.draftConfig, provider));
+          return {
+            ...dirtyMessage(next),
+            selectedProviderName: provider.name,
+            selectedView: "providers",
+          };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    deleteRuleSet(ruleSetId: string) {
+      mutate((current) => deleteRuleSet(current, ruleSetId));
+    },
+    deleteCustomProxyGroup(groupName: string) {
+      mutate((current) => deleteCustomProxyGroup(current, groupName));
+    },
+    deleteProvider(providerName: string) {
+      mutate((current) => deleteRuleProvider(current, providerName));
+    },
+    renameCustomProxyGroup(groupName: string, nextGroupName: string) {
+      setProject((current) => {
+        try {
+          const next = applyDraftConfig(current, renameCustomProxyGroup(current.draftConfig, groupName, nextGroupName));
+          return dirtyMessage({
+            ...next,
+            selectedCustomProxyGroupName: nextGroupName.trim() || next.selectedCustomProxyGroupName,
+          });
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    selectRuleSet(selectedRuleSetId: string) {
+      setProject((current) => setProjectSelection(current, { selectedRuleSetId }));
+    },
+    setCustomProxyGroupListField(groupName: string, field: "options" | "nodeFilters", values: string[]) {
+      mutate((current) => setCustomProxyGroupListField(current, groupName, field, values));
+    },
+    setProviderListField(providerName: string, field: "exclude" | "remove", values: string[]) {
+      mutate((current) => setRuleProviderListField(current, providerName, field, values));
+    },
+    setProviderSources(providerName: string, sources: RuleProviderSource[]) {
+      mutate((current) => setRuleProviderSources(current, providerName, sources));
+    },
+    toggleRuleSet(ruleSetId: string) {
+      mutate((current) => toggleRuleSet(current, ruleSetId));
+    },
+    updateRuleSet(ruleSetId: string, patch: Partial<RuleSet>) {
+      setProject((current) => {
+        try {
+          const next = applyDraftConfig(current, updateRuleSet(current.draftConfig, ruleSetId, patch));
+          return dirtyMessage({
+            ...next,
+            selectedRuleSetId: patch.id ?? next.selectedRuleSetId,
+          });
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    updateCustomProxyGroup(groupName: string, patch: Partial<CustomProxyGroup>) {
+      mutate((current) => updateCustomProxyGroup(current, groupName, patch));
+    },
+    updateProvider(providerName: string, patch: Partial<RuleProviderConfig>) {
+      setProject((current) => {
+        try {
+          const next = applyDraftConfig(current, updateRuleProvider(current.draftConfig, providerName, patch));
+          return dirtyMessage({
+            ...next,
+            selectedProviderName: patch.name ?? next.selectedProviderName,
+          });
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
       });
     },
   };

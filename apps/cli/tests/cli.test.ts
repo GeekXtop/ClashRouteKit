@@ -15,7 +15,7 @@ const sampleConfig = `
 publishBaseUrl: https://example.com/publish
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: 🚀 手动选择
     type: select
     options:
@@ -28,22 +28,33 @@ proxyGroups:
     type: select
     options:
       - DIRECT
-modules:
-  - id: tech
+ruleSets:
+  - id: tech-geosite-github
     policy: 💻 Tech
-    geosite:
-      - github
-    providers:
-      - behavior: domain
-        file: External_Developer_Domain.yaml
-  - id: china
+    source:
+      type: geosite
+      value: github
+  - id: tech-provider-external-developer-domain
+    policy: 💻 Tech
+    source:
+      type: rule-provider
+      behavior: domain
+      file: External_Developer_Domain.yaml
+  - id: china-geosite-cn
     policy: 🎯 全球直连
-    geosite:
-      - cn
-    geoip:
-      - cn
-final:
-  policy: 🚀 手动选择
+    source:
+      type: geosite
+      value: cn
+  - id: china-geoip-cn
+    policy: 🎯 全球直连
+    source:
+      type: geoip
+      value: cn
+      noResolve: true
+  - id: final
+    policy: 🚀 手动选择
+    source:
+      type: final
 ruleProviders:
   - name: External_Developer
     output: External_Developer_Domain.yaml
@@ -55,13 +66,13 @@ ruleProviders:
 `;
 
 describe("CLI program", () => {
-  it("generates INI and provider outputs from modules config", async () => {
+  it("generates INI and provider outputs from routes config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
     await mkdir(path.join(root, "config/rules"), { recursive: true });
     await writeFile(path.join(root, "config/rules/Developer.list"), "DOMAIN-SUFFIX,debian.org\n", "utf8");
 
-    const result = await generateOutputs({ root, configFile: "modules.yaml" });
+    const result = await generateOutputs({ root, configFile: "routes.yaml" });
 
     expect(result.templatePath).toBe(path.join(root, "output/templates/Custom_Clash.ini"));
     expect(await readFile(result.templatePath, "utf8")).toContain("ruleset=💻 Tech,[]GEOSITE,github");
@@ -72,14 +83,14 @@ describe("CLI program", () => {
 
   it("overrides publishBaseUrl from the environment for publish builds", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
     await mkdir(path.join(root, "config/rules"), { recursive: true });
     await writeFile(path.join(root, "config/rules/Developer.list"), "DOMAIN-SUFFIX,debian.org\n", "utf8");
 
     const previous = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
     process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL = "https://raw.githubusercontent.com/owner/repo/publish";
     try {
-      const result = await generateOutputs({ root, configFile: "modules.yaml" });
+      const result = await generateOutputs({ root, configFile: "routes.yaml" });
 
       expect(await readFile(result.templatePath, "utf8")).toContain(
         "clash-domain:https://raw.githubusercontent.com/owner/repo/publish/rules/External_Developer_Domain.yaml",
@@ -100,19 +111,21 @@ describe("CLI program", () => {
     await writeFile(path.join(dlcRoot, "github"), "include:npmjs\ngithub.com\nfull:api.github.com\n", "utf8");
     await writeFile(path.join(dlcRoot, "npmjs"), "npmjs.com\n", "utf8");
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules: []
-final:
-  policy: Proxy
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 ruleProviders:
   - name: Developer
     output: Developer_Domain.yaml
@@ -126,7 +139,7 @@ ruleProviders:
       "utf8",
     );
 
-    await generateOutputs({ root, configFile: "modules.yaml" });
+    await generateOutputs({ root, configFile: "routes.yaml" });
 
     const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
     expect(output).toContain("'api.github.com'");
@@ -148,19 +161,21 @@ payload:
       "utf8",
     );
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules: []
-final:
-  policy: Proxy
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 ruleProviders:
   - name: AI
     output: AI_Domain.yaml
@@ -173,7 +188,7 @@ ruleProviders:
       "utf8",
     );
 
-    await generateOutputs({ root, configFile: "modules.yaml" });
+    await generateOutputs({ root, configFile: "routes.yaml" });
 
     const output = await readFile(path.join(root, "output/rules/AI_Domain.yaml"), "utf8");
     expect(output).toContain("'chat.openai.com'");
@@ -195,19 +210,21 @@ ruleProviders:
       "utf8",
     );
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules: []
-final:
-  policy: Proxy
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 ruleProviders:
   - name: Developer
     output: Developer_Domain.yaml
@@ -224,7 +241,7 @@ ruleProviders:
       "utf8",
     );
 
-    const result = await generateOutputs({ root, configFile: "modules.yaml" });
+    const result = await generateOutputs({ root, configFile: "routes.yaml" });
 
     const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
     expect(output).toContain("'+.debian.org'");
@@ -271,19 +288,21 @@ ruleProviders:
       "utf8",
     );
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules: []
-final:
-  policy: Proxy
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 ruleProviders:
   - name: AI
     output: AI_Domain.yaml
@@ -306,7 +325,7 @@ ruleProviders:
       "utf8",
     );
 
-    const result = await generateOutputs({ root, configFile: "modules.yaml" });
+    const result = await generateOutputs({ root, configFile: "routes.yaml" });
 
     expect(result.duplicates).toEqual([
       {
@@ -337,19 +356,21 @@ ruleProviders:
     await mkdir(path.join(root, "vendor/rules"), { recursive: true });
     await writeFile(path.join(root, "vendor/rules/Developer.list"), "DOMAIN-SUFFIX,local-dev.example\n", "utf8");
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules: []
-final:
-  policy: Proxy
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 ruleProviders:
   - name: Developer
     output: Developer_Domain.yaml
@@ -363,7 +384,7 @@ ruleProviders:
       "utf8",
     );
 
-    await generateOutputs({ root, configFile: "modules.yaml" });
+    await generateOutputs({ root, configFile: "routes.yaml" });
 
     const output = await readFile(path.join(root, "output/rules/Developer_Domain.yaml"), "utf8");
     expect(output).toContain("'+.local-dev.example'");
@@ -372,7 +393,7 @@ ruleProviders:
   it("clones missing vendor repositories and pulls existing ones", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 vendorRepos:
   - name: custom-rules
@@ -389,7 +410,7 @@ vendorRepos:
 
     const result = await syncVendor({
       root,
-      configFile: "modules.yaml",
+      configFile: "routes.yaml",
       runGit: async (args, cwd) => {
         calls.push({ args, cwd });
       },
@@ -411,21 +432,24 @@ vendorRepos:
 
   it("requires vendor repositories to be declared in the project config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
-    await expect(syncVendor({ root, configFile: "modules.yaml" })).rejects.toThrow(
-      "Missing vendorRepos in modules.yaml",
+    await expect(syncVendor({ root, configFile: "routes.yaml" })).rejects.toThrow(
+      "Missing vendorRepos in routes.yaml",
     );
   });
 
   it("previews rule order and checks missing policy groups", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
-    expect((await previewRules({ root, configFile: "modules.yaml" })).join("\n")).toContain(
+    expect((await previewRules({ root, configFile: "routes.yaml" })).join("\n")).toContain(
       "GEOSITE github -> 💻 Tech",
     );
-    await expect(checkConfig({ root, configFile: "modules.yaml" })).resolves.toEqual([]);
+    expect((await previewRules({ root, configFile: "routes.yaml" })).join("\n")).toContain(
+      "FINAL -> 🚀 手动选择",
+    );
+    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([]);
   });
 
   it("checks geosite tags when local domain-list-community data is available", async () => {
@@ -433,58 +457,68 @@ vendorRepos:
     await mkdir(path.join(root, "vendor/domain-list-community/data"), { recursive: true });
     await writeFile(path.join(root, "vendor/domain-list-community/data/github"), "github.com\n", "utf8");
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules:
-  - id: tech
+ruleSets:
+  - id: tech-geosite-github
     policy: Proxy
-    geosite:
-      - github
-      - missing-tag
-final:
-  policy: Proxy
+    source:
+      type: geosite
+      value: github
+  - id: tech-geosite-missing-tag
+    policy: Proxy
+    source:
+      type: geosite
+      value: missing-tag
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 `,
       "utf8",
     );
 
-    await expect(checkConfig({ root, configFile: "modules.yaml" })).resolves.toEqual([
-      "Module tech references missing geosite tag: missing-tag",
+    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([
+      "RuleSet tech-geosite-missing-tag references missing geosite tag: missing-tag",
     ]);
   });
 
   it("skips geosite tag checks when local domain-list-community data is unavailable", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
-      path.join(root, "modules.yaml"),
+      path.join(root, "routes.yaml"),
       `
 publishBaseUrl: http://127.0.0.1:8787
 template:
   output: Custom_Clash.ini
-proxyGroups:
+customProxyGroups:
   - name: Proxy
     type: select
     options:
       - DIRECT
-modules:
-  - id: tech
+ruleSets:
+  - id: tech-geosite-missing-tag
     policy: Proxy
-    geosite:
-      - missing-tag
-final:
-  policy: Proxy
+    source:
+      type: geosite
+      value: missing-tag
+  - id: final
+    policy: Proxy
+    source:
+      type: final
 `,
       "utf8",
     );
 
-    await expect(checkConfig({ root, configFile: "modules.yaml" })).resolves.toEqual([]);
+    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([]);
   });
 
   it("resolves the project root from a nested workspace package directory", async () => {
@@ -492,19 +526,19 @@ final:
     const nested = path.join(root, "apps/cli");
     await mkdir(path.join(root, "config"), { recursive: true });
     await mkdir(nested, { recursive: true });
-    await writeFile(path.join(root, "config/modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "config/routes.yaml"), sampleConfig, "utf8");
 
-    expect(resolveProjectRoot(nested, "config/modules.yaml")).toBe(root);
+    expect(resolveProjectRoot(nested, "config/routes.yaml")).toBe(root);
   });
 
   it("builds a SubConverter URL from the subscription environment value and published template", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
     const subscriptionUrl = "https://subscribe.example/token?user=abc&name=main profile";
     const url = await buildSubconverterUrl({
       root,
-      configFile: "modules.yaml",
+      configFile: "routes.yaml",
       subscriptionUrl,
       subconverterBaseUrl: "http://127.0.0.1:25500/sub",
     });
@@ -518,11 +552,11 @@ final:
 
   it("accepts a host and port SubConverter endpoint", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
     const url = await buildSubconverterUrl({
       root,
-      configFile: "modules.yaml",
+      configFile: "routes.yaml",
       subscriptionUrl: "https://subscribe.example/token",
       subconverterBaseUrl: "10.0.0.3:25500",
     });
@@ -533,9 +567,9 @@ final:
 
   it("requires a subscription URL when building a SubConverter URL", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "modules.yaml"), sampleConfig, "utf8");
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
-    await expect(buildSubconverterUrl({ root, configFile: "modules.yaml" })).rejects.toThrow(
+    await expect(buildSubconverterUrl({ root, configFile: "routes.yaml" })).rejects.toThrow(
       "Set CLASH_ROUTE_KIT_SUBSCRIPTION_URL before running subconvert-url",
     );
   });

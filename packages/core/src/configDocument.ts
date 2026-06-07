@@ -11,16 +11,17 @@ function assertRouteKitProjectConfig(value: unknown): asserts value is RouteKitP
   }
 
   const template = value.template;
-  const final = value.final;
+  if ("proxyGroups" in value || "modules" in value) {
+    throw new Error("Invalid RouteKit project config");
+  }
+
   if (
     typeof value.publishBaseUrl !== "string" ||
     !isRecord(template) ||
     typeof template.output !== "string" ||
     !Array.isArray(value.vendorRepos) ||
-    !Array.isArray(value.proxyGroups) ||
-    !Array.isArray(value.modules) ||
-    !isRecord(final) ||
-    typeof final.policy !== "string"
+    !Array.isArray(value.customProxyGroups) ||
+    !Array.isArray(value.ruleSets)
   ) {
     throw new Error("Invalid RouteKit project config");
   }

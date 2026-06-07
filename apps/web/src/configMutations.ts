@@ -1,116 +1,304 @@
-import type { ProviderReference, RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
+import type {
+  CustomProxyGroup,
+  RouteKitProjectConfig,
+  RuleProviderConfig,
+  RuleProviderSource,
+  RuleSet,
+  RuleSetSource,
+} from "@clash-route-kit/core";
 
-type ModuleTagField = "geosite" | "geoip";
+type CustomProxyGroupListField = "options" | "nodeFilters";
+type RuleProviderListField = "exclude" | "remove";
 
-export interface CreateModuleOptions {
-  baseId?: string;
-  policy?: string;
+function normalizeList(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
-function cloneProviders(providers: ProviderReference[] | undefined): ProviderReference[] | undefined {
-  return providers?.map((provider) => ({ ...provider }));
-}
-
-function cloneModule(module: RouteModule): RouteModule {
-  return {
-    ...module,
-    geosite: module.geosite ? [...module.geosite] : undefined,
-    geoip: module.geoip ? [...module.geoip] : undefined,
-    providers: cloneProviders(module.providers),
-  };
-}
-
-function normalizeTags(tags: string[]): string[] {
-  return Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
-}
-
-function nextModuleId(config: RouteKitProjectConfig, baseId: string): string {
-  const ids = new Set(config.modules.map((module) => module.id));
-  if (!ids.has(baseId)) return baseId;
+function nextName(existing: string[], baseName: string): string {
+  const names = new Set(existing);
+  if (!names.has(baseName)) return baseName;
 
   let suffix = 2;
-  while (ids.has(`${baseId}-${suffix}`)) {
+  while (names.has(`${baseName}-${suffix}`)) {
     suffix += 1;
   }
-  return `${baseId}-${suffix}`;
+  return `${baseName}-${suffix}`;
 }
 
-export function createModule(
-  config: RouteKitProjectConfig,
-  options: CreateModuleOptions = {},
-): RouteModule {
-  const baseId = options.baseId?.trim() || "module";
+function cloneRuleSetSource(source: RuleSetSource): RuleSetSource {
+  return { ...source };
+}
+
+function cloneRuleSet(ruleSet: RuleSet): RuleSet {
   return {
-    id: nextModuleId(config, baseId),
-    enabled: true,
-    policy: options.policy ?? config.proxyGroups[0]?.name ?? config.final.policy,
-    geosite: [],
-    geoip: [],
-    providers: [],
+    ...ruleSet,
+    source: cloneRuleSetSource(ruleSet.source),
   };
 }
 
-export function updateModule(
+function createRuleSetSource(sourceType: RuleSetSource["type"]): RuleSetSource {
+  if (sourceType === "rule-provider") {
+    return { type: "rule-provider", behavior: "domain", file: "" };
+  }
+  if (sourceType === "geosite") {
+    return { type: "geosite", value: "" };
+  }
+  if (sourceType === "geoip") {
+    return { type: "geoip", value: "", noResolve: true };
+  }
+  return { type: "final" };
+}
+
+export function createRuleSet(
   config: RouteKitProjectConfig,
-  moduleId: string,
-  patch: Partial<RouteModule>,
+  options: { sourceType: RuleSetSource["type"] },
+): RuleSet {
+  return {
+    id: nextName(config.ruleSets.map((ruleSet) => ruleSet.id), "ruleset"),
+    policy: config.customProxyGroups[0]?.name ?? "DIRECT",
+    source: createRuleSetSource(options.sourceType),
+  };
+}
+
+export function addRuleSet(config: RouteKitProjectConfig, ruleSet: RuleSet): RouteKitProjectConfig {
+  const id = ruleSet.id.trim();
+  if (!id) {
+    throw new Error("RuleSet id is required");
+  }
+  if (config.ruleSets.some((item) => item.id === id)) {
+    throw new Error(`RuleSet "${id}" already exists`);
+  }
+
+  const finalIndex = config.ruleSets.findIndex((item) => item.source.type === "final");
+  const insertIndex = ruleSet.source.type === "final" || finalIndex === -1 ? config.ruleSets.length : finalIndex;
+
+  return {
+    ...config,
+    ruleSets: [
+      ...config.ruleSets.slice(0, insertIndex),
+      cloneRuleSet({ ...ruleSet, id }),
+      ...config.ruleSets.slice(insertIndex),
+    ],
+  };
+}
+
+export function updateRuleSet(
+  config: RouteKitProjectConfig,
+  ruleSetId: string,
+  patch: Partial<RuleSet>,
 ): RouteKitProjectConfig {
   let found = false;
-  const modules = config.modules.map((module) => {
-    if (module.id !== moduleId) return module;
+  const ruleSets = config.ruleSets.map((ruleSet) => {
+    if (ruleSet.id !== ruleSetId) return ruleSet;
     found = true;
-    return cloneModule({ ...module, ...patch });
+    return cloneRuleSet({ ...ruleSet, ...patch });
   });
 
-  return found ? { ...config, modules } : config;
+  return found ? { ...config, ruleSets } : config;
 }
 
-export function toggleModule(config: RouteKitProjectConfig, moduleId: string): RouteKitProjectConfig {
-  const module = config.modules.find((item) => item.id === moduleId);
-  if (!module) return config;
-  return updateModule(config, moduleId, { enabled: module.enabled === false });
+export function toggleRuleSet(config: RouteKitProjectConfig, ruleSetId: string): RouteKitProjectConfig {
+  const ruleSet = config.ruleSets.find((item) => item.id === ruleSetId);
+  if (!ruleSet) return config;
+  return updateRuleSet(config, ruleSetId, { enabled: ruleSet.enabled === false });
 }
 
-export function addModule(config: RouteKitProjectConfig, module: RouteModule): RouteKitProjectConfig {
-  const id = module.id.trim();
-  if (!id) {
-    throw new Error("Module id is required");
+export function deleteRuleSet(config: RouteKitProjectConfig, ruleSetId: string): RouteKitProjectConfig {
+  if (!config.ruleSets.some((ruleSet) => ruleSet.id === ruleSetId)) return config;
+  return {
+    ...config,
+    ruleSets: config.ruleSets.filter((ruleSet) => ruleSet.id !== ruleSetId),
+  };
+}
+
+function cloneCustomProxyGroup(group: CustomProxyGroup): CustomProxyGroup {
+  return {
+    ...group,
+    options: [...group.options],
+    nodeFilters: group.nodeFilters ? [...group.nodeFilters] : undefined,
+  };
+}
+
+export function createCustomProxyGroup(config: RouteKitProjectConfig): CustomProxyGroup {
+  return {
+    name: nextName(config.customProxyGroups.map((group) => group.name), "ProxyGroup"),
+    type: "select",
+    options: ["DIRECT"],
+  };
+}
+
+export function addCustomProxyGroup(
+  config: RouteKitProjectConfig,
+  group: CustomProxyGroup,
+): RouteKitProjectConfig {
+  const name = group.name.trim();
+  if (!name) {
+    throw new Error("custom_proxy_group name is required");
   }
-  if (config.modules.some((item) => item.id === id)) {
-    throw new Error(`Module "${id}" already exists`);
+  if (config.customProxyGroups.some((item) => item.name === name)) {
+    throw new Error(`custom_proxy_group "${name}" already exists`);
   }
 
   return {
     ...config,
-    modules: [...config.modules, cloneModule({ ...module, id })],
+    customProxyGroups: [...config.customProxyGroups, cloneCustomProxyGroup({ ...group, name })],
   };
 }
 
-export function deleteModule(config: RouteKitProjectConfig, moduleId: string): RouteKitProjectConfig {
-  if (!config.modules.some((module) => module.id === moduleId)) return config;
+export function updateCustomProxyGroup(
+  config: RouteKitProjectConfig,
+  groupName: string,
+  patch: Partial<CustomProxyGroup>,
+): RouteKitProjectConfig {
+  let found = false;
+  const customProxyGroups = config.customProxyGroups.map((group) => {
+    if (group.name !== groupName) return group;
+    found = true;
+    return cloneCustomProxyGroup({ ...group, ...patch, name: patch.name ?? group.name });
+  });
+
+  return found ? { ...config, customProxyGroups } : config;
+}
+
+export function renameCustomProxyGroup(
+  config: RouteKitProjectConfig,
+  groupName: string,
+  nextGroupName: string,
+): RouteKitProjectConfig {
+  const name = nextGroupName.trim();
+  if (!name) {
+    throw new Error("custom_proxy_group name is required");
+  }
+  if (name !== groupName && config.customProxyGroups.some((group) => group.name === name)) {
+    throw new Error(`custom_proxy_group "${name}" already exists`);
+  }
+
   return {
     ...config,
-    modules: config.modules.filter((module) => module.id !== moduleId),
+    customProxyGroups: config.customProxyGroups.map((group) =>
+      group.name === groupName ? cloneCustomProxyGroup({ ...group, name }) : group,
+    ),
+    ruleSets: config.ruleSets.map((ruleSet) =>
+      ruleSet.policy === groupName ? { ...ruleSet, policy: name } : ruleSet,
+    ),
   };
 }
 
-export function setModuleTags(
+export function deleteCustomProxyGroup(
   config: RouteKitProjectConfig,
-  moduleId: string,
-  field: ModuleTagField,
-  tags: string[],
+  groupName: string,
 ): RouteKitProjectConfig {
-  return updateModule(config, moduleId, {
-    [field]: normalizeTags(tags),
+  const referenced = config.ruleSets.some((ruleSet) => ruleSet.policy === groupName);
+  if (referenced) {
+    throw new Error(`custom_proxy_group is still referenced: ${groupName}`);
+  }
+
+  return {
+    ...config,
+    customProxyGroups: config.customProxyGroups.filter((group) => group.name !== groupName),
+  };
+}
+
+export function setCustomProxyGroupListField(
+  config: RouteKitProjectConfig,
+  groupName: string,
+  field: CustomProxyGroupListField,
+  values: string[],
+): RouteKitProjectConfig {
+  return updateCustomProxyGroup(config, groupName, {
+    [field]: normalizeList(values),
   });
 }
 
-export function setModuleProviderRefs(
+function cloneRuleProviderSources(sources: RuleProviderSource[]): RuleProviderSource[] {
+  return sources.map((source) => ({ ...source }));
+}
+
+function cloneRuleProvider(provider: RuleProviderConfig): RuleProviderConfig {
+  return {
+    ...provider,
+    exclude: provider.exclude ? [...provider.exclude] : undefined,
+    remove: provider.remove ? [...provider.remove] : undefined,
+    sources: cloneRuleProviderSources(provider.sources),
+  };
+}
+
+export function createRuleProvider(config: RouteKitProjectConfig): RuleProviderConfig {
+  const name = nextName((config.ruleProviders ?? []).map((provider) => provider.name), "Provider");
+  return {
+    name,
+    output: `${name}_Domain.yaml`,
+    behavior: "domain",
+    sources: [],
+  };
+}
+
+export function addRuleProvider(
   config: RouteKitProjectConfig,
-  moduleId: string,
-  providers: ProviderReference[],
+  provider: RuleProviderConfig,
 ): RouteKitProjectConfig {
-  return updateModule(config, moduleId, {
-    providers: cloneProviders(providers) ?? [],
+  const name = provider.name.trim();
+  const output = provider.output.trim();
+  if (!name) {
+    throw new Error("Rule provider name is required");
+  }
+  if (!output) {
+    throw new Error("Rule provider output is required");
+  }
+
+  const providers = config.ruleProviders ?? [];
+  if (providers.some((item) => item.name === name)) {
+    throw new Error(`Rule provider "${name}" already exists`);
+  }
+  if (providers.some((item) => item.output === output)) {
+    throw new Error(`Rule provider output already exists: ${output}`);
+  }
+
+  return {
+    ...config,
+    ruleProviders: [...providers, cloneRuleProvider({ ...provider, name, output })],
+  };
+}
+
+export function updateRuleProvider(
+  config: RouteKitProjectConfig,
+  providerName: string,
+  patch: Partial<RuleProviderConfig>,
+): RouteKitProjectConfig {
+  let found = false;
+  const ruleProviders = (config.ruleProviders ?? []).map((provider) => {
+    if (provider.name !== providerName) return provider;
+    found = true;
+    return cloneRuleProvider({ ...provider, ...patch });
+  });
+
+  return found ? { ...config, ruleProviders } : config;
+}
+
+export function deleteRuleProvider(config: RouteKitProjectConfig, providerName: string): RouteKitProjectConfig {
+  return {
+    ...config,
+    ruleProviders: (config.ruleProviders ?? []).filter((provider) => provider.name !== providerName),
+  };
+}
+
+export function setRuleProviderSources(
+  config: RouteKitProjectConfig,
+  providerName: string,
+  sources: RuleProviderSource[],
+): RouteKitProjectConfig {
+  return updateRuleProvider(config, providerName, {
+    sources: cloneRuleProviderSources(sources),
+  });
+}
+
+export function setRuleProviderListField(
+  config: RouteKitProjectConfig,
+  providerName: string,
+  field: RuleProviderListField,
+  values: string[],
+): RouteKitProjectConfig {
+  return updateRuleProvider(config, providerName, {
+    [field]: normalizeList(values),
   });
 }

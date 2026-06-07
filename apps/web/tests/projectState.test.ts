@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import {
-  setModuleEnabled,
-  toggleModuleEnabled,
+  setRuleSetEnabled,
+  toggleRuleSetEnabled,
 } from "../src/projectState.js";
 
 describe("project state helpers", () => {
@@ -10,31 +10,46 @@ describe("project state helpers", () => {
     publishBaseUrl: "http://127.0.0.1:8787",
     template: { output: "Custom_Clash.ini" },
     vendorRepos: [],
-    proxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-    modules: [
-      { id: "developer", policy: "Proxy" },
-      { id: "streaming", enabled: false, policy: "Proxy" },
+    customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+    ruleSets: [
+      { id: "developer", policy: "Proxy", source: { type: "geosite", value: "github" } },
+      { id: "streaming", enabled: false, policy: "Proxy", source: { type: "geosite", value: "youtube" } },
+      { id: "final", policy: "Proxy", source: { type: "final" } },
     ],
-    final: { policy: "Proxy" },
     ruleProviders: [],
   };
 
-  it("sets module enabled state without mutating the original config", () => {
-    const next = setModuleEnabled(config, "developer", false);
+  it("sets ruleSet enabled state without mutating the original config", () => {
+    const next = setRuleSetEnabled(config, "developer", false);
 
-    expect(next.modules[0]).toEqual({ id: "developer", enabled: false, policy: "Proxy" });
-    expect(config.modules[0]).toEqual({ id: "developer", policy: "Proxy" });
+    expect(next.ruleSets[0]).toEqual({
+      id: "developer",
+      enabled: false,
+      policy: "Proxy",
+      source: { type: "geosite", value: "github" },
+    });
+    expect(config.ruleSets[0]).toEqual({ id: "developer", policy: "Proxy", source: { type: "geosite", value: "github" } });
   });
 
   it("toggles missing enabled flags as enabled by default", () => {
-    const next = toggleModuleEnabled(config, "developer");
+    const next = toggleRuleSetEnabled(config, "developer");
 
-    expect(next.modules[0]).toEqual({ id: "developer", enabled: false, policy: "Proxy" });
+    expect(next.ruleSets[0]).toEqual({
+      id: "developer",
+      enabled: false,
+      policy: "Proxy",
+      source: { type: "geosite", value: "github" },
+    });
   });
 
-  it("toggles explicit disabled modules to enabled", () => {
-    const next = toggleModuleEnabled(config, "streaming");
+  it("toggles explicit disabled ruleSets to enabled", () => {
+    const next = toggleRuleSetEnabled(config, "streaming");
 
-    expect(next.modules[1]).toEqual({ id: "streaming", enabled: true, policy: "Proxy" });
+    expect(next.ruleSets[1]).toEqual({
+      id: "streaming",
+      enabled: true,
+      policy: "Proxy",
+      source: { type: "geosite", value: "youtube" },
+    });
   });
 });

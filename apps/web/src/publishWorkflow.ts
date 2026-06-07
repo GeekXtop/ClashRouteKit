@@ -16,7 +16,7 @@ export interface GitHubRepo {
 
 export interface RawUrlTemplates {
   template: string;
-  providers: string;
+  rules: string;
 }
 
 export const publishActions: LocalRouteKitAction[] = [
@@ -79,6 +79,6 @@ export function createRawUrlTemplates(
   const base = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/publish`;
   return {
     template: `${base}/templates/${templateOutput}`,
-    providers: `${base}/providers/`,
+    rules: `${base}/rules/`,
   };
 }

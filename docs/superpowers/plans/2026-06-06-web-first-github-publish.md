@@ -1,95 +1,95 @@
-# Local-First GitHub Template Implementation Plan
+# Local-First GitHub 模板实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给 agentic worker 的说明：** 必须按任务逐项执行本计划，并使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans。步骤使用 checkbox（`- [ ]`）语法追踪进度。
 
-**Goal:** Turn ClashRouteKit into a local-first repository template where users fork or clone the project, edit route configuration through a local Web UI, and publish stable INI/YAML links through their own GitHub Actions `publish` branch.
+**目标：** 将 ClashRouteKit 改造成 local-first 仓库模板。用户可以 fork 或 clone 项目，通过本地 Web UI 编辑路由配置，并通过自己的 GitHub Actions `publish` 分支发布稳定的 INI/YAML 链接。
 
-**Architecture:** `config/modules.yaml` remains the source of truth in the local Git checkout. The browser UI talks only to the local Vite dev server API, which reads/writes fixed project files, runs existing validation/generation commands, and can invoke local Git commands. The browser never calls GitHub APIs and never stores GitHub tokens; GitHub authentication is delegated to the user's existing local Git setup.
+**架构：** `config/modules.yaml` 继续作为本地 Git checkout 中的唯一事实来源。浏览器 UI 只与本地 Vite dev server API 通信；该 API 读取/写入固定项目文件、运行现有校验/生成命令，并可调用本地 Git 命令。浏览器不调用 GitHub API，也不保存 GitHub token；GitHub 认证交给用户已有的本地 Git 设置。
 
-**Tech Stack:** TypeScript, React 19, Vite dev server middleware, Node.js `fs`/`child_process`, Vitest, `yaml`, GitHub Actions.
-
----
-
-## Product Shape
-
-ClashRouteKit should be presented as a GitHub repository template:
-
-- User forks or creates a repository from the template.
-- User clones the repository locally.
-- User runs `pnpm install` and `pnpm dev`.
-- The local Web UI edits `config/modules.yaml` and rule list files through a local API.
-- The local Web UI triggers `check`, `generate`, `git status`, `git commit`, and `git push`.
-- GitHub Actions publishes generated output to the user's `publish` branch.
-- The user's stable URLs remain `https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini` and `https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/<file>.yaml`.
-
-This avoids Docker, Vercel, GitHub OAuth, browser-held GitHub tokens, and a hosted backend.
-
-## Scope
-
-In scope:
-
-- Browser-safe YAML parse/serialize helpers for `RouteKitProjectConfig`.
-- Local dev server API for reading and writing `config/modules.yaml`.
-- Web UI state based on the local file instead of the bundled read-only import.
-- Module enable/disable changes that persist to `config/modules.yaml`.
-- Existing `check` and `generate` local actions remain available.
-- Local Git action panel for status, commit, and push.
-- Documentation that explains the fork/clone/run/edit/push/publish workflow.
-
-Out of scope:
-
-- Public hosted Web app.
-- Vercel deployment.
-- GitHub OAuth or PAT flow.
-- Docker image.
-- Multi-user editing.
-- Dynamic server-hosted INI/YAML endpoints outside GitHub raw URLs.
-
-## File Structure
-
-- Create `packages/core/src/configDocument.ts`
-  Browser-safe parse and serialize utilities for `RouteKitProjectConfig`.
-- Modify `packages/core/src/index.ts`
-  Export config document utilities.
-- Create `packages/core/tests/configDocument.test.ts`
-  Verify parse, serialization, and basic shape validation.
-- Create `apps/web/src/projectState.ts`
-  Pure helpers for changing module enabled state without mutating the config.
-- Create `apps/web/tests/projectState.test.ts`
-  Verify state helpers.
-- Create `apps/web/src/localProject.ts`
-  Browser client for local project APIs.
-- Create `apps/web/tests/localProject.test.ts`
-  Verify API request/response handling.
-- Modify `apps/web/dev/routeKitApi.ts`
-  Add local project config read/write endpoints and Git command endpoints.
-- Modify `apps/web/tests/routeKitApi.test.ts`
-  Cover config read/write and Git actions with injected dependencies.
-- Modify `apps/web/src/actions.ts`
-  Extend local action client to support Git commands.
-- Modify `apps/web/tests/actions.test.ts`
-  Verify Git action requests.
-- Modify `apps/web/src/config.ts`
-  Keep bundled config only as startup fallback.
-- Modify `apps/web/src/App.tsx`
-  Load config from local API, persist module toggles, expose save/check/generate/git controls.
-- Modify `apps/web/src/styles.css`
-  Style the local project and Git controls.
-- Modify `README.md`
-  Document the repository-template usage flow.
+**技术栈：** TypeScript、React 19、Vite dev server middleware、Node.js `fs`/`child_process`、Vitest、`yaml`、GitHub Actions。
 
 ---
 
-### Task 1: Add Browser-Safe Config Document Utilities
+## 产品形态
 
-**Files:**
-- Create: `packages/core/src/configDocument.ts`
-- Modify: `packages/core/src/index.ts`
-- Test: `packages/core/tests/configDocument.test.ts`
+ClashRouteKit 应以 GitHub 仓库模板的方式呈现：
 
-- [x] **Step 1: Write the failing tests**
+- 用户 fork 此仓库，或从模板创建新仓库。
+- 用户将仓库 clone 到本地。
+- 用户运行 `pnpm install` 和 `pnpm dev`。
+- 本地 Web UI 通过本地 API 编辑 `config/modules.yaml` 和规则列表文件。
+- 本地 Web UI 触发 `check`、`generate`、`git status`、`git commit` 和 `git push`。
+- GitHub Actions 将生成输出发布到用户自己的 `publish` 分支。
+- 用户的稳定 URL 保持为 `https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini` 和 `https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/<file>.yaml`。
 
-Create `packages/core/tests/configDocument.test.ts`:
+这种方式避免了 Docker、Vercel、GitHub OAuth、浏览器持有 GitHub token，以及托管后端。
+
+## 范围
+
+范围内：
+
+- 为 `RouteKitProjectConfig` 提供浏览器安全的 YAML parse/serialize helper。
+- 为读取和写入 `config/modules.yaml` 提供本地 dev server API。
+- Web UI 基于本地文件状态，而不是打包进来的只读 import。
+- 模块启用/禁用变更可以持久化到 `config/modules.yaml`。
+- 保留现有 `check` 和 `generate` 本地操作。
+- 本地 Git 操作面板，支持 status、commit 和 push。
+- 文档解释 fork/clone/run/edit/push/publish 工作流。
+
+范围外：
+
+- 公共托管 Web app。
+- Vercel 部署。
+- GitHub OAuth 或 PAT 流程。
+- Docker image。
+- 多用户编辑。
+- GitHub raw URL 之外的动态服务端 INI/YAML endpoint。
+
+## 文件结构
+
+- 创建 `packages/core/src/configDocument.ts`
+  浏览器安全的 `RouteKitProjectConfig` parse 和 serialize 工具。
+- 修改 `packages/core/src/index.ts`
+  导出 config document 工具。
+- 创建 `packages/core/tests/configDocument.test.ts`
+  验证解析、序列化和基础结构校验。
+- 创建 `apps/web/src/projectState.ts`
+  用于在不修改原始 config 的情况下切换模块 enabled 状态的纯 helper。
+- 创建 `apps/web/tests/projectState.test.ts`
+  验证状态 helper。
+- 创建 `apps/web/src/localProject.ts`
+  本地项目 API 的浏览器客户端。
+- 创建 `apps/web/tests/localProject.test.ts`
+  验证 API 请求/响应处理。
+- 修改 `apps/web/dev/routeKitApi.ts`
+  添加本地项目 config 读写 endpoint 和 Git 命令 endpoint。
+- 修改 `apps/web/tests/routeKitApi.test.ts`
+  使用注入依赖覆盖 config 读写和 Git 操作。
+- 修改 `apps/web/src/actions.ts`
+  扩展本地 action client 以支持 Git 命令。
+- 修改 `apps/web/tests/actions.test.ts`
+  验证 Git action 请求。
+- 修改 `apps/web/src/config.ts`
+  仅将打包 config 保留为启动 fallback。
+- 修改 `apps/web/src/App.tsx`
+  从本地 API 加载 config，持久化模块切换，并暴露 save/check/generate/git 控件。
+- 修改 `apps/web/src/styles.css`
+  为本地项目和 Git 控件添加样式。
+- 修改 `README.md`
+  记录仓库模板使用流程。
+
+---
+
+### 任务 1：添加浏览器安全的 Config Document 工具
+
+**文件：**
+- 创建：`packages/core/src/configDocument.ts`
+- 修改：`packages/core/src/index.ts`
+- 测试：`packages/core/tests/configDocument.test.ts`
+
+- [x] **步骤 1：编写失败测试**
+
+创建 `packages/core/tests/configDocument.test.ts`：
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -149,15 +149,15 @@ describe("config document utilities", () => {
 });
 ```
 
-- [x] **Step 2: Run the focused test and verify it fails**
+- [x] **步骤 2：运行聚焦测试并确认失败**
 
-Run: `pnpm test -- packages/core/tests/configDocument.test.ts`
+运行：`pnpm test -- packages/core/tests/configDocument.test.ts`
 
-Expected: fail because the exported functions do not exist.
+预期：失败，因为导出的函数尚不存在。
 
-- [x] **Step 3: Implement config document utilities**
+- [x] **步骤 3：实现 config document 工具**
 
-Create `packages/core/src/configDocument.ts`:
+创建 `packages/core/src/configDocument.ts`：
 
 ```ts
 import YAML from "yaml";
@@ -199,7 +199,7 @@ export function serializeRouteKitConfig(config: RouteKitProjectConfig): string {
 }
 ```
 
-Modify `packages/core/src/index.ts`:
+修改 `packages/core/src/index.ts`：
 
 ```ts
 export {
@@ -234,27 +234,27 @@ export type {
 } from "./types.js";
 ```
 
-- [x] **Step 4: Verify tests pass**
+- [x] **步骤 4：确认测试通过**
 
-Run: `pnpm test -- packages/core/tests/configDocument.test.ts`
+运行：`pnpm test -- packages/core/tests/configDocument.test.ts`
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 5: Record progress**
+- [x] **步骤 5：记录进度**
 
-Mark Task 1 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 1 标记为完成。
 
 ---
 
-### Task 2: Add Pure Project State Helpers
+### 任务 2：添加纯 Project State Helper
 
-**Files:**
-- Create: `apps/web/src/projectState.ts`
-- Test: `apps/web/tests/projectState.test.ts`
+**文件：**
+- 创建：`apps/web/src/projectState.ts`
+- 测试：`apps/web/tests/projectState.test.ts`
 
-- [x] **Step 1: Write failing project state tests**
+- [x] **步骤 1：编写失败的 project state 测试**
 
-Create `apps/web/tests/projectState.test.ts`:
+创建 `apps/web/tests/projectState.test.ts`：
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -299,15 +299,15 @@ describe("project state helpers", () => {
 });
 ```
 
-- [x] **Step 2: Run the focused test and verify it fails**
+- [x] **步骤 2：运行聚焦测试并确认失败**
 
-Run: `pnpm test -- apps/web/tests/projectState.test.ts`
+运行：`pnpm test -- apps/web/tests/projectState.test.ts`
 
-Expected: fail because `projectState.ts` does not exist.
+预期：失败，因为 `projectState.ts` 不存在。
 
-- [x] **Step 3: Implement project state helpers**
+- [x] **步骤 3：实现 project state helper**
 
-Create `apps/web/src/projectState.ts`:
+创建 `apps/web/src/projectState.ts`：
 
 ```ts
 import type { RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
@@ -339,27 +339,27 @@ export function toggleModuleEnabled(
 }
 ```
 
-- [x] **Step 4: Verify tests pass**
+- [x] **步骤 4：确认测试通过**
 
-Run: `pnpm test -- apps/web/tests/projectState.test.ts`
+运行：`pnpm test -- apps/web/tests/projectState.test.ts`
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 5: Record progress**
+- [x] **步骤 5：记录进度**
 
-Mark Task 2 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 2 标记为完成。
 
 ---
 
-### Task 3: Add Local Project API Client
+### 任务 3：添加本地项目 API Client
 
-**Files:**
-- Create: `apps/web/src/localProject.ts`
-- Test: `apps/web/tests/localProject.test.ts`
+**文件：**
+- 创建：`apps/web/src/localProject.ts`
+- 测试：`apps/web/tests/localProject.test.ts`
 
-- [x] **Step 1: Write failing local project client tests**
+- [x] **步骤 1：编写失败的本地项目 client 测试**
 
-Create `apps/web/tests/localProject.test.ts`:
+创建 `apps/web/tests/localProject.test.ts`：
 
 ```ts
 import { describe, expect, it, vi } from "vitest";
@@ -429,15 +429,15 @@ describe("local project client", () => {
 });
 ```
 
-- [x] **Step 2: Run the focused test and verify it fails**
+- [x] **步骤 2：运行聚焦测试并确认失败**
 
-Run: `pnpm test -- apps/web/tests/localProject.test.ts`
+运行：`pnpm test -- apps/web/tests/localProject.test.ts`
 
-Expected: fail because `localProject.ts` does not exist.
+预期：失败，因为 `localProject.ts` 不存在。
 
-- [x] **Step 3: Implement the local project client**
+- [x] **步骤 3：实现本地项目 client**
 
-Create `apps/web/src/localProject.ts`:
+创建 `apps/web/src/localProject.ts`：
 
 ```ts
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
@@ -486,27 +486,27 @@ export async function saveLocalProjectConfig(
 }
 ```
 
-- [x] **Step 4: Verify tests pass**
+- [x] **步骤 4：确认测试通过**
 
-Run: `pnpm test -- apps/web/tests/localProject.test.ts`
+运行：`pnpm test -- apps/web/tests/localProject.test.ts`
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 5: Record progress**
+- [x] **步骤 5：记录进度**
 
-Mark Task 3 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 3 标记为完成。
 
 ---
 
-### Task 4: Add Local Config Read/Write API
+### 任务 4：添加本地 Config 读写 API
 
-**Files:**
-- Modify: `apps/web/dev/routeKitApi.ts`
-- Modify: `apps/web/tests/routeKitApi.test.ts`
+**文件：**
+- 修改：`apps/web/dev/routeKitApi.ts`
+- 修改：`apps/web/tests/routeKitApi.test.ts`
 
-- [x] **Step 1: Add routeKitApi tests for config read/write helpers**
+- [x] **步骤 1：为 config 读写 helper 添加 routeKitApi 测试**
 
-Append to `apps/web/tests/routeKitApi.test.ts`:
+追加到 `apps/web/tests/routeKitApi.test.ts`：
 
 ```ts
 import {
@@ -574,15 +574,15 @@ describe("project config file helpers", () => {
 });
 ```
 
-- [x] **Step 2: Run the focused test and verify it fails**
+- [x] **步骤 2：运行聚焦测试并确认失败**
 
-Run: `pnpm test -- apps/web/tests/routeKitApi.test.ts`
+运行：`pnpm test -- apps/web/tests/routeKitApi.test.ts`
 
-Expected: fail because the project config helper exports do not exist.
+预期：失败，因为 project config helper 还没有导出。
 
-- [x] **Step 3: Implement config file helpers**
+- [x] **步骤 3：实现 config file helper**
 
-Modify imports in `apps/web/dev/routeKitApi.ts`:
+修改 `apps/web/dev/routeKitApi.ts` 中的 import：
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
@@ -594,7 +594,7 @@ import {
 } from "@clash-route-kit/core";
 ```
 
-Add these interfaces and functions above `runRouteKitAction`:
+在 `runRouteKitAction` 上方添加这些接口和函数：
 
 ```ts
 type ReadText = (filePath: string) => Promise<string>;
@@ -642,9 +642,9 @@ export async function writeProjectConfigFile(
 }
 ```
 
-- [x] **Step 4: Add HTTP routes for project config**
+- [x] **步骤 4：添加 project config HTTP routes**
 
-Inside `createRouteKitApiHandler`, before the `/api/actions/` branch, add:
+在 `createRouteKitApiHandler` 内、`/api/actions/` 分支之前添加：
 
 ```ts
 if (url.pathname === "/api/project/config") {
@@ -690,29 +690,29 @@ if (url.pathname === "/api/project/config") {
 }
 ```
 
-- [x] **Step 5: Verify routeKitApi tests pass**
+- [x] **步骤 5：确认 routeKitApi 测试通过**
 
-Run: `pnpm test -- apps/web/tests/routeKitApi.test.ts`
+运行：`pnpm test -- apps/web/tests/routeKitApi.test.ts`
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 6: Record progress**
+- [x] **步骤 6：记录进度**
 
-Mark Task 4 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 4 标记为完成。
 
 ---
 
-### Task 5: Add Local Git Actions
+### 任务 5：添加本地 Git Actions
 
-**Files:**
-- Modify: `apps/web/dev/routeKitApi.ts`
-- Modify: `apps/web/src/actions.ts`
-- Modify: `apps/web/tests/actions.test.ts`
-- Modify: `apps/web/tests/routeKitApi.test.ts`
+**文件：**
+- 修改：`apps/web/dev/routeKitApi.ts`
+- 修改：`apps/web/src/actions.ts`
+- 修改：`apps/web/tests/actions.test.ts`
+- 修改：`apps/web/tests/routeKitApi.test.ts`
 
-- [x] **Step 1: Extend action client tests**
+- [x] **步骤 1：扩展 action client 测试**
 
-Append to `apps/web/tests/actions.test.ts`:
+追加到 `apps/web/tests/actions.test.ts`：
 
 ```ts
 it("posts to the local git status endpoint", async () => {
@@ -732,21 +732,21 @@ it("posts to the local git status endpoint", async () => {
 });
 ```
 
-- [x] **Step 2: Run action tests and verify failure**
+- [x] **步骤 2：运行 action 测试并确认失败**
 
-Run: `pnpm test -- apps/web/tests/actions.test.ts`
+运行：`pnpm test -- apps/web/tests/actions.test.ts`
 
-Expected: fail because `git-status` is not a valid action.
+预期：失败，因为 `git-status` 还不是有效 action。
 
-- [x] **Step 3: Extend action types**
+- [x] **步骤 3：扩展 action 类型**
 
-Modify `apps/web/src/actions.ts`:
+修改 `apps/web/src/actions.ts`：
 
 ```ts
 export type LocalRouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
 ```
 
-Update `isLocalActionResponse`:
+更新 `isLocalActionResponse`：
 
 ```ts
 const actions: LocalRouteKitAction[] = ["check", "generate", "git-status", "git-commit", "git-push"];
@@ -757,9 +757,9 @@ return (
 );
 ```
 
-- [x] **Step 4: Add routeKitApi tests for Git actions**
+- [x] **步骤 4：为 Git actions 添加 routeKitApi 测试**
 
-Append to `apps/web/tests/routeKitApi.test.ts`:
+追加到 `apps/web/tests/routeKitApi.test.ts`：
 
 ```ts
 describe("git route kit actions", () => {
@@ -806,16 +806,16 @@ describe("git route kit actions", () => {
 });
 ```
 
-- [x] **Step 5: Implement Git action runner**
+- [x] **步骤 5：实现 Git action runner**
 
-In `apps/web/dev/routeKitApi.ts`, add imports:
+在 `apps/web/dev/routeKitApi.ts` 中添加 import：
 
 ```ts
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 ```
 
-Add types:
+添加类型：
 
 ```ts
 const execFileAsync = promisify(execFile);
@@ -828,13 +828,13 @@ async function defaultRunCommand(command: string, args: string[], cwd: string): 
 }
 ```
 
-Extend `RouteKitAction`:
+扩展 `RouteKitAction`：
 
 ```ts
 export type RouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
 ```
 
-Extend `RouteKitActionDependencies`:
+扩展 `RouteKitActionDependencies`：
 
 ```ts
 interface RouteKitActionDependencies {
@@ -844,7 +844,7 @@ interface RouteKitActionDependencies {
 }
 ```
 
-Add Git branches to `runRouteKitAction` before generate handling:
+在 generate 处理前添加 Git 分支：
 
 ```ts
 const runCommand = options.runCommand ?? defaultRunCommand;
@@ -878,7 +878,7 @@ if (action === "git-push") {
 }
 ```
 
-Update `parseRouteKitAction`:
+更新 `parseRouteKitAction`：
 
 ```ts
 function parseRouteKitAction(pathname: string): RouteKitAction | null {
@@ -891,32 +891,32 @@ function parseRouteKitAction(pathname: string): RouteKitAction | null {
 }
 ```
 
-- [x] **Step 6: Verify Git action tests pass**
+- [x] **步骤 6：确认 Git action 测试通过**
 
-Run:
+运行：
 
 ```powershell
 pnpm test -- apps/web/tests/actions.test.ts apps/web/tests/routeKitApi.test.ts
 ```
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 7: Record progress**
+- [x] **步骤 7：记录进度**
 
-Mark Task 5 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 5 标记为完成。
 
 ---
 
-### Task 6: Make Web UI Load and Save Local Config
+### 任务 6：让 Web UI 加载并保存本地 Config
 
-**Files:**
-- Modify: `apps/web/src/config.ts`
-- Modify: `apps/web/src/App.tsx`
-- Modify: `apps/web/src/styles.css`
+**文件：**
+- 修改：`apps/web/src/config.ts`
+- 修改：`apps/web/src/App.tsx`
+- 修改：`apps/web/src/styles.css`
 
-- [x] **Step 1: Keep bundled config as fallback only**
+- [x] **步骤 1：仅将打包 config 保留为 fallback**
 
-Modify `apps/web/src/config.ts`:
+修改 `apps/web/src/config.ts`：
 
 ```ts
 import { parseRouteKitConfig } from "@clash-route-kit/core";
@@ -926,24 +926,24 @@ export const bundledProjectConfig = parseRouteKitConfig(modulesYaml);
 export const bundledProjectConfigYaml = modulesYaml;
 ```
 
-- [x] **Step 2: Update App imports**
+- [x] **步骤 2：更新 App imports**
 
-In `apps/web/src/App.tsx`, replace the config import:
+在 `apps/web/src/App.tsx` 中替换 config import：
 
 ```ts
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
 ```
 
-Add imports:
+添加 import：
 
 ```ts
 import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
 import { toggleModuleEnabled } from "./projectState.js";
 ```
 
-- [x] **Step 3: Add local project state**
+- [x] **步骤 3：添加本地项目状态**
 
-Inside `App`, replace the config and enabled initialization:
+在 `App` 内替换 config 和 enabled 初始化：
 
 ```ts
 const [config, setConfig] = useState<RouteKitProjectConfig>(bundledProjectConfig);
@@ -958,11 +958,11 @@ const [projectState, setProjectState] = useState<{
 const [selectedModuleId, setSelectedModuleId] = useState(bundledProjectConfig.modules[0]?.id ?? "");
 ```
 
-Remove the old `enabled` state, `defaultEnabled`, and `activeProjectConfig`.
+移除旧的 `enabled` state、`defaultEnabled` 和 `activeProjectConfig`。
 
-- [x] **Step 4: Load local config on startup**
+- [x] **步骤 4：启动时加载本地 config**
 
-Add this effect inside `App`:
+在 `App` 内添加此 effect：
 
 ```ts
 useEffect(() => {
@@ -993,9 +993,9 @@ useEffect(() => {
 }, []);
 ```
 
-- [x] **Step 5: Persist module toggles to local config state**
+- [x] **步骤 5：将模块切换持久化到本地 config state**
 
-Replace the module toggle callback:
+替换模块切换 callback：
 
 ```tsx
 onToggle={() => {
@@ -1007,9 +1007,9 @@ onToggle={() => {
 }}
 ```
 
-- [x] **Step 6: Add save handler**
+- [x] **步骤 6：添加保存 handler**
 
-Add this function inside `App`:
+在 `App` 内添加此函数：
 
 ```ts
 async function saveLocalProject() {
@@ -1035,9 +1035,9 @@ async function saveLocalProject() {
 }
 ```
 
-- [x] **Step 7: Add local project controls to the UI**
+- [x] **步骤 7：将本地项目控件添加到 UI**
 
-Add a panel near the top of the right rail:
+在右侧栏顶部附近添加一个 panel：
 
 ```tsx
 <section className="panel local-project-panel">
@@ -1062,9 +1062,9 @@ Add a panel near the top of the right rail:
 </section>
 ```
 
-- [x] **Step 8: Add local project styles**
+- [x] **步骤 8：添加本地项目样式**
 
-Append to `apps/web/src/styles.css`:
+追加到 `apps/web/src/styles.css`：
 
 ```css
 .local-project-actions {
@@ -1084,32 +1084,32 @@ Append to `apps/web/src/styles.css`:
 }
 ```
 
-- [x] **Step 9: Verify Web tests and typecheck**
+- [x] **步骤 9：验证 Web 测试和 typecheck**
 
-Run:
+运行：
 
 ```powershell
 pnpm test -- apps/web/tests/localProject.test.ts apps/web/tests/projectState.test.ts apps/web/tests/routeSummary.test.ts
 pnpm typecheck
 ```
 
-Expected: all tests pass and typecheck succeeds.
+预期：全部测试通过，typecheck 成功。
 
-- [x] **Step 10: Record progress**
+- [x] **步骤 10：记录进度**
 
-Mark Task 6 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 6 标记为完成。
 
 ---
 
-### Task 7: Expose Git Workflow in the Web UI
+### 任务 7：在 Web UI 中暴露 Git 工作流
 
-**Files:**
-- Modify: `apps/web/src/App.tsx`
-- Modify: `apps/web/src/styles.css`
+**文件：**
+- 修改：`apps/web/src/App.tsx`
+- 修改：`apps/web/src/styles.css`
 
-- [x] **Step 1: Add Git actions to the existing operations panel**
+- [x] **步骤 1：向现有 operations panel 添加 Git actions**
 
-In `LocalActionsPanel`, add buttons beside check/generate:
+在 `LocalActionsPanel` 中，把按钮添加到 check/generate 旁边：
 
 ```tsx
 <button className="command-button" disabled={running} type="button" onClick={() => onRun("git-status")}>
@@ -1126,9 +1126,9 @@ In `LocalActionsPanel`, add buttons beside check/generate:
 </button>
 ```
 
-- [x] **Step 2: Add helper text for the publish flow**
+- [x] **步骤 2：为发布流程添加 helper text**
 
-Under the action toolbar, add:
+在 action toolbar 下方添加：
 
 ```tsx
 <p className="operation-hint">
@@ -1136,9 +1136,9 @@ Under the action toolbar, add:
 </p>
 ```
 
-- [x] **Step 3: Style operation hint**
+- [x] **步骤 3：设置 operation hint 样式**
 
-Append to `apps/web/src/styles.css`:
+追加到 `apps/web/src/styles.css`：
 
 ```css
 .operation-hint {
@@ -1149,28 +1149,28 @@ Append to `apps/web/src/styles.css`:
 }
 ```
 
-- [x] **Step 4: Verify typecheck**
+- [x] **步骤 4：确认 typecheck**
 
-Run: `pnpm typecheck`
+运行：`pnpm typecheck`
 
-Expected: pass.
+预期：通过。
 
-- [x] **Step 5: Record progress**
+- [x] **步骤 5：记录进度**
 
-Mark Task 7 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 7 标记为完成。
 
 ---
 
-### Task 8: Update Product Documentation
+### 任务 8：更新产品文档
 
-**Files:**
-- Modify: `README.md`
+**文件：**
+- 修改：`README.md`
 
-- [x] **Step 1: Update README quickstart**
+- [x] **步骤 1：更新 README quickstart**
 
-Add this section to `README.md`:
+将此章节添加到 `README.md`：
 
-```md
+````md
 ## Local-first usage
 
 ClashRouteKit is intended to be used as a repository template.
@@ -1191,99 +1191,99 @@ https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/<Provider_File>.y
 ```
 
 The Web UI does not require GitHub OAuth or a browser token. It uses the local dev server to write files and relies on your local Git credentials for `git push`.
-```
+````
 
-- [x] **Step 2: Remove obsolete project status dependency**
+- [x] **步骤 2：移除过时的项目状态依赖**
 
-Keep `docs/project-status.md` deleted. The formal project direction now lives in this plan and in `README.md`.
+保持 `docs/project-status.md` 已删除。正式项目方向现在位于本计划和 `README.md`。
 
-- [x] **Step 3: Verify docs are tracked as intended**
+- [x] **步骤 3：确认 docs 按预期被 Git 跟踪**
 
-Run:
+运行：
 
 ```powershell
 git status --short --untracked-files=all
 git check-ignore -q docs/superpowers/plans/2026-06-06-web-first-github-publish.md; if ($LASTEXITCODE -eq 0) { "plan ignored" } else { "plan tracked or unignored" }
 ```
 
-Expected:
+预期：
 
 ```text
 plan tracked or unignored
 ```
 
-- [x] **Step 4: Record progress**
+- [x] **步骤 4：记录进度**
 
-Mark Task 8 as complete in this plan after the verification command passes.
+验证命令通过后，将任务 8 标记为完成。
 
 ---
 
-### Task 9: Full Verification
+### 任务 9：完整验证
 
-**Files:**
-- No new files.
+**文件：**
+- 无新增文件。
 
-- [x] **Step 1: Run full tests**
+- [x] **步骤 1：运行完整测试**
 
-Run: `pnpm test`
+运行：`pnpm test`
 
-Expected: all Vitest suites pass.
+预期：全部 Vitest suites 通过。
 
-- [x] **Step 2: Run full typecheck**
+- [x] **步骤 2：运行完整 typecheck**
 
-Run: `pnpm typecheck`
+运行：`pnpm typecheck`
 
-Expected: all workspace TypeScript checks pass.
+预期：所有 workspace TypeScript 检查通过。
 
-- [x] **Step 3: Run full build**
+- [x] **步骤 3：运行完整 build**
 
-Run: `pnpm build`
+运行：`pnpm build`
 
-Expected: core, CLI, and Web build successfully.
+预期：core、CLI 和 Web 构建成功。
 
-- [x] **Step 4: Verify local generation**
+- [x] **步骤 4：验证本地生成**
 
-Run:
+运行：
 
 ```powershell
 pnpm check
 pnpm generate
 ```
 
-Expected: `pnpm check` reports no diagnostics and `pnpm generate` writes template, rule provider YAML, and report files under `output/`.
+预期：`pnpm check` 不报告诊断，`pnpm generate` 在 `output/` 下写入模板、rule provider YAML 和 report 文件。
 
-- [x] **Step 5: Manual local Web verification**
+- [x] **步骤 5：手动本地 Web 验证**
 
-Run: `pnpm dev`
+运行：`pnpm dev`
 
-Open the local Vite URL and verify:
+打开本地 Vite URL 并验证：
 
-- The app loads `config/modules.yaml` from `/api/project/config`.
-- Toggling a module changes the preview.
-- Clicking `保存配置` writes `config/modules.yaml`.
-- Clicking `运行检查` returns check output.
-- Clicking `生成输出` writes output.
-- Clicking `Git 状态` shows the changed files.
-- `提交配置` and `推送发布` buttons are visible; do not click them during automated validation unless the user explicitly asks to create a commit or push.
-- The browser does not ask for or store a GitHub token.
+- 应用从 `/api/project/config` 加载 `config/modules.yaml`。
+- 切换模块会改变预览。
+- 点击 `保存配置` 会写入 `config/modules.yaml`。
+- 点击 `运行检查` 返回 check 输出。
+- 点击 `生成输出` 写入 output。
+- 点击 `Git 状态` 显示 changed files。
+- `提交配置` 和 `推送发布` 按钮可见；自动验证期间不要点击它们，除非用户明确要求创建 commit 或 push。
+- 浏览器不会请求或保存 GitHub token。
 
-- [x] **Step 6: Record verification status**
+- [x] **步骤 6：记录验证状态**
 
-No additional fix commit is required by the final verification pass.
+最终验证通过后，不需要额外 fix commit。
 
 ---
 
-## Operational Notes
+## 操作说明
 
-- This design intentionally does not solve hosted editing. Users edit from their local clone.
-- The local dev server API must only operate on fixed project paths and a fixed set of commands.
-- The browser must not accept arbitrary filesystem paths or arbitrary shell commands.
-- Git authentication is handled by the user's machine through Git Credential Manager, GitHub CLI, or SSH.
-- `output/` remains ignored on `main`; GitHub Actions remains the publisher of generated raw URLs.
-- CLI remains useful for CI and direct local scripting, but the primary user experience is the Web UI.
+- 该设计有意不解决托管编辑。用户从自己的本地 clone 中编辑。
+- 本地 dev server API 必须只操作固定项目路径和固定命令集合。
+- 浏览器不得接受任意文件系统路径或任意 shell 命令。
+- Git 认证由用户机器通过 Git Credential Manager、GitHub CLI 或 SSH 处理。
+- `output/` 在 `main` 上保持 ignored；GitHub Actions 仍然负责发布生成的 raw URL。
+- CLI 对 CI 和直接本地脚本仍然有用，但主要用户体验是 Web UI。
 
-## Self-Review
+## 自检
 
-- Spec coverage: the plan covers fork/clone local usage, local Web editing, local file persistence, local Git actions, GitHub Actions publishing, and stable raw URLs.
-- Placeholder scan: the plan does not contain unresolved placeholder instructions.
-- Type consistency: `RouteKitProjectConfig`, local action names, local API payloads, and route paths are consistent across tasks.
+- Spec 覆盖：计划覆盖 fork/clone 本地使用、本地 Web 编辑、本地文件持久化、本地 Git actions、GitHub Actions 发布和稳定 raw URL。
+- 占位符扫描：计划不包含未解决的占位说明。
+- 类型一致性：`RouteKitProjectConfig`、本地 action 名称、本地 API payload 和 route path 在各任务中保持一致。

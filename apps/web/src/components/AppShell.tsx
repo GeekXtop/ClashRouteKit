@@ -1,7 +1,7 @@
 import {
-  Boxes,
   CheckCircle2,
   FileCode2,
+  FileText,
   GitBranch,
   Layers3,
   Route,
@@ -20,9 +20,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { view: "project", label: "Project", description: "本地文件与输出", icon: <Settings2 size={17} /> },
-  { view: "modules", label: "Modules", description: "路由模块编辑", icon: <Boxes size={17} /> },
-  { view: "policies", label: "Policies", description: "策略组摘要", icon: <Layers3 size={17} /> },
+  { view: "ruleSets", label: "RuleSets", description: "ruleset 行编辑", icon: <Route size={17} /> },
+  { view: "customProxyGroups", label: "Proxy Groups", description: "custom_proxy_group", icon: <Layers3 size={17} /> },
   { view: "providers", label: "Providers", description: "Rule Provider", icon: <FileCode2 size={17} /> },
+  { view: "rules", label: "Rules", description: "规则文件", icon: <FileText size={17} /> },
   { view: "preview", label: "Preview", description: "规则与 INI", icon: <Route size={17} /> },
   { view: "publish", label: "Publish", description: "检查生成发布", icon: <Send size={17} /> },
 ];
@@ -60,7 +61,7 @@ export function AppShell({
           </div>
           <div>
             <h1>ClashRouteKit</h1>
-            <span>config/modules.yaml</span>
+            <span>config/routes.yaml</span>
           </div>
         </div>
         <div className="top-actions">

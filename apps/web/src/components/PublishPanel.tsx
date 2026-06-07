@@ -92,7 +92,7 @@ export function PublishPanel({
           <p className={`project-message ${projectStatus}`}>{projectMessage}</p>
         </div>
         <p className="operation-hint">
-          将写入 <code>config/modules.yaml</code>，当前草稿 YAML {draftYamlLength} 字符。
+          将写入 <code>config/routes.yaml</code>，当前草稿 YAML {draftYamlLength} 字符。
           {!saveReadiness.ok ? ` ${saveReadiness.reason}` : ""}
         </p>
 

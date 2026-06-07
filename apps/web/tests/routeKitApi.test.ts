@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import {
+  listProjectRuleFiles,
   readProjectConfigFile,
+  readProjectRuleFile,
   runRouteKitAction,
   writeProjectConfigFile,
+  writeProjectRuleFile,
 } from "../dev/routeKitApi.js";
 
 describe("routeKitApi", () => {
   const baseOptions = {
     root: "E:/repo",
-    configFile: "config/modules.yaml",
+    configFile: "config/routes.yaml",
   };
 
   it("formats a successful check action", async () => {
@@ -28,13 +31,13 @@ describe("routeKitApi", () => {
   it("returns diagnostics for a failed check action", async () => {
     const result = await runRouteKitAction("check", {
       ...baseOptions,
-      checkConfig: async () => ["Module ai references missing policy group: AI"],
+      checkConfig: async () => ["RuleSet ai references missing custom_proxy_group: AI"],
     });
 
     expect(result).toEqual({
       action: "check",
       ok: false,
-      output: "[check] Module ai references missing policy group: AI",
+      output: "[check] RuleSet ai references missing custom_proxy_group: AI",
     });
   });
 
@@ -75,28 +78,33 @@ describe("routeKitApi", () => {
 
 describe("project config file helpers", () => {
   const root = path.resolve("fixture-repo");
-  const configFile = "config/modules.yaml";
+  const configFile = "config/routes.yaml";
   const configPath = path.resolve(root, configFile);
   const configYaml = [
     "publishBaseUrl: http://127.0.0.1:8787",
     "template:",
     "  output: Custom_Clash.ini",
     "vendorRepos: []",
-    "proxyGroups:",
+    "customProxyGroups:",
     "  - name: Proxy",
     "    type: select",
     "    options:",
     "      - DIRECT",
-    "modules:",
-    "  - id: ai",
+    "ruleSets:",
+    "  - id: ai-geosite-openai",
     "    policy: Proxy",
-    "final:",
-    "  policy: Proxy",
+    "    source:",
+    "      type: geosite",
+    "      value: openai",
+    "  - id: final",
+    "    policy: Proxy",
+    "    source:",
+    "      type: final",
     "ruleProviders: []",
     "",
   ].join("\n");
 
-  it("reads and parses config/modules.yaml", async () => {
+  it("reads and parses config/routes.yaml", async () => {
     const result = await readProjectConfigFile({
       root,
       configFile,
@@ -107,10 +115,10 @@ describe("project config file helpers", () => {
     });
 
     expect(result.yaml).toBe(configYaml);
-    expect(result.config.modules[0]?.id).toBe("ai");
+    expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
   });
 
-  it("serializes and writes config/modules.yaml", async () => {
+  it("serializes and writes config/routes.yaml", async () => {
     const writes: Array<{ filePath: string; text: string }> = [];
     const result = await writeProjectConfigFile({
       root,
@@ -119,9 +127,11 @@ describe("project config file helpers", () => {
         publishBaseUrl: "http://127.0.0.1:8787",
         template: { output: "Custom_Clash.ini" },
         vendorRepos: [],
-        proxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-        modules: [{ id: "ai", policy: "Proxy" }],
-        final: { policy: "Proxy" },
+        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+        ruleSets: [
+          { id: "ai-geosite-openai", policy: "Proxy", source: { type: "geosite", value: "openai" } },
+          { id: "final", policy: "Proxy", source: { type: "final" } },
+        ],
         ruleProviders: [],
       },
       writeText: async (filePath, text) => {
@@ -130,15 +140,15 @@ describe("project config file helpers", () => {
     });
 
     expect(writes[0]?.filePath).toBe(configPath);
-    expect(writes[0]?.text).toContain("modules:");
-    expect(result.config.modules[0]?.id).toBe("ai");
+    expect(writes[0]?.text).toContain("ruleSets:");
+    expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
   });
 });
 
 describe("git route kit actions", () => {
   const baseOptions = {
     root: "E:/repo",
-    configFile: "config/modules.yaml",
+    configFile: "config/routes.yaml",
   };
 
   it("runs git status through injected command runner", async () => {
@@ -148,14 +158,14 @@ describe("git route kit actions", () => {
         expect(command).toBe("git");
         expect(args).toEqual(["status", "--short"]);
         expect(cwd).toBe("E:/repo");
-        return " M config/modules.yaml\n";
+        return " M config/routes.yaml\n";
       },
     });
 
     expect(result).toEqual({
       action: "git-status",
       ok: true,
-      output: " M config/modules.yaml\n",
+      output: " M config/routes.yaml\n",
     });
   });
 
@@ -170,10 +180,75 @@ describe("git route kit actions", () => {
     });
 
     expect(commands).toEqual([
-      "git add config/modules.yaml config/rules",
+      "git add config/routes.yaml config/rules",
       "git commit -m chore: update route config",
     ]);
     expect(result.ok).toBe(true);
     expect(result.output).toContain("[git] committed route config");
+  });
+});
+
+describe("project rule file helpers", () => {
+  const root = path.resolve("fixture-repo");
+
+  it("lists only .list files under config/rules", async () => {
+    const files = await listProjectRuleFiles({
+      root,
+      configFile: "config/routes.yaml",
+      readDirectory: async (directory) => {
+        expect(directory).toBe(path.resolve(root, "config/rules"));
+        return ["AI.list", "README.md", "Custom.list"];
+      },
+    });
+
+    expect(files).toEqual(["AI.list", "Custom.list"]);
+  });
+
+  it("reads and writes rule files under config/rules", async () => {
+    const reads: string[] = [];
+    const writes: Array<{ filePath: string; text: string }> = [];
+    const read = await readProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "AI.list",
+      readText: async (filePath) => {
+        reads.push(filePath);
+        return "DOMAIN,openai.com\n";
+      },
+    });
+    const write = await writeProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "AI.list",
+      text: "DOMAIN,openai.com\n",
+      writeText: async (filePath, text) => {
+        writes.push({ filePath, text });
+      },
+    });
+
+    expect(read).toEqual({ file: "AI.list", text: "DOMAIN,openai.com\n" });
+    expect(write).toEqual({ file: "AI.list", text: "DOMAIN,openai.com\n" });
+    expect(reads[0]).toBe(path.resolve(root, "config/rules/AI.list"));
+    expect(writes[0]).toEqual({
+      filePath: path.resolve(root, "config/rules/AI.list"),
+      text: "DOMAIN,openai.com\n",
+    });
+  });
+
+  it("rejects path traversal and non-list rule files", async () => {
+    await expect(readProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "../routes.yaml",
+      readText: async () => "",
+    })).rejects.toThrow("Invalid rule file");
+
+    await expect(writeProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "AI.yaml",
+      text: "",
+      writeText: async () => {},
+    })).rejects.toThrow("Invalid rule file");
   });
 });

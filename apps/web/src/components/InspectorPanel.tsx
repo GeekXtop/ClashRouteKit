@@ -1,24 +1,31 @@
 import { CheckCircle2, CircleDot, Layers3, Settings2 } from "lucide-react";
-import type { RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
+import type { RouteKitProjectConfig, RuleSet } from "@clash-route-kit/core";
 import type { ProjectControllerState, SaveReadiness } from "../projectController.js";
-import type { PolicyStat } from "../routeSummary.js";
-import { TagList } from "./TagList.js";
+import type { CustomProxyGroupStat } from "../routeSummary.js";
 import { YamlDiffPanel } from "./YamlDiffPanel.js";
+
+function sourceText(ruleSet: RuleSet): string {
+  const source = ruleSet.source;
+  if (source.type === "rule-provider") return `${source.behavior}:${source.file}`;
+  if (source.type === "geosite") return `[]GEOSITE,${source.value}`;
+  if (source.type === "geoip") return `[]GEOIP,${source.value}`;
+  return "[]FINAL";
+}
 
 export function InspectorPanel({
   config,
-  policyStats,
+  customProxyGroupStats,
   project,
   routeRowsCount,
   saveReadiness,
-  selectedModule,
+  selectedRuleSet,
 }: {
   config: RouteKitProjectConfig;
-  policyStats: PolicyStat[];
+  customProxyGroupStats: CustomProxyGroupStat[];
   project: ProjectControllerState;
   routeRowsCount: number;
   saveReadiness: SaveReadiness;
-  selectedModule: RouteModule | undefined;
+  selectedRuleSet: RuleSet | undefined;
 }) {
   const providerCount = config.ruleProviders?.length ?? 0;
 
@@ -34,7 +41,7 @@ export function InspectorPanel({
         </div>
         <div className="local-project-actions">
           <p className={`project-message ${project.status}`}>{project.message}</p>
-          <p className="project-message">目标文件：config/modules.yaml</p>
+          <p className="project-message">目标文件：config/routes.yaml</p>
           <p className="project-message">草稿 YAML {project.draftYaml.length} 字符</p>
           <p className="project-message">当前视图 {project.selectedView}</p>
           <p className={`project-message ${saveReadiness.ok ? "success" : "error"}`}>
@@ -51,25 +58,30 @@ export function InspectorPanel({
       <section className="panel detail-panel">
         <div className="panel-heading">
           <div>
-            <h2>选中模块</h2>
-            <span>{selectedModule?.policy ?? "未选择"}</span>
+            <h2>选中 RuleSet</h2>
+            <span>{selectedRuleSet?.policy ?? "未选择"}</span>
           </div>
           <CircleDot size={18} />
         </div>
-        {selectedModule ? (
+        {selectedRuleSet ? (
           <div className="detail-body">
             <div className="detail-title">
-              <strong>{selectedModule.id}</strong>
-              <span className={selectedModule.enabled === false ? "state paused" : "state active"}>
-                {selectedModule.enabled === false ? "paused" : "active"}
+              <strong>{selectedRuleSet.id}</strong>
+              <span className={selectedRuleSet.enabled === false ? "state paused" : "state active"}>
+                {selectedRuleSet.enabled === false ? "paused" : "active"}
               </span>
             </div>
-            <TagList title="GEOSITE" tags={selectedModule.geosite ?? []} />
-            <TagList title="GEOIP" tags={selectedModule.geoip ?? []} />
-            <TagList title="Provider" tags={(selectedModule.providers ?? []).map((provider) => provider.file)} />
+            <div className="policy-row">
+              <span>policy</span>
+              <small>{selectedRuleSet.policy}</small>
+            </div>
+            <div className="policy-row">
+              <span>source</span>
+              <small>{sourceText(selectedRuleSet)}</small>
+            </div>
           </div>
         ) : (
-          <div className="empty-state">未选择模块</div>
+          <div className="empty-state">未选择 ruleset</div>
         )}
       </section>
 
@@ -83,8 +95,8 @@ export function InspectorPanel({
         </div>
         <div className="policy-list">
           <div className="policy-row">
-            <span>策略组</span>
-            <small>{policyStats.length} groups</small>
+            <span>custom_proxy_group</span>
+            <small>{customProxyGroupStats.length} groups</small>
           </div>
           <div className="policy-row">
             <span>Provider 输出</span>
@@ -97,16 +109,16 @@ export function InspectorPanel({
         <div className="panel-heading">
           <div>
             <h2>策略使用</h2>
-            <span>{policyStats.length} groups</span>
+            <span>{customProxyGroupStats.length} groups</span>
           </div>
           <Layers3 size={18} />
         </div>
         <div className="policy-list">
-          {policyStats.map((policy) => (
-            <div className="policy-row" key={policy.name}>
-              <span>{policy.name}</span>
+          {customProxyGroupStats.map((group) => (
+            <div className="policy-row" key={group.name}>
+              <span>{group.name}</span>
               <small>
-                {policy.modules} modules / {policy.options} options
+                {group.ruleSets} rulesets / {group.options} options
               </small>
             </div>
           ))}

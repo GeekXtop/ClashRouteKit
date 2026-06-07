@@ -1,27 +1,27 @@
-import type { RouteKitProjectConfig, RouteModule } from "@clash-route-kit/core";
+import type { RouteKitProjectConfig, RuleSet } from "@clash-route-kit/core";
 
-function isModuleEnabled(module: RouteModule): boolean {
-  return module.enabled !== false;
+function isRuleSetEnabled(ruleSet: RuleSet): boolean {
+  return ruleSet.enabled !== false;
 }
 
-export function setModuleEnabled(
+export function setRuleSetEnabled(
   config: RouteKitProjectConfig,
-  moduleId: string,
+  ruleSetId: string,
   enabled: boolean,
 ): RouteKitProjectConfig {
   return {
     ...config,
-    modules: config.modules.map((module) =>
-      module.id === moduleId ? { ...module, enabled } : module,
+    ruleSets: config.ruleSets.map((ruleSet) =>
+      ruleSet.id === ruleSetId ? { ...ruleSet, enabled } : ruleSet,
     ),
   };
 }
 
-export function toggleModuleEnabled(
+export function toggleRuleSetEnabled(
   config: RouteKitProjectConfig,
-  moduleId: string,
+  ruleSetId: string,
 ): RouteKitProjectConfig {
-  const module = config.modules.find((item) => item.id === moduleId);
-  if (!module) return config;
-  return setModuleEnabled(config, moduleId, !isModuleEnabled(module));
+  const ruleSet = config.ruleSets.find((item) => item.id === ruleSetId);
+  if (!ruleSet) return config;
+  return setRuleSetEnabled(config, ruleSetId, !isRuleSetEnabled(ruleSet));
 }

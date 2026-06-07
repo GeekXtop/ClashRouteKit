@@ -6,7 +6,7 @@ import { createRouteKitApiHandler } from "./dev/routeKitApi.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/modules.yaml";
+const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/routes.yaml";
 
 function routeKitApiPlugin(): Plugin {
   return {

@@ -14,13 +14,13 @@ describe("yaml line diff", () => {
   });
 
   it("handles inserted lines without marking the rest of the file as changed", () => {
-    const diff = createLineDiff("modules:\n  - id: private\nfinal: DIRECT\n", "modules:\n  - id: ai\n  - id: private\nfinal: DIRECT\n");
+    const diff = createLineDiff("modules:\n  - id: private\n  - id: final\n", "modules:\n  - id: ai\n  - id: private\n  - id: final\n");
 
     expect(diff).toEqual([
       { type: "unchanged", text: "modules:", oldLine: 1, newLine: 1 },
       { type: "added", text: "  - id: ai", newLine: 2 },
       { type: "unchanged", text: "  - id: private", oldLine: 2, newLine: 3 },
-      { type: "unchanged", text: "final: DIRECT", oldLine: 3, newLine: 4 },
+      { type: "unchanged", text: "  - id: final", oldLine: 3, newLine: 4 },
     ]);
   });
 });

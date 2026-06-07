@@ -2,28 +2,30 @@
 
 模块化维护 OpenClash / Clash Meta 路由规则、SubConverter INI 和 Clash rule-provider 的本地工具。
 
-本项目的核心思路是自己声明策略组、规则模块和规则顺序，不再把 Aethersailor、ACL4SSR 或 dler 的 INI 当主模板继承。第三方项目只作为数据源：GEOSITE tag、Clash list、Clash provider YAML 或 domain-list-community data。
+本项目的核心思路是直接声明 SubConverter 的 `ruleset` 与 `custom_proxy_group`，不再把 Aethersailor、ACL4SSR 或 dler 的 INI 当主模板继承。第三方项目只作为数据源：GEOSITE tag、Clash list、Clash provider YAML 或 domain-list-community data。
 
-## Local-first usage
+## 本地优先使用方式
 
-ClashRouteKit is intended to be used as a repository template.
+ClashRouteKit 适合作为自己的 GitHub 仓库模板使用。
 
-1. Fork this repository or create a new repository from the template.
-2. Clone your repository locally.
-3. Install dependencies with `pnpm install`.
-4. Start the local Web editor with `pnpm dev`.
-5. Edit route modules in the Web UI.
-6. Click `保存配置`, then run `检查`, `生成输出`, `提交配置`, and `推送发布`.
-7. Wait for GitHub Actions to publish the `publish` branch.
+1. Fork 本仓库，或从模板创建自己的仓库。
+2. 将自己的仓库 clone 到本地。
+3. 运行 `pnpm install` 安装依赖。
+4. 运行 `pnpm dev` 启动本地 Web 编辑器。
+5. 在 Web UI 中编辑 RuleSets、Custom Proxy Groups、rule provider 和规则文件。
+6. 点击 `保存配置`，再依次运行 `运行检查`、`生成输出`、`Git 状态`、`提交配置` 和 `推送发布`。
+7. 等待 GitHub Actions 发布 `publish` 分支。
 
-Published files are available at:
+发布后的文件地址：
 
 ```text
 https://raw.githubusercontent.com/<owner>/<repo>/publish/templates/Custom_Clash.ini
 https://raw.githubusercontent.com/<owner>/<repo>/publish/rules/<Provider_File>.yaml
 ```
 
-The Web UI does not require GitHub OAuth or a browser token. It uses the local dev server to write files and relies on your local Git credentials for `git push`.
+Web UI 不需要 GitHub OAuth，也不会在浏览器保存 GitHub token。它通过本地 dev server 写入当前 checkout 中的固定文件，并依赖本机 Git 凭据执行 `git push`。
+
+默认使用方式不需要 Docker。Docker 或 devcontainer 只适合作为可选开发环境，不是本项目的发布路径。
 
 ## 产出与发布
 
@@ -82,7 +84,7 @@ https://raw.githubusercontent.com/${{ github.repository }}/publish
 ## 数据流
 
 ```text
-config/modules.yaml
+config/routes.yaml
   + config/rules/*.list
   + domain-list-community/data/*
   + ACL4SSR/Clash/Ruleset/*.list
@@ -91,21 +93,22 @@ config/modules.yaml
   -> output/rules/*.yaml
 ```
 
-`config/modules.yaml` 是唯一生效配置，控制：
+`config/routes.yaml` 是唯一生效配置，控制：
 
-- `proxyGroups`：SubConverter `custom_proxy_group`。
-- `modules`：规则模块和优先级，数组顺序就是规则顺序。
+- `customProxyGroups`：每一项输出为一条 SubConverter `custom_proxy_group=...`。
+- `ruleSets`：每一项输出为一条 SubConverter `ruleset=...`，数组顺序就是规则顺序。
 - `ruleProviders`：从本地/第三方真实数据生成 provider YAML。
-- `final.policy`：漏网之鱼策略；当前是 `Proxy`。
+
+旧版 `config/modules.yaml`、`modules` 和 `proxyGroups` 不再作为默认配置或兼容输入。
 
 ## INI 模型
 
 SubConverter INI 里本项目主要生成两块内容：
 
-- `ruleset`：决定“什么流量进哪个策略组”。例如 Developer 域名进 `Tech`，`geolocation-!cn` 进 `Proxy`，`FINAL` 进 `Proxy`。
-- `custom_proxy_group`：决定“策略组里面有哪些可选节点或下级策略”。例如 `Tech` 可以选 `Proxy` / `Auto` / `Direct`。
+- `ruleSets`：决定“什么流量进哪个 custom_proxy_group”。例如 Developer 域名进 `Tech`，`geolocation-!cn` 进 `Proxy`，`FINAL` 进 `Proxy`。
+- `customProxyGroups`：决定“custom_proxy_group 里面有哪些可选节点或下级策略”。例如 `Tech` 可以选 `Proxy` / `Auto` / `Direct`。
 
-这两块应该分开维护。规则模块不应该直接关心具体节点；它只把流量导向一个策略组。节点怎么组织由 `proxyGroups` 负责。
+这两块应该分开维护。`ruleSets` 不直接关心具体节点；它只把流量导向一个 custom_proxy_group。节点怎么组织由 `customProxyGroups` 负责。
 
 节点分组可以有几种模式：
 
@@ -120,21 +123,21 @@ SubConverter INI 里本项目主要生成两块内容：
 默认规则顺序：
 
 ```text
-private -> Direct
-custom-direct -> Direct
-custom-proxy -> Proxy
-ai -> AI
-developer -> Tech
-crypto -> Crypto
-microsoft -> Microsoft
-global-proxy/geolocation-!cn -> Proxy
-china/geolocation-cn/cn/geoip-cn -> Direct
-FINAL -> Proxy
+private-geosite-private -> Direct
+custom-direct-provider-custom-direct-domain -> Direct
+custom-proxy-provider-custom-proxy-domain -> Proxy
+ai-* -> AI
+developer-* -> Tech
+crypto-* -> Crypto
+microsoft-* -> Microsoft
+global-proxy-geosite-geolocation-not-cn -> Proxy
+china-* -> Direct
+final -> 🐟 漏网之鱼
 ```
 
 ## 真实数据源
 
-`pnpm sync:vendor` 从 `config/modules.yaml` 顶层 `vendorRepos` 读取要同步的上游仓库。当前配置声明：
+`pnpm sync:vendor` 从 `config/routes.yaml` 顶层 `vendorRepos` 读取要同步的上游仓库。当前配置声明：
 
 - `vendor/domain-list-community`：DLC tag，例如 `github`、`debian`、`ubuntu`、`openai`。
 - `vendor/ACL4SSR`：Developer 补充列表。
@@ -215,7 +218,7 @@ pnpm subconvert-url
 pnpm serve:output
 ```
 
-如果本地已经同步 `vendor/domain-list-community/data`，`pnpm check` 会同时校验 `modules[].geosite` 引用的 tag 是否存在；未同步 vendor 时会跳过这项检查。
+如果本地已经同步 `vendor/domain-list-community/data`，`pnpm check` 会同时校验 `ruleSets[].source.type: geosite` 引用的 tag 是否存在；未同步 vendor 时会跳过这项检查。
 
 生成 SubConverter 调用 URL：
 
@@ -251,7 +254,7 @@ publish output/ -> publish branch
 ## 目录
 
 ```text
-config/modules.yaml          项目生成声明
+config/routes.yaml           项目生成声明
 config/rules/                手写规则源
 packages/core/               INI 渲染、DLC 转换、provider 生成和共享类型
 apps/cli/                    generate/preview/check 命令
@@ -265,5 +268,5 @@ vendor/                      预留上游缓存目录，已忽略
 - 不提交订阅链接和最终 `config.yaml`。
 - 不生成 `.mrs`。
 - 不把第三方 INI 当主模板 patch。
-- 规则数据优先写进 `config/modules.yaml` 和 `config/rules/`，不要硬编码到应用代码。
+- 规则数据优先写进 `config/routes.yaml` 和 `config/rules/`，不要硬编码到应用代码。
 - 改 schema 或生成逻辑后运行 `pnpm test`、`pnpm typecheck`、`pnpm build`。

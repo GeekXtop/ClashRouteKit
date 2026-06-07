@@ -2,8 +2,16 @@ import {
   serializeRouteKitConfig,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
+import { validateDraftConfig } from "./draftValidation.js";
 
-export type ProjectView = "project" | "modules" | "policies" | "providers" | "preview" | "publish";
+export type ProjectView =
+  | "project"
+  | "ruleSets"
+  | "customProxyGroups"
+  | "providers"
+  | "rules"
+  | "preview"
+  | "publish";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
 export type ProjectValidationStatus = "idle" | "running" | "success" | "error";
 
@@ -22,7 +30,10 @@ export interface ProjectControllerState {
   message: string;
   validation: ProjectValidationState;
   selectedView: ProjectView;
-  selectedModuleId: string;
+  selectedRuleSetId: string;
+  selectedCustomProxyGroupName: string;
+  selectedProviderName: string;
+  selectedRuleFile: string;
 }
 
 export type SaveReadiness =
@@ -45,12 +56,28 @@ function computeDirty(originalConfig: RouteKitProjectConfig, draftConfig: RouteK
   return serializeConfig(originalConfig) !== serializeConfig(draftConfig);
 }
 
-function firstModuleId(config: RouteKitProjectConfig): string {
-  return config.modules[0]?.id ?? "";
+function firstRuleSetId(config: RouteKitProjectConfig): string {
+  return config.ruleSets[0]?.id ?? "";
 }
 
-function hasSelectedModule(config: RouteKitProjectConfig, moduleId: string): boolean {
-  return config.modules.some((module) => module.id === moduleId);
+function firstCustomProxyGroupName(config: RouteKitProjectConfig): string {
+  return config.customProxyGroups[0]?.name ?? "";
+}
+
+function firstProviderName(config: RouteKitProjectConfig): string {
+  return config.ruleProviders?.[0]?.name ?? "";
+}
+
+function hasSelectedRuleSet(config: RouteKitProjectConfig, ruleSetId: string): boolean {
+  return config.ruleSets.some((ruleSet) => ruleSet.id === ruleSetId);
+}
+
+function hasSelectedCustomProxyGroup(config: RouteKitProjectConfig, groupName: string): boolean {
+  return config.customProxyGroups.some((group) => group.name === groupName);
+}
+
+function hasSelectedProvider(config: RouteKitProjectConfig, providerName: string): boolean {
+  return (config.ruleProviders ?? []).some((provider) => provider.name === providerName);
 }
 
 export function createProjectController(snapshot: ProjectConfigSnapshot): ProjectControllerState {
@@ -61,13 +88,16 @@ export function createProjectController(snapshot: ProjectConfigSnapshot): Projec
     draftYaml: serializeConfig(snapshot.config),
     dirty: false,
     status: "ready",
-    message: "已读取本地 config/modules.yaml",
+    message: "已读取本地 config/routes.yaml",
     validation: {
       status: "idle",
       output: "尚未运行检查",
     },
-    selectedView: "modules",
-    selectedModuleId: firstModuleId(snapshot.config),
+    selectedView: "ruleSets",
+    selectedRuleSetId: firstRuleSetId(snapshot.config),
+    selectedCustomProxyGroupName: firstCustomProxyGroupName(snapshot.config),
+    selectedProviderName: firstProviderName(snapshot.config),
+    selectedRuleFile: "",
   };
 }
 
@@ -75,9 +105,9 @@ export function applyDraftConfig(
   state: ProjectControllerState,
   draftConfig: RouteKitProjectConfig,
 ): ProjectControllerState {
-  const selectedModuleId = hasSelectedModule(draftConfig, state.selectedModuleId)
-    ? state.selectedModuleId
-    : firstModuleId(draftConfig);
+  const selectedRuleSetId = hasSelectedRuleSet(draftConfig, state.selectedRuleSetId)
+    ? state.selectedRuleSetId
+    : firstRuleSetId(draftConfig);
 
   return {
     ...state,
@@ -85,13 +115,29 @@ export function applyDraftConfig(
     draftYaml: serializeConfig(draftConfig),
     dirty: computeDirty(state.originalConfig, draftConfig),
     status: state.status === "saving" ? "ready" : state.status,
-    selectedModuleId,
+    selectedRuleSetId,
+    selectedCustomProxyGroupName: hasSelectedCustomProxyGroup(draftConfig, state.selectedCustomProxyGroupName)
+      ? state.selectedCustomProxyGroupName
+      : firstCustomProxyGroupName(draftConfig),
+    selectedProviderName: hasSelectedProvider(draftConfig, state.selectedProviderName)
+      ? state.selectedProviderName
+      : firstProviderName(draftConfig),
+    selectedRuleFile: state.selectedRuleFile,
   };
 }
 
 export function setProjectSelection(
   state: ProjectControllerState,
-  selection: Partial<Pick<ProjectControllerState, "selectedView" | "selectedModuleId">>,
+  selection: Partial<
+    Pick<
+      ProjectControllerState,
+      | "selectedView"
+      | "selectedRuleSetId"
+      | "selectedCustomProxyGroupName"
+      | "selectedProviderName"
+      | "selectedRuleFile"
+    >
+  >,
 ): ProjectControllerState {
   return {
     ...state,
@@ -133,10 +179,17 @@ export function markProjectSaved(
     draftYaml: serializeConfig(snapshot.config),
     dirty: false,
     status: "ready",
-    message: "已保存 config/modules.yaml，可运行检查、生成和提交",
-    selectedModuleId: hasSelectedModule(snapshot.config, state.selectedModuleId)
-      ? state.selectedModuleId
-      : firstModuleId(snapshot.config),
+    message: "已保存 config/routes.yaml，可运行检查、生成和提交",
+    selectedRuleSetId: hasSelectedRuleSet(snapshot.config, state.selectedRuleSetId)
+      ? state.selectedRuleSetId
+      : firstRuleSetId(snapshot.config),
+    selectedCustomProxyGroupName: hasSelectedCustomProxyGroup(snapshot.config, state.selectedCustomProxyGroupName)
+      ? state.selectedCustomProxyGroupName
+      : firstCustomProxyGroupName(snapshot.config),
+    selectedProviderName: hasSelectedProvider(snapshot.config, state.selectedProviderName)
+      ? state.selectedProviderName
+      : firstProviderName(snapshot.config),
+    selectedRuleFile: state.selectedRuleFile,
   };
 }
 
@@ -148,47 +201,11 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
     };
   }
 
-  const moduleIds = new Set<string>();
-  const policies = new Set(state.draftConfig.proxyGroups.map((group) => group.name));
-
-  for (const module of state.draftConfig.modules) {
-    if (!module.id.trim()) {
-      return {
-        ok: false,
-        reason: "模块 ID 不能为空",
-      };
-    }
-    if (moduleIds.has(module.id)) {
-      return {
-        ok: false,
-        reason: `模块 ID 不能重复：${module.id}`,
-      };
-    }
-    moduleIds.add(module.id);
-    if (!module.policy.trim()) {
-      return {
-        ok: false,
-        reason: `模块 ${module.id} 的策略不能为空`,
-      };
-    }
-    if (!policies.has(module.policy)) {
-      return {
-        ok: false,
-        reason: `模块 ${module.id} 引用了不存在的策略：${module.policy}`,
-      };
-    }
-  }
-
-  if (!state.draftConfig.final.policy.trim()) {
+  const diagnostics = validateDraftConfig(state.draftConfig);
+  if (diagnostics.length > 0) {
     return {
       ok: false,
-      reason: "FINAL 策略不能为空",
-    };
-  }
-  if (!policies.has(state.draftConfig.final.policy)) {
-    return {
-      ok: false,
-      reason: `FINAL 引用了不存在的策略：${state.draftConfig.final.policy}`,
+      reason: diagnostics[0]!,
     };
   }
 

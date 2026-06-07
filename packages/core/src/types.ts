@@ -1,21 +1,41 @@
 export type ProviderBehavior = "domain" | "classical" | "ipcidr";
 
-export interface ProviderReference {
+export interface RuleProviderRuleSetSource {
+  type: "rule-provider";
   behavior: ProviderBehavior;
   file: string;
   interval?: number;
 }
 
-export interface RouteModule {
+export interface GeositeRuleSetSource {
+  type: "geosite";
+  value: string;
+}
+
+export interface GeoipRuleSetSource {
+  type: "geoip";
+  value: string;
+  noResolve?: boolean;
+}
+
+export interface FinalRuleSetSource {
+  type: "final";
+}
+
+export type RuleSetSource =
+  | RuleProviderRuleSetSource
+  | GeositeRuleSetSource
+  | GeoipRuleSetSource
+  | FinalRuleSetSource;
+
+export interface RuleSet {
   id: string;
   enabled?: boolean;
   policy: string;
-  geosite?: string[];
-  geoip?: string[];
-  providers?: ProviderReference[];
+  source: RuleSetSource;
 }
 
-export interface ProxyGroup {
+export interface CustomProxyGroup {
   name: string;
   type: "select" | "url-test" | "fallback" | "load-balance";
   options: string[];
@@ -27,11 +47,8 @@ export interface ProxyGroup {
 
 export interface RouteKitConfig {
   publishBaseUrl: string;
-  proxyGroups: ProxyGroup[];
-  modules: RouteModule[];
-  final: {
-    policy: string;
-  };
+  customProxyGroups: CustomProxyGroup[];
+  ruleSets: RuleSet[];
 }
 
 export interface VendorRepoConfig {

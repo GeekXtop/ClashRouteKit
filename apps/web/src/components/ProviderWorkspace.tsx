@@ -1,27 +1,47 @@
-import { Layers3 } from "lucide-react";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import type {
+  RouteKitProjectConfig,
+  RuleProviderConfig,
+  RuleProviderSource,
+} from "@clash-route-kit/core";
+import { RuleProviderEditor } from "./RuleProviderEditor.js";
+import { RuleProviderList } from "./RuleProviderList.js";
 
-export function ProviderWorkspace({ config }: { config: RouteKitProjectConfig }) {
+export function ProviderWorkspace({
+  config,
+  onCreateProvider,
+  onDeleteProvider,
+  onSelectProvider,
+  onSetProviderListField,
+  onSetProviderSources,
+  onUpdateProvider,
+  selectedProvider,
+}: {
+  config: RouteKitProjectConfig;
+  onCreateProvider: () => void;
+  onDeleteProvider: (providerName: string) => void;
+  onSelectProvider: (providerName: string) => void;
+  onSetProviderListField: (providerName: string, field: "exclude" | "remove", values: string[]) => void;
+  onSetProviderSources: (providerName: string, sources: RuleProviderSource[]) => void;
+  onUpdateProvider: (providerName: string, patch: Partial<RuleProviderConfig>) => void;
+  selectedProvider: RuleProviderConfig | undefined;
+}) {
   const providers = config.ruleProviders ?? [];
 
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Provider 输出</h2>
-          <span>{providers.length} files</span>
-        </div>
-        <Layers3 size={18} />
-      </div>
-      <div className="provider-list wide-list">
-        {providers.map((provider) => (
-          <div className="provider-row" key={provider.output}>
-            <strong>{provider.name}</strong>
-            <span>{provider.output}</span>
-          </div>
-        ))}
-        {providers.length === 0 ? <div className="empty-state">暂无 rule provider</div> : null}
-      </div>
-    </section>
+    <div className="entity-workspace">
+      <RuleProviderList
+        providers={providers}
+        selectedProviderName={selectedProvider?.name ?? ""}
+        onCreateProvider={onCreateProvider}
+        onSelectProvider={onSelectProvider}
+      />
+      <RuleProviderEditor
+        provider={selectedProvider}
+        onDeleteProvider={onDeleteProvider}
+        onSetProviderListField={onSetProviderListField}
+        onSetProviderSources={onSetProviderSources}
+        onUpdateProvider={onUpdateProvider}
+      />
+    </div>
   );
 }

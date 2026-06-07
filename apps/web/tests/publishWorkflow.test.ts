@@ -53,7 +53,7 @@ describe("publish workflow", () => {
   it("creates copyable raw URL templates", () => {
     expect(createRawUrlTemplates({ owner: "acme", repo: "routes" })).toEqual({
       template: "https://raw.githubusercontent.com/acme/routes/publish/templates/Custom_Clash.ini",
-      providers: "https://raw.githubusercontent.com/acme/routes/publish/providers/",
+      rules: "https://raw.githubusercontent.com/acme/routes/publish/rules/",
     });
   });
 });

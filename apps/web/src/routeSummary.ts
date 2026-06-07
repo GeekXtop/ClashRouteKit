@@ -1,56 +1,76 @@
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
-
-export type RouteSource = "Provider" | "GEOSITE" | "GEOIP" | "FINAL";
+import type { ProviderBehavior, RouteKitProjectConfig, RuleSet } from "@clash-route-kit/core";
 
 export interface RouteSummaryRow {
-  moduleId: string;
-  source: RouteSource;
-  value: string;
+  id: string;
+  enabled: boolean;
   policy: string;
+  source: string;
+  output: string;
 }
 
-export interface PolicyStat {
+export interface CustomProxyGroupStat {
   name: string;
-  modules: number;
+  ruleSets: number;
   options: number;
 }
 
-function enabledModules(config: RouteKitProjectConfig) {
-  return config.modules.filter((module) => module.enabled !== false);
+function providerKind(behavior: ProviderBehavior): string {
+  if (behavior === "domain") return "clash-domain";
+  if (behavior === "classical") return "clash-classic";
+  return "clash-ipcidr";
+}
+
+function publishRulesUrl(baseUrl: string, file: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/rules/${file}`;
+}
+
+function ruleSetSourceText(ruleSet: RuleSet): string {
+  const source = ruleSet.source;
+  if (source.type === "rule-provider") {
+    return `${providerKind(source.behavior)}:${source.file}`;
+  }
+  if (source.type === "geosite") {
+    return `[]GEOSITE,${source.value}`;
+  }
+  if (source.type === "geoip") {
+    return `[]GEOIP,${source.value}${source.noResolve !== false ? ",no-resolve" : ""}`;
+  }
+  return "[]FINAL";
+}
+
+function ruleSetOutput(ruleSet: RuleSet, publishBaseUrl: string): string {
+  const source = ruleSet.source;
+  if (source.type === "rule-provider") {
+    return `ruleset=${ruleSet.policy},${providerKind(source.behavior)}:${publishRulesUrl(
+      publishBaseUrl,
+      source.file,
+    )},${source.interval ?? 28800}`;
+  }
+  if (source.type === "geosite") {
+    return `ruleset=${ruleSet.policy},[]GEOSITE,${source.value}`;
+  }
+  if (source.type === "geoip") {
+    return `ruleset=${ruleSet.policy},[]GEOIP,${source.value}${source.noResolve !== false ? ",no-resolve" : ""}`;
+  }
+  return `ruleset=${ruleSet.policy},[]FINAL`;
 }
 
 export function createRouteSummary(config: RouteKitProjectConfig): RouteSummaryRow[] {
-  const rows: RouteSummaryRow[] = [];
-
-  for (const module of enabledModules(config)) {
-    for (const provider of module.providers ?? []) {
-      rows.push({
-        moduleId: module.id,
-        source: "Provider",
-        value: provider.file,
-        policy: module.policy,
-      });
-    }
-
-    for (const tag of module.geosite ?? []) {
-      rows.push({ moduleId: module.id, source: "GEOSITE", value: tag, policy: module.policy });
-    }
-
-    for (const tag of module.geoip ?? []) {
-      rows.push({ moduleId: module.id, source: "GEOIP", value: tag, policy: module.policy });
-    }
-  }
-
-  rows.push({ moduleId: "FINAL", source: "FINAL", value: "fallback", policy: config.final.policy });
-  return rows;
+  return config.ruleSets.map((ruleSet) => ({
+    id: ruleSet.id,
+    enabled: ruleSet.enabled !== false,
+    policy: ruleSet.policy,
+    source: ruleSetSourceText(ruleSet),
+    output: ruleSetOutput(ruleSet, config.publishBaseUrl),
+  }));
 }
 
-export function createPolicyStats(config: RouteKitProjectConfig): PolicyStat[] {
-  const enabled = enabledModules(config);
+export function createCustomProxyGroupStats(config: RouteKitProjectConfig): CustomProxyGroupStat[] {
+  const enabled = config.ruleSets.filter((ruleSet) => ruleSet.enabled !== false);
 
-  return config.proxyGroups.map((group) => ({
+  return config.customProxyGroups.map((group) => ({
     name: group.name,
-    modules: enabled.filter((module) => module.policy === group.name).length,
+    ruleSets: enabled.filter((ruleSet) => ruleSet.policy === group.name).length,
     options: group.options.length + (group.nodeFilters?.length ?? 0),
   }));
 }

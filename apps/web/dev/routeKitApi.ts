@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
@@ -33,6 +33,7 @@ interface RouteKitActionDependencies {
 
 type RouteKitActionOptions = ProgramOptions & RouteKitActionDependencies;
 type RunCommand = (command: string, args: string[], cwd: string) => Promise<string>;
+type ReadDirectory = (directory: string) => Promise<string[]>;
 type ReadText = (filePath: string) => Promise<string>;
 type WriteText = (filePath: string, text: string) => Promise<void>;
 
@@ -50,8 +51,45 @@ export interface ProjectConfigFileResult {
   config: RouteKitProjectConfig;
 }
 
+export interface ProjectRuleFilesOptions extends ProgramOptions {
+  readDirectory?: ReadDirectory;
+}
+
+export interface ProjectRuleFileOptions extends ProgramOptions {
+  file: string;
+  readText?: ReadText;
+}
+
+export interface WriteProjectRuleFileOptions extends ProgramOptions {
+  file: string;
+  text: string;
+  writeText?: WriteText;
+}
+
+export interface ProjectRuleFileResult {
+  file: string;
+  text: string;
+}
+
 function projectConfigPath(options: ProgramOptions): string {
   return path.resolve(options.root, options.configFile);
+}
+
+function rulesDirectory(options: ProgramOptions): string {
+  return path.resolve(options.root, "config/rules");
+}
+
+function resolveRuleFile(options: ProgramOptions, file: string): string {
+  if (!/^[A-Za-z0-9_.-]+\.list$/.test(file)) {
+    throw new Error(`Invalid rule file: ${file}`);
+  }
+
+  const directory = rulesDirectory(options);
+  const resolved = path.resolve(directory, file);
+  if (!resolved.startsWith(`${directory}${path.sep}`)) {
+    throw new Error(`Invalid rule file: ${file}`);
+  }
+  return resolved;
 }
 
 export async function readProjectConfigFile(
@@ -74,6 +112,33 @@ export async function writeProjectConfigFile(
   return {
     yaml,
     config: options.config,
+  };
+}
+
+export async function listProjectRuleFiles(options: ProjectRuleFilesOptions): Promise<string[]> {
+  const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
+  return (await readDirectory(rulesDirectory(options)))
+    .filter((file) => /^[A-Za-z0-9_.-]+\.list$/.test(file))
+    .sort();
+}
+
+export async function readProjectRuleFile(options: ProjectRuleFileOptions): Promise<ProjectRuleFileResult> {
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  return {
+    file: options.file,
+    text: await readText(resolveRuleFile(options, options.file)),
+  };
+}
+
+export async function writeProjectRuleFile(
+  options: WriteProjectRuleFileOptions,
+): Promise<ProjectRuleFileResult> {
+  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
+  const text = options.text.replace(/\r\n?/g, "\n").replace(/\n?$/, "\n");
+  await writeText(resolveRuleFile(options, options.file), text);
+  return {
+    file: options.file,
+    text,
   };
 }
 
@@ -125,7 +190,7 @@ export async function runRouteKitAction(
   }
 
   if (action === "git-commit") {
-    await runCommand("git", ["add", "config/modules.yaml", "config/rules"], options.root);
+    await runCommand("git", ["add", "config/routes.yaml", "config/rules"], options.root);
     const output = await runCommand("git", ["commit", "-m", "chore: update route config"], options.root);
     return {
       action,
@@ -195,6 +260,67 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
                 throw new Error("Missing config");
               }
               return writeProjectConfigFile({ ...options, config: payload.config });
+            })
+            .then((result) => writeJson(response, 200, result))
+            .catch((error: unknown) => {
+              writeJson(response, 400, {
+                ok: false,
+                output: error instanceof Error ? error.message : String(error),
+              });
+            });
+        });
+        return;
+      }
+
+      writeJson(response, 405, { ok: false, output: "Method not allowed" });
+      return;
+    }
+
+    if (url.pathname === "/api/project/rules") {
+      if (request.method !== "GET") {
+        writeJson(response, 405, { ok: false, output: "Method not allowed" });
+        return;
+      }
+
+      void listProjectRuleFiles(options)
+        .then((files) => writeJson(response, 200, { files }))
+        .catch((error: unknown) => {
+          writeJson(response, 500, {
+            ok: false,
+            output: error instanceof Error ? error.message : String(error),
+          });
+        });
+      return;
+    }
+
+    if (url.pathname.startsWith("/api/project/rules/")) {
+      const file = decodeURIComponent(url.pathname.slice("/api/project/rules/".length));
+
+      if (request.method === "GET") {
+        void readProjectRuleFile({ ...options, file })
+          .then((result) => writeJson(response, 200, result))
+          .catch((error: unknown) => {
+            writeJson(response, 400, {
+              ok: false,
+              output: error instanceof Error ? error.message : String(error),
+            });
+          });
+        return;
+      }
+
+      if (request.method === "PUT") {
+        let body = "";
+        request.on("data", (chunk: Buffer) => {
+          body += chunk.toString("utf8");
+        });
+        request.on("end", () => {
+          void Promise.resolve()
+            .then(() => JSON.parse(body) as { text?: unknown })
+            .then((payload) => {
+              if (typeof payload.text !== "string") {
+                throw new Error("Missing rule file text");
+              }
+              return writeProjectRuleFile({ ...options, file, text: payload.text });
             })
             .then((result) => writeJson(response, 200, result))
             .catch((error: unknown) => {

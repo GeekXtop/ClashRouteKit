@@ -2,73 +2,63 @@ import { describe, expect, it } from "vitest";
 import { renderIni } from "../src/index.js";
 
 describe("renderIni", () => {
-  it("renders module rules, provider rules, groups, and proxy final in order", () => {
+  it("renders ruleSets directly as SubConverter ruleset lines", () => {
     const ini = renderIni({
-      publishBaseUrl: "https://example.com/publish",
-      proxyGroups: [
+      publishBaseUrl: "https://raw.githubusercontent.com/acme/routes/publish",
+      customProxyGroups: [
+        { name: "AI", type: "select", options: ["Proxy", "Direct"], nodeFilters: [".*"] },
+      ],
+      ruleSets: [
         {
-          name: "🚀 手动选择",
-          type: "select",
-          options: ["♻️ 自动选择", "🎯 全球直连"],
-          nodeFilters: [".*"],
+          id: "ai-provider",
+          policy: "AI",
+          source: { type: "rule-provider", behavior: "domain", file: "AI_Domain.yaml", interval: 300 },
         },
         {
-          name: "💻 Tech",
-          type: "select",
-          options: ["🚀 手动选择", "🎯 全球直连"],
+          id: "ai-geosite",
+          policy: "AI",
+          source: { type: "geosite", value: "openai" },
         },
         {
-          name: "🎯 全球直连",
-          type: "select",
-          options: ["DIRECT"],
+          id: "telegram-ip",
+          policy: "Proxy",
+          source: { type: "geoip", value: "telegram", noResolve: true },
+        },
+        {
+          id: "china-ip",
+          policy: "Direct",
+          source: { type: "geoip", value: "cn", noResolve: false },
+        },
+        {
+          id: "final",
+          policy: "AI",
+          source: { type: "final" },
         },
       ],
-      modules: [
-        {
-          id: "direct",
-          policy: "🎯 全球直连",
-          geosite: ["private"],
-          geoip: ["private"],
-        },
-        {
-          id: "tech",
-          policy: "💻 Tech",
-          geosite: ["github", "category-dev"],
-          providers: [{ behavior: "domain", file: "External_Developer_Domain.yaml" }],
-        },
-        {
-          id: "global",
-          policy: "🚀 手动选择",
-          geosite: ["geolocation-!cn"],
-        },
-        {
-          id: "china",
-          policy: "🎯 全球直连",
-          geosite: ["cn"],
-          geoip: ["cn"],
-        },
-      ],
-      final: { policy: "🚀 手动选择" },
     });
 
     expect(ini.split("\n")).toContain("[custom]");
-    expect(ini).toContain("ruleset=🎯 全球直连,[]GEOSITE,private");
-    expect(ini).toContain("ruleset=🎯 全球直连,[]GEOIP,private,no-resolve");
     expect(ini).toContain(
-      "ruleset=💻 Tech,clash-domain:https://example.com/publish/rules/External_Developer_Domain.yaml,28800",
+      "ruleset=AI,clash-domain:https://raw.githubusercontent.com/acme/routes/publish/rules/AI_Domain.yaml,300",
     );
-    expect(ini).toContain("ruleset=💻 Tech,[]GEOSITE,github");
-    expect(ini).toContain("ruleset=🚀 手动选择,[]GEOSITE,geolocation-!cn");
-    expect(ini).toContain("ruleset=🚀 手动选择,[]FINAL");
-    expect(ini).toContain("custom_proxy_group=🚀 手动选择`select`[]♻️ 自动选择`[]🎯 全球直连`.*");
+    expect(ini).toContain("ruleset=AI,[]GEOSITE,openai");
+    expect(ini).toContain("ruleset=Proxy,[]GEOIP,telegram,no-resolve");
+    expect(ini).toContain("ruleset=Direct,[]GEOIP,cn");
+    expect(ini).not.toContain("ruleset=Direct,[]GEOIP,cn,no-resolve");
+    expect(ini).toContain("ruleset=AI,[]FINAL");
+    expect(ini).toContain("custom_proxy_group=AI`select`[]Proxy`[]Direct`.*");
     expect(ini).not.toContain("[].*");
-    expect(ini).toContain("custom_proxy_group=💻 Tech`select`[]🚀 手动选择`[]🎯 全球直连");
+  });
 
-    expect(ini.indexOf("ruleset=💻 Tech,[]GEOSITE,github")).toBeLessThan(
-      ini.indexOf("ruleset=💻 Tech,[]GEOSITE,category-dev"),
-    );
-    expect(ini.indexOf("ruleset=🚀 手动选择,[]GEOSITE,geolocation-!cn")).toBeLessThan(
-      ini.indexOf("ruleset=🎯 全球直连,[]GEOSITE,cn"),
-    );
+  it("skips disabled ruleSet entries", () => {
+    const ini = renderIni({
+      publishBaseUrl: "http://127.0.0.1:8787",
+      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+      ruleSets: [
+        { id: "off", enabled: false, policy: "Proxy", source: { type: "geosite", value: "youtube" } },
+      ],
+    });
+
+    expect(ini).not.toContain("youtube");
   });
 });

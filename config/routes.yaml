@@ -8,10 +8,13 @@ vendorRepos:
   - name: ACL4SSR
     url: https://github.com/ACL4SSR/ACL4SSR.git
     path: vendor/ACL4SSR
-  - name: Rules
+  - name: dler-io
     url: https://github.com/dler-io/Rules.git
-    path: vendor/Rules
-proxyGroups:
+    path: vendor/dler-io
+  - name: Aethersailor
+    url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
+    path: vendor/Custom_OpenClash_Rules
+customProxyGroups:
   - name: Proxy
     type: select
     options:
@@ -63,98 +66,230 @@ proxyGroups:
       - Proxy
       - Auto
       - Direct
+  - name: 🐟 漏网之鱼
+    type: select
+    options:
+      - Proxy
+      - Direct
+      - Auto
+    nodeFilters:
+      - .*
   - name: Direct
     type: select
     options:
       - DIRECT
-modules:
-  - id: private
+ruleSets:
+  - id: private-geosite-private
     policy: Direct
-    geosite:
-      - private
-  - id: custom-direct
+    source:
+      type: geosite
+      value: private
+  - id: custom-direct-provider-custom-direct-domain
     policy: Direct
-    providers:
-      - behavior: domain
-        file: Custom_Direct_Domain.yaml
-  - id: custom-proxy
+    source:
+      type: rule-provider
+      behavior: domain
+      file: Custom_Direct_Domain.yaml
+  - id: custom-proxy-provider-custom-proxy-domain
     policy: Proxy
-    providers:
-      - behavior: domain
-        file: Custom_Proxy_Domain.yaml
-  - id: ai
+    source:
+      type: rule-provider
+      behavior: domain
+      file: Custom_Proxy_Domain.yaml
+  - id: ai-provider-ai-domain
     policy: AI
-    providers:
-      - behavior: domain
-        file: AI_Domain.yaml
-    geosite:
-      - openai
-      - anthropic
-      - google-gemini
-      - google-deepmind
-      - jetbrains-ai
-      - github-copilot
-  - id: developer
+    source:
+      type: rule-provider
+      behavior: domain
+      file: AI_Domain.yaml
+  - id: ai-geosite-openai
+    policy: AI
+    source:
+      type: geosite
+      value: openai
+  - id: ai-geosite-anthropic
+    policy: AI
+    source:
+      type: geosite
+      value: anthropic
+  - id: ai-geosite-google-gemini
+    policy: AI
+    source:
+      type: geosite
+      value: google-gemini
+  - id: ai-geosite-google-deepmind
+    policy: AI
+    source:
+      type: geosite
+      value: google-deepmind
+  - id: ai-geosite-jetbrains-ai
+    policy: AI
+    source:
+      type: geosite
+      value: jetbrains-ai
+  - id: ai-geosite-github-copilot
+    policy: AI
+    source:
+      type: geosite
+      value: github-copilot
+  - id: developer-provider-developer-domain
     policy: Tech
-    providers:
-      - behavior: domain
-        file: Developer_Domain.yaml
-    geosite:
-      - github
-      - gitlab
-      - npmjs
-      - nodejs
-      - docker
-      - debian
-      - ubuntu
-      - python
-      - golang
-      - rust
-      - jetbrains
-      - sourceforge
-  - id: crypto
+    source:
+      type: rule-provider
+      behavior: domain
+      file: Developer_Domain.yaml
+  - id: developer-geosite-github
+    policy: Tech
+    source:
+      type: geosite
+      value: github
+  - id: developer-geosite-gitlab
+    policy: Tech
+    source:
+      type: geosite
+      value: gitlab
+  - id: developer-geosite-npmjs
+    policy: Tech
+    source:
+      type: geosite
+      value: npmjs
+  - id: developer-geosite-nodejs
+    policy: Tech
+    source:
+      type: geosite
+      value: nodejs
+  - id: developer-geosite-docker
+    policy: Tech
+    source:
+      type: geosite
+      value: docker
+  - id: developer-geosite-debian
+    policy: Tech
+    source:
+      type: geosite
+      value: debian
+  - id: developer-geosite-ubuntu
+    policy: Tech
+    source:
+      type: geosite
+      value: ubuntu
+  - id: developer-geosite-python
+    policy: Tech
+    source:
+      type: geosite
+      value: python
+  - id: developer-geosite-golang
+    policy: Tech
+    source:
+      type: geosite
+      value: golang
+  - id: developer-geosite-rust
+    policy: Tech
+    source:
+      type: geosite
+      value: rust
+  - id: developer-geosite-jetbrains
+    policy: Tech
+    source:
+      type: geosite
+      value: jetbrains
+  - id: developer-geosite-sourceforge
+    policy: Tech
+    source:
+      type: geosite
+      value: sourceforge
+  - id: crypto-provider-crypto-domain
     policy: Crypto
-    providers:
-      - behavior: domain
-        file: Crypto_Domain.yaml
-    geosite:
-      - binance
-      - okx
-      - bybit
-  - id: microsoft
+    source:
+      type: rule-provider
+      behavior: domain
+      file: Crypto_Domain.yaml
+  - id: crypto-geosite-binance
+    policy: Crypto
+    source:
+      type: geosite
+      value: binance
+  - id: crypto-geosite-okx
+    policy: Crypto
+    source:
+      type: geosite
+      value: okx
+  - id: crypto-geosite-bybit
+    policy: Crypto
+    source:
+      type: geosite
+      value: bybit
+  - id: microsoft-provider-microsoft-domain
     policy: Microsoft
-    providers:
-      - behavior: domain
-        file: Microsoft_Domain.yaml
-    geosite:
-      - microsoft-dev
-      - microsoft
-  - id: streaming
+    source:
+      type: rule-provider
+      behavior: domain
+      file: Microsoft_Domain.yaml
+  - id: microsoft-geosite-microsoft-dev
+    policy: Microsoft
+    source:
+      type: geosite
+      value: microsoft-dev
+  - id: microsoft-geosite-microsoft
+    policy: Microsoft
+    source:
+      type: geosite
+      value: microsoft
+  - id: streaming-geosite-youtube
     enabled: false
     policy: Streaming
-    geosite:
-      - youtube
-      - netflix
-      - disney
-  - id: games
+    source:
+      type: geosite
+      value: youtube
+  - id: streaming-geosite-netflix
+    enabled: false
+    policy: Streaming
+    source:
+      type: geosite
+      value: netflix
+  - id: streaming-geosite-disney
+    enabled: false
+    policy: Streaming
+    source:
+      type: geosite
+      value: disney
+  - id: games-geosite-steam
     enabled: false
     policy: Games
-    geosite:
-      - steam
-      - epicgames
-  - id: global-proxy
+    source:
+      type: geosite
+      value: steam
+  - id: games-geosite-epicgames
+    enabled: false
+    policy: Games
+    source:
+      type: geosite
+      value: epicgames
+  - id: global-proxy-geosite-geolocation-not-cn
     policy: Proxy
-    geosite:
-      - geolocation-!cn
-  - id: china
+    source:
+      type: geosite
+      value: geolocation-!cn
+  - id: china-geosite-geolocation-cn
     policy: Direct
-    geosite:
-      - geolocation-cn
-      - cn
-    geoip:
-      - cn
-final:
-  policy: Proxy
+    source:
+      type: geosite
+      value: geolocation-cn
+  - id: china-geosite-cn
+    policy: Direct
+    source:
+      type: geosite
+      value: cn
+  - id: china-geoip-cn
+    policy: Direct
+    source:
+      type: geoip
+      value: cn
+      noResolve: true
+  - id: final
+    policy: 🐟 漏网之鱼
+    source:
+      type: final
 ruleProviders:
   - name: Custom_Direct
     output: Custom_Direct_Domain.yaml

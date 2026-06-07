@@ -8,7 +8,7 @@ import {
 } from "./program.js";
 
 const command = process.argv[2] ?? "help";
-const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/modules.yaml";
+const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/routes.yaml";
 const root = process.env.CLASH_ROUTE_KIT_ROOT ?? resolveProjectRoot(process.cwd(), configFile);
 
 async function main(): Promise<void> {

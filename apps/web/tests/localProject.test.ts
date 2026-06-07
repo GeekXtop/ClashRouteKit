@@ -10,9 +10,11 @@ describe("local project client", () => {
     publishBaseUrl: "http://127.0.0.1:8787",
     template: { output: "Custom_Clash.ini" },
     vendorRepos: [],
-    proxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-    modules: [{ id: "ai", policy: "Proxy" }],
-    final: { policy: "Proxy" },
+    customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+    ruleSets: [
+      { id: "ai-geosite-openai", policy: "Proxy", source: { type: "geosite", value: "openai" } },
+      { id: "final", policy: "Proxy", source: { type: "final" } },
+    ],
     ruleProviders: [],
   };
 

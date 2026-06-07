@@ -4,8 +4,8 @@ import type { RouteSummaryRow } from "../routeSummary.js";
 export type PreviewMode = "rules" | "ini";
 
 function RuleBadge({ row }: { row: RouteSummaryRow }) {
-  const tone = row.source === "FINAL" ? "final" : row.source === "GEOIP" ? "geoip" : "domain";
-  return <span className={`rule-badge ${tone}`}>{row.source}</span>;
+  const tone = row.source.includes("FINAL") ? "final" : row.source.includes("GEOIP") ? "geoip" : "domain";
+  return <span className={`rule-badge ${tone}`}>{row.enabled ? "enabled" : "disabled"}</span>;
 }
 
 function RuleTable({ rows }: { rows: RouteSummaryRow[] }) {
@@ -15,22 +15,22 @@ function RuleTable({ rows }: { rows: RouteSummaryRow[] }) {
         <thead>
           <tr>
             <th>顺序</th>
-            <th>模块</th>
-            <th>来源</th>
-            <th>值</th>
-            <th>策略</th>
+            <th>状态</th>
+            <th>ruleset</th>
+            <th>目标 custom_proxy_group</th>
+            <th>source</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={`${row.moduleId}-${row.source}-${row.value}-${index}`}>
+            <tr key={`${row.id}-${index}`}>
               <td className="order-cell">{index + 1}</td>
-              <td>{row.moduleId}</td>
               <td>
                 <RuleBadge row={row} />
               </td>
-              <td className="value-cell">{row.value}</td>
+              <td className="value-cell">{row.output}</td>
               <td>{row.policy}</td>
+              <td>{row.source}</td>
             </tr>
           ))}
         </tbody>
@@ -40,23 +40,23 @@ function RuleTable({ rows }: { rows: RouteSummaryRow[] }) {
 }
 
 export function PreviewWorkspace({
+  customProxyGroupFilter,
+  customProxyGroups,
   iniPreview,
   mode,
+  onCustomProxyGroupFilterChange,
   onModeChange,
-  onPolicyFilterChange,
-  policies,
-  policyFilter,
   rows,
 }: {
+  customProxyGroupFilter: string;
+  customProxyGroups: string[];
   iniPreview: string;
   mode: PreviewMode;
+  onCustomProxyGroupFilterChange: (value: string) => void;
   onModeChange: (mode: PreviewMode) => void;
-  onPolicyFilterChange: (value: string) => void;
-  policies: string[];
-  policyFilter: string;
   rows: RouteSummaryRow[];
 }) {
-  const activeRows = policyFilter === "全部" ? rows : rows.filter((row) => row.policy === policyFilter);
+  const activeRows = customProxyGroupFilter === "全部" ? rows : rows.filter((row) => row.policy === customProxyGroupFilter);
 
   return (
     <section className="panel preview-panel">
@@ -77,10 +77,10 @@ export function PreviewWorkspace({
             </button>
           </div>
           {mode === "rules" ? (
-            <select value={policyFilter} onChange={(event) => onPolicyFilterChange(event.target.value)}>
+            <select value={customProxyGroupFilter} onChange={(event) => onCustomProxyGroupFilterChange(event.target.value)}>
               <option>全部</option>
-              {policies.map((policy) => (
-                <option key={policy}>{policy}</option>
+              {customProxyGroups.map((group) => (
+                <option key={group}>{group}</option>
               ))}
             </select>
           ) : null}

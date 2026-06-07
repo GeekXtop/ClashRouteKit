@@ -1,4 +1,4 @@
-import { FileCode2, Globe2, ListTree, Network } from "lucide-react";
+import { FileCode2, Globe2, ListTree } from "lucide-react";
 import type { ReactNode } from "react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { ProjectControllerState } from "../projectController.js";
@@ -27,8 +27,8 @@ export function ProjectWorkspace({
     <>
       <div className="metrics-grid">
         <Metric label="规则行" value={routeRowsCount} />
-        <Metric label="模块" value={config.modules.length} />
-        <Metric label="策略组" value={config.proxyGroups.length} />
+        <Metric label="RuleSets" value={config.ruleSets.length} />
+        <Metric label="Proxy Groups" value={config.customProxyGroups.length} />
         <Metric label="Providers" value={config.ruleProviders?.length ?? 0} />
       </div>
 
@@ -52,14 +52,9 @@ export function ProjectWorkspace({
             <span>{config.template.output}</span>
           </div>
           <div className="project-card">
-            <Network size={18} />
-            <strong>Final Policy</strong>
-            <span>{config.final.policy}</span>
-          </div>
-          <div className="project-card">
             <ListTree size={18} />
             <strong>YAML Source</strong>
-            <span>config/modules.yaml</span>
+            <span>config/routes.yaml</span>
           </div>
         </div>
       </section>

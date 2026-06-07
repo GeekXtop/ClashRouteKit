@@ -4,6 +4,7 @@ output/
 vendor/
 *.tsbuildinfo
 .playwright-mcp/
+.superpowers/
 coverage/
 .env
 .env.*

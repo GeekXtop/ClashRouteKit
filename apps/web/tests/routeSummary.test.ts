@@ -1,46 +1,75 @@
 import { describe, expect, it } from "vitest";
-import { createPolicyStats, createRouteSummary } from "../src/routeSummary.js";
+import { createCustomProxyGroupStats, createRouteSummary } from "../src/routeSummary.js";
 
 describe("route summary", () => {
   const config = {
     publishBaseUrl: "https://example.com/publish",
     template: { output: "Custom_Clash.ini" },
-    proxyGroups: [
+    customProxyGroups: [
       { name: "Proxy", type: "select" as const, options: ["Direct"], nodeFilters: [".*"] },
       { name: "Tech", type: "select" as const, options: ["Proxy", "Direct"] },
       { name: "Direct", type: "select" as const, options: ["DIRECT"] },
     ],
-    modules: [
+    ruleSets: [
       {
-        id: "developer",
+        id: "developer-provider",
         policy: "Tech",
-        geosite: ["github", "debian"],
-        providers: [{ behavior: "domain" as const, file: "Local_Developer_Domain.yaml" }],
+        source: { type: "rule-provider" as const, behavior: "domain" as const, file: "Local_Developer_Domain.yaml" },
       },
-      { id: "streaming", enabled: false, policy: "Proxy", geosite: ["netflix"] },
-      { id: "china", policy: "Direct", geosite: ["cn"], geoip: ["cn"] },
+      { id: "developer-geosite-github", policy: "Tech", source: { type: "geosite" as const, value: "github" } },
+      { id: "streaming-geosite-netflix", enabled: false, policy: "Proxy", source: { type: "geosite" as const, value: "netflix" } },
+      { id: "china-geoip-cn", policy: "Direct", source: { type: "geoip" as const, value: "cn", noResolve: true } },
+      { id: "final", policy: "Proxy", source: { type: "final" as const } },
     ],
-    final: { policy: "Proxy" },
     vendorRepos: [],
     ruleProviders: [],
   };
 
-  it("creates enabled route rows in evaluation order", () => {
+  it("creates one route row per ruleSet in evaluation order", () => {
     expect(createRouteSummary(config)).toEqual([
-      { moduleId: "developer", source: "Provider", value: "Local_Developer_Domain.yaml", policy: "Tech" },
-      { moduleId: "developer", source: "GEOSITE", value: "github", policy: "Tech" },
-      { moduleId: "developer", source: "GEOSITE", value: "debian", policy: "Tech" },
-      { moduleId: "china", source: "GEOSITE", value: "cn", policy: "Direct" },
-      { moduleId: "china", source: "GEOIP", value: "cn", policy: "Direct" },
-      { moduleId: "FINAL", source: "FINAL", value: "fallback", policy: "Proxy" },
+      {
+        id: "developer-provider",
+        enabled: true,
+        policy: "Tech",
+        source: "clash-domain:Local_Developer_Domain.yaml",
+        output: "ruleset=Tech,clash-domain:https://example.com/publish/rules/Local_Developer_Domain.yaml,28800",
+      },
+      {
+        id: "developer-geosite-github",
+        enabled: true,
+        policy: "Tech",
+        source: "[]GEOSITE,github",
+        output: "ruleset=Tech,[]GEOSITE,github",
+      },
+      {
+        id: "streaming-geosite-netflix",
+        enabled: false,
+        policy: "Proxy",
+        source: "[]GEOSITE,netflix",
+        output: "ruleset=Proxy,[]GEOSITE,netflix",
+      },
+      {
+        id: "china-geoip-cn",
+        enabled: true,
+        policy: "Direct",
+        source: "[]GEOIP,cn,no-resolve",
+        output: "ruleset=Direct,[]GEOIP,cn,no-resolve",
+      },
+      {
+        id: "final",
+        enabled: true,
+        policy: "Proxy",
+        source: "[]FINAL",
+        output: "ruleset=Proxy,[]FINAL",
+      },
     ]);
   });
 
-  it("counts enabled modules per policy", () => {
-    expect(createPolicyStats(config)).toEqual([
-      { name: "Proxy", modules: 0, options: 2 },
-      { name: "Tech", modules: 1, options: 2 },
-      { name: "Direct", modules: 1, options: 1 },
+  it("counts enabled ruleSets per custom proxy group", () => {
+    expect(createCustomProxyGroupStats(config)).toEqual([
+      { name: "Proxy", ruleSets: 1, options: 2 },
+      { name: "Tech", ruleSets: 2, options: 2 },
+      { name: "Direct", ruleSets: 1, options: 1 },
     ]);
   });
 });

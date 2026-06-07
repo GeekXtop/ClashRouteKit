@@ -15,12 +15,12 @@ function createConfig(): RouteKitProjectConfig {
     publishBaseUrl: "http://127.0.0.1:8787",
     template: { output: "Custom_Clash.ini" },
     vendorRepos: [],
-    proxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-    modules: [
-      { id: "developer", policy: "Proxy", geosite: ["github"] },
-      { id: "streaming", enabled: false, policy: "Proxy" },
+    customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+    ruleSets: [
+      { id: "developer-geosite-github", policy: "Proxy", source: { type: "geosite", value: "github" } },
+      { id: "streaming-geosite-youtube", enabled: false, policy: "Proxy", source: { type: "geosite", value: "youtube" } },
+      { id: "final", policy: "Proxy", source: { type: "final" } },
     ],
-    final: { policy: "Proxy" },
     ruleProviders: [],
   };
 }
@@ -35,6 +35,9 @@ describe("project controller", () => {
 
     expect(controller.dirty).toBe(false);
     expect(controller.draftYaml).toBe(serializeRouteKitConfig(config));
+    expect(controller.selectedView).toBe("ruleSets");
+    expect(controller.selectedRuleSetId).toBe("developer-geosite-github");
+    expect(controller.selectedCustomProxyGroupName).toBe("Proxy");
     expect(canSaveProject(controller).ok).toBe(false);
   });
 
@@ -44,8 +47,10 @@ describe("project controller", () => {
 
     const next = applyDraftConfig(controller, {
       ...config,
-      modules: config.modules.map((module) =>
-        module.id === "developer" ? { ...module, geosite: ["gitlab"] } : module,
+      ruleSets: config.ruleSets.map((ruleSet) =>
+        ruleSet.id === "developer-geosite-github"
+          ? { ...ruleSet, source: { type: "geosite", value: "gitlab" } }
+          : ruleSet,
       ),
     });
 
@@ -59,43 +64,44 @@ describe("project controller", () => {
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const next = applyDraftConfig(controller, {
       ...config,
-      modules: [{ ...config.modules[0]!, id: "" }],
+      ruleSets: [{ ...config.ruleSets[0]!, id: "" }],
     });
 
     expect(canSaveProject(next)).toEqual({
       ok: false,
-      reason: "模块 ID 不能为空",
+      reason: "RuleSet ID 不能为空",
     });
   });
 
-  it("blocks save readiness when module ids are duplicated", () => {
+  it("blocks save readiness when ruleSet ids are duplicated", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const next = applyDraftConfig(controller, {
       ...config,
-      modules: [
-        { ...config.modules[0]!, id: "developer" },
-        { ...config.modules[1]!, id: "developer" },
+      ruleSets: [
+        { ...config.ruleSets[0]!, id: "developer-geosite-github" },
+        { ...config.ruleSets[1]!, id: "developer-geosite-github" },
+        config.ruleSets[2]!,
       ],
     });
 
     expect(canSaveProject(next)).toEqual({
       ok: false,
-      reason: "模块 ID 不能重复：developer",
+      reason: "RuleSet ID 不能重复：developer-geosite-github",
     });
   });
 
-  it("blocks save readiness when a module references an unknown policy", () => {
+  it("blocks save readiness when a ruleSet references an unknown custom proxy group", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const next = applyDraftConfig(controller, {
       ...config,
-      modules: [{ ...config.modules[0]!, policy: "Missing" }, config.modules[1]!],
+      ruleSets: [{ ...config.ruleSets[0]!, policy: "Missing" }, config.ruleSets[2]!],
     });
 
     expect(canSaveProject(next)).toEqual({
       ok: false,
-      reason: "模块 developer 引用了不存在的策略：Missing",
+      reason: "RuleSet developer-geosite-github 引用了不存在的 custom_proxy_group：Missing",
     });
   });
 
@@ -104,7 +110,9 @@ describe("project controller", () => {
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const dirty = applyDraftConfig(controller, {
       ...config,
-      final: { policy: "DIRECT" },
+      ruleSets: config.ruleSets.map((ruleSet) =>
+        ruleSet.id === "final" ? { ...ruleSet, policy: "DIRECT" } : ruleSet,
+      ),
     });
 
     const saved = markProjectSaved(dirty, {
@@ -113,17 +121,17 @@ describe("project controller", () => {
     });
 
     expect(saved.dirty).toBe(false);
-    expect(saved.originalConfig.final.policy).toBe("DIRECT");
-    expect(saved.message).toBe("已保存 config/modules.yaml，可运行检查、生成和提交");
+    expect(saved.originalConfig.ruleSets.find((ruleSet) => ruleSet.id === "final")?.policy).toBe("DIRECT");
+    expect(saved.message).toBe("已保存 config/routes.yaml，可运行检查、生成和提交");
   });
 
-  it("keeps view, selected module, and validation output in controller state", () => {
+  it("keeps view, selected ruleSet, and validation output in controller state", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
 
     const selected = setProjectSelection(controller, {
       selectedView: "publish",
-      selectedModuleId: "streaming",
+      selectedRuleSetId: "streaming-geosite-youtube",
     });
     const validated = updateProjectValidation(selected, {
       status: "success",
@@ -131,7 +139,70 @@ describe("project controller", () => {
     });
 
     expect(validated.selectedView).toBe("publish");
-    expect(validated.selectedModuleId).toBe("streaming");
+    expect(validated.selectedRuleSetId).toBe("streaming-geosite-youtube");
     expect(validated.validation).toEqual({ status: "success", output: "[check] ok" });
+  });
+
+  it("uses draft validation diagnostics for save readiness", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const dirty = applyDraftConfig(controller, {
+      ...config,
+      ruleSets: [{ id: "ai", policy: "Missing", source: { type: "geosite", value: "openai" } }],
+    });
+
+    expect(canSaveProject(dirty)).toEqual({
+      ok: false,
+      reason: "RuleSet ai 引用了不存在的 custom_proxy_group：Missing",
+    });
+  });
+
+  it("selects first custom proxy group, provider, and rule file when available", () => {
+    const config = {
+      ...createConfig(),
+      ruleProviders: [{ name: "AI", output: "AI_Domain.yaml", behavior: "domain" as const, sources: [] }],
+    };
+    const controller = createProjectController({
+      yaml: serializeRouteKitConfig(config),
+      config,
+    });
+
+    expect(controller.selectedCustomProxyGroupName).toBe("Proxy");
+    expect(controller.selectedProviderName).toBe("AI");
+    expect(controller.selectedRuleFile).toBe("");
+  });
+
+  it("keeps selections valid after draft changes", () => {
+    const config = {
+      ...createConfig(),
+      ruleProviders: [{ name: "AI", output: "AI_Domain.yaml", behavior: "domain" as const, sources: [] }],
+    };
+    const controller = setProjectSelection(
+      createProjectController({
+        yaml: serializeRouteKitConfig(config),
+        config,
+      }),
+      {
+        selectedCustomProxyGroupName: "Proxy",
+        selectedProviderName: "AI",
+        selectedRuleFile: "AI.list",
+        selectedRuleSetId: "developer-geosite-github",
+      },
+    );
+
+    const next = applyDraftConfig(controller, {
+      ...config,
+      customProxyGroups: [{ name: "Direct", type: "select", options: ["DIRECT"] }],
+      ruleSets: [
+        { id: "direct", policy: "Direct", source: { type: "geosite", value: "cn" } },
+        { id: "final", policy: "Direct", source: { type: "final" } },
+      ],
+      ruleProviders: [],
+    });
+
+    expect(next.selectedRuleSetId).toBe("direct");
+    expect(next.selectedCustomProxyGroupName).toBe("Direct");
+    expect(next.selectedProviderName).toBe("");
+    expect(next.selectedRuleFile).toBe("AI.list");
   });
 });
