@@ -137,3 +137,9 @@ export interface DomainListEntryInfo {
   includes: string[];
   ruleCount: number;
 }
+
+export interface ImportedConfig {
+  customProxyGroups: CustomProxyGroup[];
+  ruleSets: RuleSet[];
+  warnings: string[];
+}

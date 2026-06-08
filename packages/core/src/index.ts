@@ -3,6 +3,7 @@ export {
   serializeRouteKitConfig,
 } from "./configDocument.js";
 export { renderIni } from "./ini.js";
+export { parseIniToConfig } from "./import.js";
 export {
   collectDomainProviderRules,
   convertDomainListCommunity,
@@ -17,6 +18,7 @@ export type {
   DomainProviderSummary,
   DomainListCommunitySource,
   DomainListEntryInfo,
+  ImportedConfig,
   ClashListSource,
   ClashProviderSource,
   CustomProxyGroup,
