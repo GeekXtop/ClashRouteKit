@@ -8,10 +8,13 @@ import {
   collectDomainProviderRules,
   convertDomainListCommunity,
   generateDomainProvider,
+  parseIniToConfig,
   renderIni,
+  serializeRouteKitConfig,
   summarizeDomainProvider,
   type DomainProviderRule,
   type DomainProviderSummary,
+  type ImportedConfig,
   type RouteKitProjectConfig,
   type RuleProviderSource,
   type SourceBase,
@@ -402,6 +405,32 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
     duplicates,
     overlaps,
   };
+}
+
+export interface ImportResult extends ImportedConfig {
+  scaffoldPath: string;
+}
+
+export async function importIni(
+  options: ProgramOptions & { iniFile: string },
+): Promise<ImportResult> {
+  const iniText = await readFile(resolveInputPath(options.root, options.iniFile), "utf8");
+  const imported = parseIniToConfig(iniText);
+
+  const scaffold: RouteKitProjectConfig = {
+    publishBaseUrl: "http://127.0.0.1:8787",
+    template: { output: "Custom_Clash.ini" },
+    vendorRepos: [],
+    customProxyGroups: imported.customProxyGroups,
+    ruleSets: imported.ruleSets,
+    ruleProviders: [],
+  };
+
+  const scaffoldPath = path.join(options.root, "output/imported-routes.yaml");
+  await mkdir(path.dirname(scaffoldPath), { recursive: true });
+  await writeFile(scaffoldPath, serializeRouteKitConfig(scaffold), "utf8");
+
+  return { ...imported, scaffoldPath };
 }
 
 export async function previewRules(options: ProgramOptions): Promise<string[]> {

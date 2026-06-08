@@ -2,6 +2,7 @@ import {
   buildSubconverterUrl,
   checkConfig,
   generateOutputs,
+  importIni,
   previewRules,
   resolveProjectRoot,
   syncVendor,
@@ -70,7 +71,27 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log("Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url>");
+  if (command === "import") {
+    const iniFile = process.argv[3];
+    if (!iniFile) {
+      console.error("Usage: clash-route-kit import <ini-file>");
+      process.exitCode = 1;
+      return;
+    }
+    const result = await importIni({ root, configFile, iniFile });
+    console.log(
+      `[import] groups=${result.customProxyGroups.length} ruleSets=${result.ruleSets.length} warnings=${result.warnings.length}`,
+    );
+    for (const warning of result.warnings) {
+      console.warn(`[import] ${warning}`);
+    }
+    console.log(`[import] scaffold: ${result.scaffoldPath}`);
+    return;
+  }
+
+  console.log(
+    "Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url|import>",
+  );
 }
 
 main().catch((error: unknown) => {
