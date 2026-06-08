@@ -90,4 +90,33 @@ describe("config document utilities", () => {
       ].join("\n")),
     ).toThrow("Invalid RouteKit project config");
   });
+
+  it("preserves template flags and globalRemove through parse + serialize", () => {
+    const doc = [
+      "publishBaseUrl: http://127.0.0.1:8787",
+      "template:",
+      "  output: Custom_Clash.ini",
+      "  enableRuleGenerator: true",
+      "  overwriteOriginalRules: true",
+      "  clashRuleBase: https://example.com/Base.yml",
+      "vendorRepos: []",
+      "globalRemove:",
+      "  - DOMAIN-SUFFIX,example.com",
+      "customProxyGroups: []",
+      "ruleSets:",
+      "  - id: final",
+      "    policy: DIRECT",
+      "    source:",
+      "      type: final",
+      "",
+    ].join("\n");
+
+    const config = parseRouteKitConfig(doc);
+    expect(config.template.clashRuleBase).toBe("https://example.com/Base.yml");
+    expect(config.globalRemove).toEqual(["DOMAIN-SUFFIX,example.com"]);
+
+    const serialized = serializeRouteKitConfig(config);
+    expect(serialized).toContain("clashRuleBase: https://example.com/Base.yml");
+    expect(serialized).toContain("- DOMAIN-SUFFIX,example.com");
+  });
 });

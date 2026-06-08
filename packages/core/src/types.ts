@@ -94,8 +94,12 @@ export interface RuleProviderConfig {
 export interface RouteKitProjectConfig extends RouteKitConfig {
   template: {
     output: string;
+    enableRuleGenerator?: boolean;
+    overwriteOriginalRules?: boolean;
+    clashRuleBase?: string;
   };
   vendorRepos: VendorRepoConfig[];
+  globalRemove?: string[];
   ruleProviders?: RuleProviderConfig[];
 }
 
