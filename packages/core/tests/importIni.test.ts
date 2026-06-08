@@ -45,3 +45,30 @@ describe("parseIniToConfig · rulesets", () => {
     expect(out.warnings.some((w) => w.includes("extra.list"))).toBe(true);
   });
 });
+
+describe("parseIniToConfig · proxy groups", () => {
+  it("parses select groups (options + node filters)", () => {
+    const out = parseIniToConfig("custom_proxy_group=AI`select`[]Proxy`[]DIRECT`.*\n");
+    expect(out.customProxyGroups[0]).toEqual({
+      name: "AI",
+      type: "select",
+      options: ["Proxy", "DIRECT"],
+      nodeFilters: [".*"],
+    });
+  });
+
+  it("parses test-type groups with url, interval and tolerance", () => {
+    const out = parseIniToConfig(
+      "custom_proxy_group=🇭🇰`url-test`!!GROUPID=0!!(港|HK)`https://cp.cloudflare.com/generate_204`300,,50\n",
+    );
+    expect(out.customProxyGroups[0]).toEqual({
+      name: "🇭🇰",
+      type: "url-test",
+      options: [],
+      nodeFilters: ["!!GROUPID=0!!(港|HK)"],
+      url: "https://cp.cloudflare.com/generate_204",
+      interval: 300,
+      tolerance: 50,
+    });
+  });
+});

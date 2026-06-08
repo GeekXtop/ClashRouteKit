@@ -26,6 +26,53 @@ function parseRulesetSource(rest: string): RuleSetSource | { warning: string } {
   return { warning: `无法识别的 ruleset 源：${rest}` };
 }
 
+const GROUP_TYPES = new Set(["select", "url-test", "fallback", "load-balance"]);
+
+function parseProxyGroupLine(body: string, warnings: string[]): CustomProxyGroup | null {
+  const parts = body.split("`");
+  if (parts.length < 2) {
+    warnings.push(`策略组格式不全：${body}`);
+    return null;
+  }
+  const [name, type, ...rest] = parts;
+  if (!GROUP_TYPES.has(type)) {
+    warnings.push(`未知策略组类型：${type}`);
+    return null;
+  }
+  const groupType = type as CustomProxyGroup["type"];
+
+  let url: string | undefined;
+  let interval: number | undefined;
+  let tolerance: number | undefined;
+  let refsAndFilters = rest;
+  if (groupType !== "select" && rest.length >= 2) {
+    const intervalSpec = rest[rest.length - 1];
+    url = rest[rest.length - 2];
+    refsAndFilters = rest.slice(0, rest.length - 2);
+    const segments = intervalSpec.split(",");
+    const parsedInterval = Number(segments[0]);
+    if (!Number.isNaN(parsedInterval)) interval = parsedInterval;
+    if (segments[2] !== undefined && segments[2] !== "") {
+      const parsedTolerance = Number(segments[2]);
+      if (!Number.isNaN(parsedTolerance)) tolerance = parsedTolerance;
+    }
+  }
+
+  const options: string[] = [];
+  const nodeFilters: string[] = [];
+  for (const item of refsAndFilters) {
+    if (item.startsWith("[]")) options.push(item.slice(2));
+    else nodeFilters.push(item);
+  }
+
+  const group: CustomProxyGroup = { name, type: groupType, options };
+  if (nodeFilters.length > 0) group.nodeFilters = nodeFilters;
+  if (url) group.url = url;
+  if (interval !== undefined) group.interval = interval;
+  if (tolerance !== undefined) group.tolerance = tolerance;
+  return group;
+}
+
 export function parseIniToConfig(ini: string): ImportedConfig {
   const customProxyGroups: CustomProxyGroup[] = [];
   const ruleSets: RuleSet[] = [];
@@ -78,6 +125,9 @@ export function parseIniToConfig(ini: string): ImportedConfig {
       const ruleSet: RuleSet = { id: uniqueId(base), policy, source: parsed };
       if (currentSection) ruleSet.section = currentSection;
       ruleSets.push(ruleSet);
+    } else if (key === "custom_proxy_group") {
+      const group = parseProxyGroupLine(value, warnings);
+      if (group) customProxyGroups.push(group);
     }
   }
 
