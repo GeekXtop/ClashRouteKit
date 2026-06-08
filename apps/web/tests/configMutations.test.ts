@@ -16,9 +16,12 @@ import {
   deleteRuleProvider,
   deleteRuleSet,
   renameCustomProxyGroup,
+  reorderRuleSets,
   setCustomProxyGroupListField,
+  setGlobalRemove,
   setRuleProviderListField,
   setRuleProviderSources,
+  setTemplateField,
   toggleRuleSet,
   updateCustomProxyGroup,
   updateRuleProvider,
@@ -228,5 +231,29 @@ describe("config mutation helpers", () => {
 
     expect(deleteRuleProvider(config, "AI").ruleProviders).toEqual([]);
     expect(config.ruleProviders).toHaveLength(1);
+  });
+
+  it("reorders ruleSets to match the given id order", () => {
+    const config = createConfig();
+    const next = reorderRuleSets(config, ["final", "ai-geosite-openai"]);
+    expect(next.ruleSets.map((ruleSet) => ruleSet.id)).toEqual(["final", "ai-geosite-openai"]);
+  });
+
+  it("ignores unknown ids and appends remaining ruleSets in original order", () => {
+    const config = createConfig();
+    const next = reorderRuleSets(config, ["final"]);
+    expect(next.ruleSets.map((ruleSet) => ruleSet.id)).toEqual(["final", "ai-geosite-openai"]);
+  });
+
+  it("sets a normalized globalRemove list", () => {
+    const config = createConfig();
+    const next = setGlobalRemove(config, [" ban.example ", "ban.example", ""]);
+    expect(next.globalRemove).toEqual(["ban.example"]);
+  });
+
+  it("patches template fields without dropping output", () => {
+    const config = createConfig();
+    const next = setTemplateField(config, { clashRuleBase: "https://x/Base.yml" });
+    expect(next.template).toEqual({ output: "Custom_Clash.ini", clashRuleBase: "https://x/Base.yml" });
   });
 });

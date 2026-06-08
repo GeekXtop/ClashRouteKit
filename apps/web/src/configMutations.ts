@@ -302,3 +302,37 @@ export function setRuleProviderListField(
     [field]: normalizeList(values),
   });
 }
+
+export function reorderRuleSets(
+  config: RouteKitProjectConfig,
+  orderedIds: string[],
+): RouteKitProjectConfig {
+  const byId = new Map(config.ruleSets.map((ruleSet) => [ruleSet.id, ruleSet]));
+  const seen = new Set<string>();
+  const ordered: RuleSet[] = [];
+  for (const id of orderedIds) {
+    const ruleSet = byId.get(id);
+    if (ruleSet && !seen.has(id)) {
+      ordered.push(ruleSet);
+      seen.add(id);
+    }
+  }
+  for (const ruleSet of config.ruleSets) {
+    if (!seen.has(ruleSet.id)) ordered.push(ruleSet);
+  }
+  return { ...config, ruleSets: ordered };
+}
+
+export function setGlobalRemove(
+  config: RouteKitProjectConfig,
+  values: string[],
+): RouteKitProjectConfig {
+  return { ...config, globalRemove: normalizeList(values) };
+}
+
+export function setTemplateField(
+  config: RouteKitProjectConfig,
+  patch: Partial<RouteKitProjectConfig["template"]>,
+): RouteKitProjectConfig {
+  return { ...config, template: { ...config.template, ...patch } };
+}
