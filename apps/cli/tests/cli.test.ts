@@ -626,4 +626,35 @@ ruleSets:
     expect(b).toContain("'+.other.example'");
     expect(b).not.toContain("ban.example");
   });
+
+  it("passes template flags through to the rendered INI", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      [
+        "publishBaseUrl: http://127.0.0.1:8787",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "  enableRuleGenerator: false",
+        "  clashRuleBase: https://example.com/Base.yml",
+        "customProxyGroups:",
+        "  - name: Proxy",
+        "    type: select",
+        "    options:",
+        "      - DIRECT",
+        "ruleSets:",
+        "  - id: final",
+        "    policy: Proxy",
+        "    source:",
+        "      type: final",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const result = await generateOutputs({ root, configFile: "routes.yaml" });
+    const ini = await readFile(result.templatePath, "utf8");
+    expect(ini).toContain("enable_rule_generator=false");
+    expect(ini).toContain("clash_rule_base=https://example.com/Base.yml");
+  });
 });

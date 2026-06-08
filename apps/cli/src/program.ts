@@ -298,7 +298,15 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
   const templatePath = path.join(options.root, "output/templates", config.template.output);
   const reportPath = path.join(options.root, "output/reports/rule-report.json");
   await mkdir(path.dirname(templatePath), { recursive: true });
-  await writeFile(templatePath, renderIni(config), "utf8");
+  await writeFile(
+    templatePath,
+    renderIni(config, {
+      enableRuleGenerator: config.template.enableRuleGenerator,
+      overwriteOriginalRules: config.template.overwriteOriginalRules,
+      clashRuleBase: config.template.clashRuleBase,
+    }),
+    "utf8",
+  );
 
   const rulePaths: string[] = [];
   const providers: ProviderOutputSummary[] = [];
