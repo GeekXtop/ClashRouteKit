@@ -4,8 +4,10 @@ import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
+  parseDomainListEntry,
   parseRouteKitConfig,
   serializeRouteKitConfig,
+  type DomainListEntryInfo,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import {
@@ -140,6 +142,46 @@ export async function writeProjectRuleFile(
     file: options.file,
     text,
   };
+}
+
+const CATALOG_DATA_DIRS: Record<string, string> = {
+  "domain-list-community": "vendor/domain-list-community/data",
+};
+
+export interface CatalogEntriesOptions extends ProgramOptions {
+  origin: string;
+  readDirectory?: ReadDirectory;
+}
+
+export interface CatalogEntryOptions extends ProgramOptions {
+  origin: string;
+  name: string;
+  readText?: ReadText;
+}
+
+function catalogDataDir(options: ProgramOptions, origin: string): string {
+  const dir = CATALOG_DATA_DIRS[origin];
+  if (!dir) {
+    throw new Error(`Unknown catalog origin: ${origin}`);
+  }
+  return path.resolve(options.root, dir);
+}
+
+export async function listCatalogEntries(options: CatalogEntriesOptions): Promise<string[]> {
+  const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
+  const entries = await readDirectory(catalogDataDir(options, options.origin));
+  return entries.filter((name) => !name.includes(".")).sort();
+}
+
+export async function readCatalogEntry(
+  options: CatalogEntryOptions,
+): Promise<DomainListEntryInfo & { name: string }> {
+  if (!/^[A-Za-z0-9_!.@-]+$/.test(options.name)) {
+    throw new Error(`Invalid entry: ${options.name}`);
+  }
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  const text = await readText(path.join(catalogDataDir(options, options.origin), options.name));
+  return { name: options.name, ...parseDomainListEntry(text) };
 }
 
 async function defaultRunCommand(command: string, args: string[], cwd: string): Promise<string> {
@@ -334,6 +376,27 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       }
 
       writeJson(response, 405, { ok: false, output: "Method not allowed" });
+      return;
+    }
+
+    if (url.pathname === "/api/catalog/entries") {
+      const origin = url.searchParams.get("origin") ?? "domain-list-community";
+      void listCatalogEntries({ ...options, origin })
+        .then((entries) => writeJson(response, 200, { entries }))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
+    if (url.pathname === "/api/catalog/entry") {
+      const origin = url.searchParams.get("origin") ?? "domain-list-community";
+      const name = url.searchParams.get("name") ?? "";
+      void readCatalogEntry({ ...options, origin, name })
+        .then((detail) => writeJson(response, 200, detail))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
       return;
     }
 

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import {
+  listCatalogEntries,
   listProjectRuleFiles,
+  readCatalogEntry,
   readProjectConfigFile,
   readProjectRuleFile,
   runRouteKitAction,
@@ -250,5 +252,39 @@ describe("project rule file helpers", () => {
       text: "",
       writeText: async () => {},
     })).rejects.toThrow("Invalid rule file");
+  });
+});
+
+describe("catalog browse helpers", () => {
+  const root = path.resolve("fixture-repo");
+
+  it("lists geosite catalog entries from a data directory", async () => {
+    const entries = await listCatalogEntries({
+      root,
+      configFile: "config/routes.yaml",
+      origin: "domain-list-community",
+      readDirectory: async (directory) => {
+        expect(directory).toBe(path.resolve(root, "vendor/domain-list-community/data"));
+        return ["openai", "category-ai-!cn", "README.md"];
+      },
+    });
+
+    expect(entries).toContain("openai");
+    expect(entries).toContain("category-ai-!cn");
+    expect(entries).not.toContain("README.md");
+  });
+
+  it("reads a geosite entry includes and rule count", async () => {
+    const detail = await readCatalogEntry({
+      root,
+      configFile: "config/routes.yaml",
+      origin: "domain-list-community",
+      name: "category-ai-!cn",
+      readText: async () => "include:openai\ninclude:anthropic\nxai.com\n",
+    });
+
+    expect(detail.name).toBe("category-ai-!cn");
+    expect(detail.includes).toEqual(["openai", "anthropic"]);
+    expect(detail.ruleCount).toBe(1);
   });
 });
