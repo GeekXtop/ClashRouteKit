@@ -53,9 +53,16 @@ function renderCustomProxyGroup(group: CustomProxyGroup): string {
 }
 
 export function renderIni(config: RouteKitConfig, options: RenderIniOptions = {}): string {
-  const ruleLines = config.ruleSets.flatMap((ruleSet) =>
-    renderRuleSet(ruleSet, config.publishBaseUrl),
-  );
+  const ruleLines: string[] = [];
+  let lastSection: string | undefined;
+  for (const ruleSet of config.ruleSets) {
+    if (ruleSet.enabled === false) continue;
+    if (ruleSet.section && ruleSet.section !== lastSection) {
+      ruleLines.push(`; ${ruleSet.section}`);
+      lastSection = ruleSet.section;
+    }
+    ruleLines.push(...renderRuleSet(ruleSet, config.publishBaseUrl));
+  }
 
   const groupLines = config.customProxyGroups.map(renderCustomProxyGroup);
 

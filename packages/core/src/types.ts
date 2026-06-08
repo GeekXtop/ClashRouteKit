@@ -31,6 +31,7 @@ export type RuleSetSource =
 export interface RuleSet {
   id: string;
   enabled?: boolean;
+  section?: string;
   policy: string;
   source: RuleSetSource;
 }

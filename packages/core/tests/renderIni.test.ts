@@ -103,4 +103,22 @@ describe("renderIni", () => {
     );
     expect(withBase).toContain("clash_rule_base=https://example.com/Base.yml");
   });
+
+  it("emits a comment separator when the ruleSet section changes", () => {
+    const ini = renderIni({
+      publishBaseUrl: "http://127.0.0.1:8787",
+      customProxyGroups: [{ name: "AI", type: "select", options: ["DIRECT"] }],
+      ruleSets: [
+        { id: "ad", section: "拦截", policy: "AI", source: { type: "geosite", value: "category-ads-all" } },
+        { id: "openai", section: "海外类目", policy: "AI", source: { type: "geosite", value: "openai" } },
+        { id: "anthropic", section: "海外类目", policy: "AI", source: { type: "geosite", value: "anthropic" } },
+        { id: "final", policy: "AI", source: { type: "final" } },
+      ],
+    });
+    const lines = ini.split("\n");
+    expect(lines).toContain("; 拦截");
+    expect(lines).toContain("; 海外类目");
+    expect(lines.filter((line) => line === "; 海外类目")).toHaveLength(1);
+    expect(lines.indexOf("; 海外类目")).toBeLessThan(lines.indexOf("ruleset=AI,[]GEOSITE,openai"));
+  });
 });
