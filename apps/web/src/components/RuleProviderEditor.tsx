@@ -1,5 +1,10 @@
 import type { RuleProviderConfig, RuleProviderSource } from "@clash-route-kit/core";
 
+export interface ProviderReference {
+  ruleSetId: string;
+  policy: string;
+}
+
 const sourceTypes: RuleProviderSource["type"][] = ["clash-list", "clash-provider", "domain-list-community"];
 
 function listText(values: string[] | undefined): string {
@@ -21,12 +26,14 @@ function updateSource(source: RuleProviderSource, patch: Partial<RuleProviderSou
 
 export function RuleProviderEditor({
   provider,
+  references,
   onDeleteProvider,
   onSetProviderListField,
   onSetProviderSources,
   onUpdateProvider,
 }: {
   provider: RuleProviderConfig | undefined;
+  references: ProviderReference[];
   onDeleteProvider: (providerName: string) => void;
   onSetProviderListField: (providerName: string, field: "exclude" | "remove", values: string[]) => void;
   onSetProviderSources: (providerName: string, sources: RuleProviderSource[]) => void;
@@ -60,21 +67,27 @@ export function RuleProviderEditor({
             onChange={(event) => onUpdateProvider(provider.name, { output: event.target.value })}
           />
         </label>
-        <label className="wide-field">
-          <span>Exclude</span>
-          <textarea
-            value={listText(provider.exclude)}
-            onChange={(event) => onSetProviderListField(provider.name, "exclude", parseListText(event.target.value))}
-          />
-        </label>
-        <label className="wide-field">
-          <span>Remove</span>
-          <textarea
-            value={listText(provider.remove)}
-            onChange={(event) => onSetProviderListField(provider.name, "remove", parseListText(event.target.value))}
-          />
-        </label>
       </div>
+
+      <div className="provider-references">
+        <div className="entity-list-header">
+          <h3>被引用</h3>
+          <span>{references.length} 处</span>
+        </div>
+        {references.length === 0 ? (
+          <div className="empty-state">未被任何 RuleSet 引用（孤儿）</div>
+        ) : (
+          <div className="policy-list">
+            {references.map((reference) => (
+              <div className="policy-row" key={reference.ruleSetId}>
+                <strong>{reference.ruleSetId}</strong>
+                <small>→ {reference.policy}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="source-list">
         <div className="entity-list-header">
           <h3>Sources</h3>
@@ -152,6 +165,27 @@ export function RuleProviderEditor({
           </div>
         ))}
       </div>
+
+      <details className="advanced-block">
+        <summary>高级：exclude / remove</summary>
+        <div className="form-grid">
+          <label className="wide-field">
+            <span>Exclude</span>
+            <textarea
+              value={listText(provider.exclude)}
+              onChange={(event) => onSetProviderListField(provider.name, "exclude", parseListText(event.target.value))}
+            />
+          </label>
+          <label className="wide-field">
+            <span>Remove</span>
+            <textarea
+              value={listText(provider.remove)}
+              onChange={(event) => onSetProviderListField(provider.name, "remove", parseListText(event.target.value))}
+            />
+          </label>
+        </div>
+      </details>
+
       <button
         className="danger-button"
         type="button"

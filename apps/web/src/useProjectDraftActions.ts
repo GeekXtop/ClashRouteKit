@@ -18,6 +18,7 @@ import {
   deleteRuleSet,
   renameCustomProxyGroup,
   setCustomProxyGroupListField,
+  setGlobalRemove,
   setRuleProviderListField,
   setRuleProviderSources,
   toggleRuleSet,
@@ -131,6 +132,9 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     },
     setCustomProxyGroupListField(groupName: string, field: "options" | "nodeFilters", values: string[]) {
       mutate((current) => setCustomProxyGroupListField(current, groupName, field, values));
+    },
+    setGlobalRemove(values: string[]) {
+      mutate((current) => setGlobalRemove(current, values));
     },
     setProviderListField(providerName: string, field: "exclude" | "remove", values: string[]) {
       mutate((current) => setRuleProviderListField(current, providerName, field, values));

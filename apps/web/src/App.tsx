@@ -248,6 +248,7 @@ export default function App() {
         onSave={saveLocalProject}
         onSaveRuleFile={saveSelectedRuleFile}
         onSetCustomProxyGroupListField={draftActions.setCustomProxyGroupListField}
+        onSetGlobalRemove={draftActions.setGlobalRemove}
         onSetProviderListField={draftActions.setProviderListField}
         onSetProviderSources={draftActions.setProviderSources}
         onLoadRuleFile={loadSelectedRuleFile}

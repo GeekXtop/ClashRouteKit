@@ -46,6 +46,7 @@ export function WorkspaceRouter({
   onSelectProvider,
   onSelectRuleSet,
   onSetCustomProxyGroupListField,
+  onSetGlobalRemove,
   onSetProviderListField,
   onSetProviderSources,
   onToggleRuleSet,
@@ -88,6 +89,7 @@ export function WorkspaceRouter({
   onSelectProvider: (providerName: string) => void;
   onSelectRuleSet: (ruleSetId: string) => void;
   onSetCustomProxyGroupListField: (groupName: string, field: "options" | "nodeFilters", values: string[]) => void;
+  onSetGlobalRemove: (values: string[]) => void;
   onSetProviderListField: (providerName: string, field: "exclude" | "remove", values: string[]) => void;
   onSetProviderSources: (providerName: string, sources: RuleProviderSource[]) => void;
   onToggleRuleSet: (ruleSetId: string) => void;
@@ -139,6 +141,7 @@ export function WorkspaceRouter({
         onCreateProvider={onCreateProvider}
         onDeleteProvider={onDeleteProvider}
         onSelectProvider={onSelectProvider}
+        onSetGlobalRemove={onSetGlobalRemove}
         onSetProviderListField={onSetProviderListField}
         onSetProviderSources={onSetProviderSources}
         onUpdateProvider={onUpdateProvider}

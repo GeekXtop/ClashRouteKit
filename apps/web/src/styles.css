@@ -1503,6 +1503,37 @@ button.state {
   overflow-wrap: anywhere;
 }
 
+.provider-references {
+  padding: 0 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.provider-references .entity-list-header h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.advanced-block {
+  margin: 4px 14px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  overflow: hidden;
+}
+
+.advanced-block summary {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.advanced-block .form-grid {
+  padding-top: 4px;
+}
+
 @media (max-width: 1180px) {
   .editor-workspace {
     grid-template-columns: 1fr;
