@@ -657,4 +657,38 @@ ruleSets:
     expect(ini).toContain("enable_rule_generator=false");
     expect(ini).toContain("clash_rule_base=https://example.com/Base.yml");
   });
+
+  it("groups preview output by ruleSet section", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      [
+        "publishBaseUrl: http://127.0.0.1:8787",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "customProxyGroups:",
+        "  - name: AI",
+        "    type: select",
+        "    options:",
+        "      - DIRECT",
+        "ruleSets:",
+        "  - id: openai",
+        "    section: 海外类目",
+        "    policy: AI",
+        "    source:",
+        "      type: geosite",
+        "      value: openai",
+        "  - id: final",
+        "    policy: AI",
+        "    source:",
+        "      type: final",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const lines = await previewRules({ root, configFile: "routes.yaml" });
+    expect(lines).toContain("# 海外类目");
+    expect(lines.indexOf("# 海外类目")).toBeLessThan(lines.indexOf("GEOSITE openai -> AI"));
+  });
 });

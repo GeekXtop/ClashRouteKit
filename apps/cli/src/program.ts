@@ -436,8 +436,13 @@ export async function importIni(
 export async function previewRules(options: ProgramOptions): Promise<string[]> {
   const config = await readConfig(options);
   const lines: string[] = [];
+  let lastSection: string | undefined;
   for (const ruleSet of config.ruleSets) {
     if (ruleSet.enabled === false) continue;
+    if (ruleSet.section && ruleSet.section !== lastSection) {
+      lines.push(`# ${ruleSet.section}`);
+      lastSection = ruleSet.section;
+    }
 
     const source = ruleSet.source;
     if (source.type === "rule-provider") {
