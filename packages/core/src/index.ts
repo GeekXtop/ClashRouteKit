@@ -22,6 +22,7 @@ export type {
   GeositeRuleSetSource,
   GeoipRuleSetSource,
   ProviderBehavior,
+  RenderIniOptions,
   RouteKitProjectConfig,
   RouteKitConfig,
   RuleProviderRuleSetSource,
