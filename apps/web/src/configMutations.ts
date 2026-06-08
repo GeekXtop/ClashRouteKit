@@ -1,5 +1,6 @@
 import type {
   CustomProxyGroup,
+  ImportedConfig,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -335,4 +336,30 @@ export function setTemplateField(
   patch: Partial<RouteKitProjectConfig["template"]>,
 ): RouteKitProjectConfig {
   return { ...config, template: { ...config.template, ...patch } };
+}
+
+export function mergeImportedConfig(
+  config: RouteKitProjectConfig,
+  imported: ImportedConfig,
+): RouteKitProjectConfig {
+  const existingGroupNames = new Set(config.customProxyGroups.map((group) => group.name));
+  const customProxyGroups = [
+    ...config.customProxyGroups,
+    ...imported.customProxyGroups.filter((group) => !existingGroupNames.has(group.name)),
+  ];
+
+  const existingIds = new Set(config.ruleSets.map((ruleSet) => ruleSet.id));
+  const hasFinal = config.ruleSets.some((ruleSet) => ruleSet.source.type === "final");
+  const incoming = imported.ruleSets.filter(
+    (ruleSet) => !existingIds.has(ruleSet.id) && !(hasFinal && ruleSet.source.type === "final"),
+  );
+  const finalIndex = config.ruleSets.findIndex((ruleSet) => ruleSet.source.type === "final");
+  const insertAt = finalIndex === -1 ? config.ruleSets.length : finalIndex;
+  const ruleSets = [
+    ...config.ruleSets.slice(0, insertAt),
+    ...incoming,
+    ...config.ruleSets.slice(insertAt),
+  ];
+
+  return { ...config, customProxyGroups, ruleSets };
 }

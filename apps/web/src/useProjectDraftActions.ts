@@ -6,6 +6,7 @@ import type {
   RuleSet,
   RuleSetSource,
 } from "@clash-route-kit/core";
+import { parseIniToConfig } from "@clash-route-kit/core";
 import {
   addCustomProxyGroup,
   addRuleProvider,
@@ -16,7 +17,9 @@ import {
   deleteCustomProxyGroup,
   deleteRuleProvider,
   deleteRuleSet,
+  mergeImportedConfig,
   renameCustomProxyGroup,
+  reorderRuleSets,
   setCustomProxyGroupListField,
   setGlobalRemove,
   setRuleProviderListField,
@@ -141,6 +144,47 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     },
     setProviderSources(providerName: string, sources: RuleProviderSource[]) {
       mutate((current) => setRuleProviderSources(current, providerName, sources));
+    },
+    reorderRuleSets(orderedIds: string[]) {
+      mutate((current) => reorderRuleSets(current, orderedIds));
+    },
+    addGeositeRoute(value: string, policy: string, section?: string) {
+      setProject((current) => {
+        try {
+          const trimmed = value.trim();
+          const existing = new Set(current.draftConfig.ruleSets.map((ruleSet) => ruleSet.id));
+          const base = `geosite-${trimmed || "entry"}`;
+          let id = base;
+          let suffix = 2;
+          while (existing.has(id)) id = `${base}-${suffix++}`;
+          const ruleSet: RuleSet = {
+            id,
+            policy,
+            source: { type: "geosite", value: trimmed },
+            ...(section ? { section } : {}),
+          };
+          const next = applyDraftConfig(current, addRuleSet(current.draftConfig, ruleSet));
+          return { ...dirtyMessage(next), selectedRuleSetId: id, selectedView: "ruleSets" };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    importIni(text: string) {
+      setProject((current) => {
+        try {
+          const imported = parseIniToConfig(text);
+          const next = applyDraftConfig(current, mergeImportedConfig(current.draftConfig, imported));
+          const warned = imported.warnings.length;
+          return {
+            ...dirtyMessage(next),
+            message: warned ? `已导入 INI（${warned} 条警告）` : "已导入 INI",
+            selectedView: "ruleSets",
+          };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
     },
     toggleRuleSet(ruleSetId: string) {
       mutate((current) => toggleRuleSet(current, ruleSetId));

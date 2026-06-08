@@ -71,6 +71,14 @@ export function RuleSetEditor({
           <input value={ruleSet.id} onChange={(event) => onUpdateRuleSet(ruleSet.id, { id: event.target.value })} />
         </label>
         <label>
+          <span>段（section）</span>
+          <input
+            value={ruleSet.section ?? ""}
+            placeholder="默认"
+            onChange={(event) => onUpdateRuleSet(ruleSet.id, { section: event.target.value || undefined })}
+          />
+        </label>
+        <label>
           <span>目标 custom_proxy_group</span>
           <select value={ruleSet.policy} onChange={(event) => onUpdateRuleSet(ruleSet.id, { policy: event.target.value })}>
             {policyOptions.map((policy) => (

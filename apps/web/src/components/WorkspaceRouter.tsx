@@ -17,8 +17,7 @@ import { type PreviewMode } from "./PreviewWorkspace.js";
 import { ProviderWorkspace } from "./ProviderWorkspace.js";
 import { PublishPanel } from "./PublishPanel.js";
 import { type RuleFileState } from "./RuleFileWorkspace.js";
-import { RuleSetEditor } from "./RuleSetEditor.js";
-import { RuleSetList } from "./RuleSetList.js";
+import { RouteWorkspace } from "./RouteWorkspace.js";
 
 export function WorkspaceRouter({
   actionStates,
@@ -38,6 +37,9 @@ export function WorkspaceRouter({
   onRefreshRuleFiles,
   onRenameCustomProxyGroup,
   onRuleFileTextChange,
+  onAddGeositeRoute,
+  onImportIni,
+  onReorderRuleSets,
   onRuleSetSearchChange,
   onRunAction,
   onSave,
@@ -96,6 +98,9 @@ export function WorkspaceRouter({
   onUpdateCustomProxyGroup: (groupName: string, patch: Partial<CustomProxyGroup>) => void;
   onUpdateProvider: (providerName: string, patch: Partial<RuleProviderConfig>) => void;
   onUpdateRuleSet: (ruleSetId: string, patch: Partial<RuleSet>) => void;
+  onAddGeositeRoute: (value: string, policy: string, section: string) => void;
+  onImportIni: (text: string) => void;
+  onReorderRuleSets: (orderedIds: string[]) => void;
   previewMode: PreviewMode;
   project: ProjectControllerState;
   routeRows: RouteSummaryRow[];
@@ -166,24 +171,26 @@ export function WorkspaceRouter({
   }
 
   return (
-    <div className="module-workspace">
-      <RuleSetList
-        ruleSets={config.ruleSets}
-        search={ruleSetSearch}
-        selectedRuleSetId={selectedRuleSet?.id ?? ""}
-        onCreateRuleSet={() => onCreateRuleSet("geosite")}
-        onSearchChange={onRuleSetSearchChange}
-        onSelectRuleSet={onSelectRuleSet}
-        onToggleRuleSet={onToggleRuleSet}
-      />
-      <RuleSetEditor
-        customProxyGroups={config.customProxyGroups.map((group) => group.name)}
-        publishBaseUrl={config.publishBaseUrl}
-        ruleSet={selectedRuleSet}
-        onDeleteRuleSet={onDeleteRuleSet}
-        onToggleRuleSet={onToggleRuleSet}
-        onUpdateRuleSet={onUpdateRuleSet}
-      />
-    </div>
+    <RouteWorkspace
+      config={config}
+      customProxyGroupFilter={customProxyGroupFilter}
+      iniPreview={iniPreview}
+      previewMode={previewMode}
+      routeRows={routeRows}
+      search={ruleSetSearch}
+      selectedRuleSet={selectedRuleSet}
+      stats={customProxyGroupStats}
+      onAddGeositeRoute={onAddGeositeRoute}
+      onCreateCustomProxyGroup={onCreateCustomProxyGroup}
+      onCustomProxyGroupFilterChange={onCustomProxyGroupFilterChange}
+      onDeleteRuleSet={onDeleteRuleSet}
+      onImportIni={onImportIni}
+      onPreviewModeChange={onPreviewModeChange}
+      onReorderRuleSets={onReorderRuleSets}
+      onSearchChange={onRuleSetSearchChange}
+      onSelectRuleSet={onSelectRuleSet}
+      onToggleRuleSet={onToggleRuleSet}
+      onUpdateRuleSet={onUpdateRuleSet}
+    />
   );
 }

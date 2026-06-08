@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type {
   CustomProxyGroup,
+  ImportedConfig,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -15,6 +16,7 @@ import {
   deleteCustomProxyGroup,
   deleteRuleProvider,
   deleteRuleSet,
+  mergeImportedConfig,
   renameCustomProxyGroup,
   reorderRuleSets,
   setCustomProxyGroupListField,
@@ -41,6 +43,33 @@ function createConfig(): RouteKitProjectConfig {
     ruleProviders: [],
   };
 }
+
+describe("mergeImportedConfig", () => {
+  it("adds new groups and rule sets while skipping duplicates and inserting before FINAL", () => {
+    const config = createConfig();
+    const imported: ImportedConfig = {
+      customProxyGroups: [
+        { name: "Proxy", type: "select", options: ["DIRECT"] },
+        { name: "Stream", type: "select", options: ["DIRECT"] },
+      ],
+      ruleSets: [
+        { id: "ai-geosite-openai", policy: "Proxy", source: { type: "geosite", value: "openai" } },
+        { id: "stream-geosite-netflix", policy: "Stream", source: { type: "geosite", value: "netflix" } },
+        { id: "imported-final", policy: "Proxy", source: { type: "final" } },
+      ],
+      warnings: [],
+    };
+
+    const merged = mergeImportedConfig(config, imported);
+
+    expect(merged.customProxyGroups.map((group) => group.name)).toEqual(["Proxy", "Stream"]);
+    expect(merged.ruleSets.map((ruleSet) => ruleSet.id)).toEqual([
+      "ai-geosite-openai",
+      "stream-geosite-netflix",
+      "final",
+    ]);
+  });
+});
 
 describe("config mutation helpers", () => {
   it("creates and updates ruleSet entries immutably", () => {

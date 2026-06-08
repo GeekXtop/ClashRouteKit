@@ -233,6 +233,9 @@ export default function App() {
         selectedRuleSet={selectedRuleSet}
         subscriptionPanel={subscriptionPanel}
         onRuleSetSearchChange={setRuleSetSearch}
+        onAddGeositeRoute={draftActions.addGeositeRoute}
+        onImportIni={draftActions.importIni}
+        onReorderRuleSets={draftActions.reorderRuleSets}
         onCreateRuleSet={draftActions.createRuleSet}
         onCreateCustomProxyGroup={draftActions.createCustomProxyGroup}
         onCreateProvider={draftActions.createProvider}
