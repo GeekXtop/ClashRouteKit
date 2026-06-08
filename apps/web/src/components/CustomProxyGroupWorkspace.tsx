@@ -35,6 +35,7 @@ export function CustomProxyGroupWorkspace({
       />
       <CustomProxyGroupEditor
         group={selectedGroup}
+        groups={config.customProxyGroups}
         onDeleteGroup={onDeleteGroup}
         onRenameGroup={onRenameGroup}
         onSetGroupListField={onSetGroupListField}
