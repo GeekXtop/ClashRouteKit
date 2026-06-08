@@ -1,5 +1,6 @@
 import type {
   DomainListCommunityOptions,
+  DomainListEntryInfo,
   DomainProviderInput,
   DomainProviderRule,
   DomainProviderSummary,
@@ -53,6 +54,22 @@ export async function convertDomainListCommunity(
   }
 
   return [...new Set(rules)];
+}
+
+export function parseDomainListEntry(content: string): DomainListEntryInfo {
+  const includes: string[] = [];
+  let ruleCount = 0;
+  for (const rawLine of content.replace(/\r\n?/g, "\n").split("\n")) {
+    const token = stripComment(rawLine).split(/\s+/)[0];
+    if (!token) continue;
+    if (token.startsWith("include:")) {
+      const name = token.slice("include:".length);
+      if (name && !includes.includes(name)) includes.push(name);
+    } else {
+      ruleCount += 1;
+    }
+  }
+  return { includes, ruleCount };
 }
 
 function parseRule(rule: string): { kind: string; value: string } | null {

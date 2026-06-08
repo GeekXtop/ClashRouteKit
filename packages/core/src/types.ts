@@ -132,3 +132,8 @@ export interface RenderIniOptions {
   overwriteOriginalRules?: boolean;
   clashRuleBase?: string;
 }
+
+export interface DomainListEntryInfo {
+  includes: string[];
+  ruleCount: number;
+}

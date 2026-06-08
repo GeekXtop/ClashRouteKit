@@ -7,6 +7,7 @@ export {
   collectDomainProviderRules,
   convertDomainListCommunity,
   generateDomainProvider,
+  parseDomainListEntry,
   summarizeDomainProvider,
 } from "./rules.js";
 export type {
@@ -15,6 +16,7 @@ export type {
   DomainProviderRule,
   DomainProviderSummary,
   DomainListCommunitySource,
+  DomainListEntryInfo,
   ClashListSource,
   ClashProviderSource,
   CustomProxyGroup,
