@@ -1,7 +1,9 @@
 import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       "@clash-route-kit/core": fileURLToPath(
@@ -10,6 +12,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["packages/*/tests/**/*.test.ts", "apps/*/tests/**/*.test.ts"],
+    include: ["packages/*/tests/**/*.test.{ts,tsx}", "apps/*/tests/**/*.test.{ts,tsx}"],
   },
 });
