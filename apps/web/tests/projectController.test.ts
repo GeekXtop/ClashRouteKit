@@ -35,10 +35,16 @@ describe("project controller", () => {
 
     expect(controller.dirty).toBe(false);
     expect(controller.draftYaml).toBe(serializeRouteKitConfig(config));
-    expect(controller.selectedView).toBe("ruleSets");
+    expect(controller.selectedView).toBe("catalog");
     expect(controller.selectedRuleSetId).toBe("developer-geosite-github");
     expect(controller.selectedCustomProxyGroupName).toBe("Proxy");
     expect(canSaveProject(controller).ok).toBe(false);
+  });
+
+  it("defaults the landing view to catalog", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    expect(controller.selectedView).toBe("catalog");
   });
 
   it("tracks dirty state after draft config changes", () => {

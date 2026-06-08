@@ -1389,6 +1389,120 @@ button.state {
   font-size: 12px;
 }
 
+.catalog-workspace {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.catalog-search input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  outline: 0;
+}
+
+.catalog-search input:focus-visible {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(18, 110, 115, 0.16);
+}
+
+.catalog-body {
+  display: grid;
+  grid-template-columns: minmax(200px, 244px) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+  align-items: start;
+}
+
+.catalog-sources {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.catalog-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 16px;
+  min-width: 0;
+}
+
+.catalog-grid,
+.catalog-detail {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.catalog-entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.catalog-entry {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fbfcfd;
+  color: var(--ink);
+  text-align: left;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-entry:hover,
+.catalog-entry.active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.catalog-entry.active {
+  font-weight: 700;
+}
+
+.catalog-detail-body {
+  display: grid;
+  gap: 12px;
+}
+
+.catalog-includes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.catalog-include-chip {
+  min-height: 26px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfd;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1180px) {
   .editor-workspace {
     grid-template-columns: 1fr;

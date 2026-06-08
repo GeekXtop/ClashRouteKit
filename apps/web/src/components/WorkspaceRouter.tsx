@@ -11,12 +11,12 @@ import type { LocalRouteKitAction } from "../actions.js";
 import type { ProjectControllerState, SaveReadiness } from "../projectController.js";
 import type { CustomProxyGroupStat, RouteSummaryRow } from "../routeSummary.js";
 import type { LocalActionStates } from "../publishWorkflow.js";
+import { CatalogWorkspace } from "./CatalogWorkspace.js";
 import { CustomProxyGroupWorkspace } from "./CustomProxyGroupWorkspace.js";
-import { PreviewWorkspace, type PreviewMode } from "./PreviewWorkspace.js";
-import { ProjectWorkspace } from "./ProjectWorkspace.js";
+import { type PreviewMode } from "./PreviewWorkspace.js";
 import { ProviderWorkspace } from "./ProviderWorkspace.js";
 import { PublishPanel } from "./PublishPanel.js";
-import { RuleFileWorkspace, type RuleFileState } from "./RuleFileWorkspace.js";
+import { type RuleFileState } from "./RuleFileWorkspace.js";
 import { RuleSetEditor } from "./RuleSetEditor.js";
 import { RuleSetList } from "./RuleSetList.js";
 
@@ -105,8 +105,16 @@ export function WorkspaceRouter({
   selectedRuleSet: RuleSet | undefined;
   subscriptionPanel: ReactNode;
 }) {
-  if (project.selectedView === "project") {
-    return <ProjectWorkspace config={config} project={project} routeRowsCount={routeRows.length} subscriptionPanel={subscriptionPanel} />;
+  if (project.selectedView === "catalog") {
+    return (
+      <CatalogWorkspace
+        ruleFileState={ruleFileState}
+        onLoadRuleFile={onLoadRuleFile}
+        onRefreshRuleFiles={onRefreshRuleFiles}
+        onRuleFileTextChange={onRuleFileTextChange}
+        onSaveRuleFile={onSaveRuleFile}
+      />
+    );
   }
   if (project.selectedView === "customProxyGroups") {
     return (
@@ -134,30 +142,6 @@ export function WorkspaceRouter({
         onSetProviderListField={onSetProviderListField}
         onSetProviderSources={onSetProviderSources}
         onUpdateProvider={onUpdateProvider}
-      />
-    );
-  }
-  if (project.selectedView === "rules") {
-    return (
-      <RuleFileWorkspace
-        ruleFileState={ruleFileState}
-        onLoadFile={onLoadRuleFile}
-        onRefreshFiles={onRefreshRuleFiles}
-        onSaveFile={onSaveRuleFile}
-        onTextChange={onRuleFileTextChange}
-      />
-    );
-  }
-  if (project.selectedView === "preview") {
-    return (
-      <PreviewWorkspace
-        customProxyGroupFilter={customProxyGroupFilter}
-        customProxyGroups={config.customProxyGroups.map((group) => group.name)}
-        iniPreview={iniPreview}
-        mode={previewMode}
-        rows={routeRows}
-        onCustomProxyGroupFilterChange={onCustomProxyGroupFilterChange}
-        onModeChange={onPreviewModeChange}
       />
     );
   }

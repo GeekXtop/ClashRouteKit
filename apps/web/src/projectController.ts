@@ -5,12 +5,10 @@ import {
 import { validateDraftConfig } from "./draftValidation.js";
 
 export type ProjectView =
-  | "project"
-  | "ruleSets"
-  | "customProxyGroups"
+  | "catalog"
   | "providers"
-  | "rules"
-  | "preview"
+  | "customProxyGroups"
+  | "ruleSets"
   | "publish";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
 export type ProjectValidationStatus = "idle" | "running" | "success" | "error";
@@ -93,7 +91,7 @@ export function createProjectController(snapshot: ProjectConfigSnapshot): Projec
       status: "idle",
       output: "尚未运行检查",
     },
-    selectedView: "ruleSets",
+    selectedView: "catalog",
     selectedRuleSetId: firstRuleSetId(snapshot.config),
     selectedCustomProxyGroupName: firstCustomProxyGroupName(snapshot.config),
     selectedProviderName: firstProviderName(snapshot.config),

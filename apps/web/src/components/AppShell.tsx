@@ -6,7 +6,6 @@ import {
   Layers3,
   Route,
   Send,
-  Settings2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { ProjectStatus, ProjectView } from "../projectController.js";
@@ -19,13 +18,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { view: "project", label: "Project", description: "本地文件与输出", icon: <Settings2 size={17} /> },
-  { view: "ruleSets", label: "RuleSets", description: "ruleset 行编辑", icon: <Route size={17} /> },
-  { view: "customProxyGroups", label: "Proxy Groups", description: "custom_proxy_group", icon: <Layers3 size={17} /> },
-  { view: "providers", label: "Providers", description: "Rule Provider", icon: <FileCode2 size={17} /> },
-  { view: "rules", label: "Rules", description: "规则文件", icon: <FileText size={17} /> },
-  { view: "preview", label: "Preview", description: "规则与 INI", icon: <Route size={17} /> },
-  { view: "publish", label: "Publish", description: "检查生成发布", icon: <Send size={17} /> },
+  { view: "catalog", label: "规则目录", description: "上游 / 本地素材", icon: <FileText size={17} /> },
+  { view: "providers", label: "规则源", description: "合并产物 Provider", icon: <FileCode2 size={17} /> },
+  { view: "customProxyGroups", label: "策略组", description: "出口 / 分组", icon: <Layers3 size={17} /> },
+  { view: "ruleSets", label: "路由", description: "规则顺序 / 装配", icon: <Route size={17} /> },
+  { view: "publish", label: "发布", description: "检查 / 生成 / 发布", icon: <Send size={17} /> },
 ];
 
 function statusText(status: ProjectStatus): string {
