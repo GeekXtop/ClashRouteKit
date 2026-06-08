@@ -1,15 +1,21 @@
-import { Clipboard, Play } from "lucide-react";
+import { Clipboard, Play, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { LocalRouteKitAction } from "../actions.js";
 import type { SaveReadiness } from "../projectController.js";
 import {
   createRawUrlTemplates,
+  fetchGitRemote,
   getPublishActionWarning,
+  parseGitHubRemote,
   parseGitHubRepo,
   publishActions,
   type ActionStatus,
   type LocalActionStates,
 } from "../publishWorkflow.js";
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+type PublishMode = "local" | "github";
 
 const actionLabels: Record<LocalRouteKitAction, string> = {
   check: "运行检查",
@@ -30,34 +36,41 @@ export function PublishPanel({
   actionStates,
   dirty,
   draftYamlLength,
+  fetcher = globalThis.fetch,
   onRun,
   onSave,
+  onSetTemplateField,
   projectMessage,
   projectStatus,
   publishBaseUrl,
   saveReadiness,
-  templateOutput,
+  template,
 }: {
   actionStates: LocalActionStates;
   dirty: boolean;
   draftYamlLength: number;
+  fetcher?: Fetcher;
   onRun: (action: LocalRouteKitAction) => void;
   onSave: () => void;
+  onSetTemplateField: (patch: Partial<RouteKitProjectConfig["template"]>) => void;
   projectMessage: string;
   projectStatus: string;
   publishBaseUrl: string;
   saveReadiness: SaveReadiness;
-  templateOutput: string;
+  template: RouteKitProjectConfig["template"];
 }) {
   const parsedRepo = parseGitHubRepo(publishBaseUrl);
+  const [mode, setMode] = useState<PublishMode>(parsedRepo ? "github" : "local");
   const [owner, setOwner] = useState(parsedRepo?.owner ?? "");
   const [repo, setRepo] = useState(parsedRepo?.repo ?? "");
+  const [detectMessage, setDetectMessage] = useState("");
   const [copiedUrl, setCopiedUrl] = useState("");
   const running = Object.values(actionStates).some((state) => state.status === "running");
   const saving = projectStatus === "saving";
-  const rawUrls = owner.trim() && repo.trim()
-    ? createRawUrlTemplates({ owner: owner.trim(), repo: repo.trim() }, templateOutput)
-    : undefined;
+  const rawUrls =
+    owner.trim() && repo.trim()
+      ? createRawUrlTemplates({ owner: owner.trim(), repo: repo.trim() }, template.output)
+      : undefined;
 
   useEffect(() => {
     if (!parsedRepo) return;
@@ -70,88 +83,167 @@ export function PublishPanel({
     setCopiedUrl(value);
   }
 
+  async function detectRepo() {
+    setDetectMessage("正在读取 git remote…");
+    try {
+      const remote = await fetchGitRemote(fetcher);
+      const parsed = parseGitHubRemote(remote);
+      if (!parsed) {
+        setDetectMessage(`无法从 ${remote} 解析 GitHub 仓库`);
+        return;
+      }
+      setOwner(parsed.owner);
+      setRepo(parsed.repo);
+      setDetectMessage(`已探测：${parsed.owner}/${parsed.repo}`);
+    } catch (error: unknown) {
+      setDetectMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   return (
     <section className="panel publish-panel">
       <div className="panel-heading">
         <div>
           <h2>发布工作流</h2>
-          <span>Save -&gt; Check -&gt; Generate -&gt; Git Status -&gt; Commit -&gt; Push</span>
+          <span>目标 → 模板 → 执行 → 产物</span>
         </div>
         <span className={`run-state ${dirty ? "running" : "success"}`}>{dirty ? "dirty" : "clean"}</span>
       </div>
+
       <div className="local-actions">
-        <div className="publish-save-row">
-          <button
-            className="command-button primary"
-            disabled={saving || !saveReadiness.ok}
-            type="button"
-            onClick={onSave}
-          >
-            保存配置
-          </button>
-          <p className={`project-message ${projectStatus}`}>{projectMessage}</p>
-        </div>
-        <p className="operation-hint">
-          将写入 <code>config/routes.yaml</code>，当前草稿 YAML {draftYamlLength} 字符。
-          {!saveReadiness.ok ? ` ${saveReadiness.reason}` : ""}
-        </p>
-
-        <div className="publish-sequence">
-          {publishActions.map((action, index) => {
-            const state = actionStates[action];
-            const warning = getPublishActionWarning(action, actionStates);
-            return (
-              <div className="publish-step" key={action}>
-                <div className="publish-step-header">
-                  <span className="step-index">{index + 1}</span>
-                  <strong>{actionLabels[action]}</strong>
-                  <span className={`run-state ${state.status}`}>{statusLabel(state.status)}</span>
-                  <button className="command-button" disabled={running} type="button" onClick={() => onRun(action)}>
-                    <Play size={16} />
-                    运行
-                  </button>
-                </div>
-                {warning ? <p className="action-warning">{warning}</p> : null}
-                {action === "git-push" ? <p className="operation-hint">推送使用本机 Git 凭据；浏览器不保存 GitHub token。</p> : null}
-                <pre className="action-output action-output-compact">{state.output}</pre>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="raw-url-panel">
-          <div className="panel-heading compact-heading">
-            <div>
-              <h2>Raw URL 模板</h2>
-              <span>发布分支固定为 publish</span>
+        <div className="publish-section">
+          <div className="entity-list-header">
+            <h3>① 目标</h3>
+            <div className="segmented" aria-label="publish mode">
+              <button className={mode === "local" ? "active" : ""} type="button" onClick={() => setMode("local")}>
+                本地
+              </button>
+              <button className={mode === "github" ? "active" : ""} type="button" onClick={() => setMode("github")}>
+                GitHub
+              </button>
             </div>
+          </div>
+          {mode === "local" ? (
+            <p className="operation-hint">
+              本地模式：provider 与模板使用 <code>{publishBaseUrl}</code>，由 <code>pnpm serve:output</code> 暴露。
+            </p>
+          ) : (
+            <>
+              <div className="repo-inputs">
+                <label>
+                  <span>Owner</span>
+                  <input aria-label="Owner" placeholder="github owner" value={owner} onChange={(event) => setOwner(event.target.value)} />
+                </label>
+                <label>
+                  <span>Repo</span>
+                  <input aria-label="Repo" placeholder="repository" value={repo} onChange={(event) => setRepo(event.target.value)} />
+                </label>
+              </div>
+              <div className="action-toolbar">
+                <button className="command-button" type="button" onClick={detectRepo}>
+                  <Search size={15} /> 自动探测仓库
+                </button>
+                <span className="operation-hint">发布分支固定为 publish；推送使用本机 Git 凭据。</span>
+              </div>
+              {detectMessage ? <p className="project-message">{detectMessage}</p> : null}
+              {rawUrls ? (
+                <div className="raw-url-list">
+                  {Object.entries(rawUrls).map(([name, value]) => (
+                    <div className="raw-url-row" key={name}>
+                      <span>{name}</span>
+                      <code>{value}</code>
+                      <button className="icon-button" type="button" aria-label={`copy ${name}`} onClick={() => copyUrl(value)}>
+                        <Clipboard size={16} />
+                      </button>
+                      {copiedUrl === value ? <small>已复制</small> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">填写 owner/repo 或点击自动探测以生成 raw 链接</div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="publish-section">
+          <div className="entity-list-header">
+            <h3>② 模板</h3>
           </div>
           <div className="repo-inputs">
             <label>
-              <span>Owner</span>
-              <input placeholder="github owner" value={owner} onChange={(event) => setOwner(event.target.value)} />
+              <span>输出文件名</span>
+              <input
+                aria-label="模板输出文件名"
+                value={template.output}
+                onChange={(event) => onSetTemplateField({ output: event.target.value })}
+              />
             </label>
             <label>
-              <span>Repo</span>
-              <input placeholder="repository" value={repo} onChange={(event) => setRepo(event.target.value)} />
+              <span>clash_rule_base（可选）</span>
+              <input
+                aria-label="clash rule base"
+                value={template.clashRuleBase ?? ""}
+                onChange={(event) => onSetTemplateField({ clashRuleBase: event.target.value || undefined })}
+              />
             </label>
           </div>
-          {rawUrls ? (
-            <div className="raw-url-list">
-              {Object.entries(rawUrls).map(([name, value]) => (
-                <div className="raw-url-row" key={name}>
-                  <span>{name}</span>
-                  <code>{value}</code>
-                  <button className="icon-button" type="button" aria-label={`copy ${name}`} onClick={() => copyUrl(value)}>
-                    <Clipboard size={16} />
-                  </button>
-                  {copiedUrl === value ? <small>已复制</small> : null}
+          <div className="action-toolbar">
+            <label className="check-line">
+              <input
+                type="checkbox"
+                checked={template.enableRuleGenerator ?? false}
+                onChange={(event) => onSetTemplateField({ enableRuleGenerator: event.target.checked })}
+              />
+              <span>enable_rule_generator</span>
+            </label>
+            <label className="check-line">
+              <input
+                type="checkbox"
+                checked={template.overwriteOriginalRules ?? false}
+                onChange={(event) => onSetTemplateField({ overwriteOriginalRules: event.target.checked })}
+              />
+              <span>overwrite_original_rules</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="publish-section">
+          <div className="entity-list-header">
+            <h3>③ 执行</h3>
+          </div>
+          <div className="publish-save-row">
+            <button className="command-button primary" disabled={saving || !saveReadiness.ok} type="button" onClick={onSave}>
+              保存配置
+            </button>
+            <p className={`project-message ${projectStatus}`}>{projectMessage}</p>
+          </div>
+          <p className="operation-hint">
+            将写入 <code>config/routes.yaml</code>，当前草稿 YAML {draftYamlLength} 字符。
+            {!saveReadiness.ok ? ` ${saveReadiness.reason}` : ""}
+          </p>
+
+          <div className="publish-sequence">
+            {publishActions.map((action, index) => {
+              const state = actionStates[action];
+              const warning = getPublishActionWarning(action, actionStates);
+              return (
+                <div className="publish-step" key={action}>
+                  <div className="publish-step-header">
+                    <span className="step-index">{index + 1}</span>
+                    <strong>{actionLabels[action]}</strong>
+                    <span className={`run-state ${state.status}`}>{statusLabel(state.status)}</span>
+                    <button className="command-button" disabled={running} type="button" onClick={() => onRun(action)}>
+                      <Play size={16} />
+                      运行
+                    </button>
+                  </div>
+                  {warning ? <p className="action-warning">{warning}</p> : null}
+                  <pre className="action-output action-output-compact">{state.output}</pre>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">输入 GitHub owner/repo 后生成可复制 raw 链接</div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

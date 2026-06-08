@@ -254,6 +254,7 @@ export default function App() {
         onSetGlobalRemove={draftActions.setGlobalRemove}
         onSetProviderListField={draftActions.setProviderListField}
         onSetProviderSources={draftActions.setProviderSources}
+        onSetTemplateField={draftActions.setTemplateField}
         onLoadRuleFile={loadSelectedRuleFile}
         onSelectRuleSet={draftActions.selectRuleSet}
         onSelectCustomProxyGroup={(selectedCustomProxyGroupName) =>

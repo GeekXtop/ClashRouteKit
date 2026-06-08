@@ -4,6 +4,7 @@ import {
   listCatalogEntries,
   listProjectRuleFiles,
   readCatalogEntry,
+  readGitRemote,
   readProjectConfigFile,
   readProjectRuleFile,
   runRouteKitAction,
@@ -28,6 +29,18 @@ describe("routeKitApi", () => {
       ok: true,
       output: "[check] ok",
     });
+  });
+
+  it("reads the origin git remote url with a trimmed output", async () => {
+    const url = await readGitRemote({
+      ...baseOptions,
+      runCommand: async (command, args) => {
+        expect(command).toBe("git");
+        expect(args).toEqual(["remote", "get-url", "origin"]);
+        return "git@github.com:acme/routes.git\n";
+      },
+    });
+    expect(url).toBe("git@github.com:acme/routes.git");
   });
 
   it("returns diagnostics for a failed check action", async () => {

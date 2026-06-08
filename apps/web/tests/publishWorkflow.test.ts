@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   createInitialActionStates,
   createRawUrlTemplates,
+  fetchGitRemote,
   getPublishActionWarning,
+  parseGitHubRemote,
   parseGitHubRepo,
   updateActionState,
 } from "../src/publishWorkflow.js";
@@ -55,5 +57,16 @@ describe("publish workflow", () => {
       template: "https://raw.githubusercontent.com/acme/routes/publish/templates/Custom_Clash.ini",
       rules: "https://raw.githubusercontent.com/acme/routes/publish/rules/",
     });
+  });
+
+  it("parses GitHub owner/repo from https and ssh git remotes", () => {
+    expect(parseGitHubRemote("https://github.com/acme/routes.git")).toEqual({ owner: "acme", repo: "routes" });
+    expect(parseGitHubRemote("git@github.com:acme/routes.git")).toEqual({ owner: "acme", repo: "routes" });
+    expect(parseGitHubRemote("https://gitlab.com/acme/routes.git")).toBeUndefined();
+  });
+
+  it("reads the git remote url from the local API", async () => {
+    const fetcher = async () => new Response(JSON.stringify({ url: "git@github.com:acme/routes.git" }), { status: 200 });
+    await expect(fetchGitRemote(fetcher)).resolves.toBe("git@github.com:acme/routes.git");
   });
 });

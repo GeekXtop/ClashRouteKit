@@ -72,6 +72,32 @@ export function parseGitHubRepo(value: string): GitHubRepo | undefined {
   }
 }
 
+export function parseGitHubRemote(value: string): GitHubRepo | undefined {
+  const trimmed = value.trim();
+  const ssh = /^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/.exec(trimmed);
+  if (ssh) return { owner: ssh[1]!, repo: ssh[2]! };
+  try {
+    const url = new URL(trimmed);
+    if (url.hostname !== "github.com") return undefined;
+    const [owner, repoRaw] = url.pathname.split("/").filter(Boolean);
+    if (!owner || !repoRaw) return undefined;
+    return { owner, repo: repoRaw.replace(/\.git$/, "") };
+  } catch {
+    return undefined;
+  }
+}
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export async function fetchGitRemote(fetcher: Fetcher = globalThis.fetch): Promise<string> {
+  const response = await fetcher("/api/git/remote");
+  const payload = (await response.json()) as { url?: unknown };
+  if (!response.ok || typeof payload.url !== "string") {
+    throw new Error("Invalid git remote response");
+  }
+  return payload.url;
+}
+
 export function createRawUrlTemplates(
   repo: GitHubRepo,
   templateOutput = "Custom_Clash.ini",

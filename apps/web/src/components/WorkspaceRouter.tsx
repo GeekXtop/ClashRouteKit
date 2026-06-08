@@ -51,6 +51,7 @@ export function WorkspaceRouter({
   onSetGlobalRemove,
   onSetProviderListField,
   onSetProviderSources,
+  onSetTemplateField,
   onToggleRuleSet,
   onUpdateCustomProxyGroup,
   onUpdateProvider,
@@ -94,6 +95,7 @@ export function WorkspaceRouter({
   onSetGlobalRemove: (values: string[]) => void;
   onSetProviderListField: (providerName: string, field: "exclude" | "remove", values: string[]) => void;
   onSetProviderSources: (providerName: string, sources: RuleProviderSource[]) => void;
+  onSetTemplateField: (patch: Partial<RouteKitProjectConfig["template"]>) => void;
   onToggleRuleSet: (ruleSetId: string) => void;
   onUpdateCustomProxyGroup: (groupName: string, patch: Partial<CustomProxyGroup>) => void;
   onUpdateProvider: (providerName: string, patch: Partial<RuleProviderConfig>) => void;
@@ -163,9 +165,10 @@ export function WorkspaceRouter({
         projectStatus={project.status}
         publishBaseUrl={config.publishBaseUrl}
         saveReadiness={saveReadiness}
-        templateOutput={config.template.output}
+        template={config.template}
         onRun={onRunAction}
         onSave={onSave}
+        onSetTemplateField={onSetTemplateField}
       />
     );
   }

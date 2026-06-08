@@ -1882,6 +1882,23 @@ button.state {
   gap: 10px;
 }
 
+.publish-section {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.publish-section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.publish-section .entity-list-header h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
 @media (max-width: 1180px) {
   .route-columns {
     grid-template-columns: 1fr;

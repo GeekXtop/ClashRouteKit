@@ -189,6 +189,16 @@ async function defaultRunCommand(command: string, args: string[], cwd: string): 
   return [result.stdout, result.stderr].filter(Boolean).join("");
 }
 
+export interface GitRemoteOptions extends ProgramOptions {
+  runCommand?: RunCommand;
+}
+
+export async function readGitRemote(options: GitRemoteOptions): Promise<string> {
+  const runCommand = options.runCommand ?? defaultRunCommand;
+  const output = await runCommand("git", ["remote", "get-url", "origin"], options.root);
+  return output.trim();
+}
+
 function formatGenerateOutput(result: GenerateResult): string {
   const lines = [`[generate] template: ${result.templatePath}`];
   for (const provider of result.providers) {
@@ -394,6 +404,15 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       const name = url.searchParams.get("name") ?? "";
       void readCatalogEntry({ ...options, origin, name })
         .then((detail) => writeJson(response, 200, detail))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
+    if (url.pathname === "/api/git/remote") {
+      void readGitRemote(options)
+        .then((remote) => writeJson(response, 200, { url: remote }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );

@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
   CustomProxyGroup,
+  RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
   RuleSet,
@@ -24,6 +25,7 @@ import {
   setGlobalRemove,
   setRuleProviderListField,
   setRuleProviderSources,
+  setTemplateField,
   toggleRuleSet,
   updateCustomProxyGroup,
   updateRuleProvider,
@@ -138,6 +140,9 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     },
     setGlobalRemove(values: string[]) {
       mutate((current) => setGlobalRemove(current, values));
+    },
+    setTemplateField(patch: Partial<RouteKitProjectConfig["template"]>) {
+      mutate((current) => setTemplateField(current, patch));
     },
     setProviderListField(providerName: string, field: "exclude" | "remove", values: string[]) {
       mutate((current) => setRuleProviderListField(current, providerName, field, values));
