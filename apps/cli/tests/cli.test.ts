@@ -573,4 +573,57 @@ ruleSets:
       "Set CLASH_ROUTE_KIT_SUBSCRIPTION_URL before running subconvert-url",
     );
   });
+
+  it("applies project-level globalRemove to every provider output", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await mkdir(path.join(root, "config/rules"), { recursive: true });
+    await writeFile(path.join(root, "config/rules/A.list"), "DOMAIN-SUFFIX,keep.example\nDOMAIN-SUFFIX,ban.example\n", "utf8");
+    await writeFile(path.join(root, "config/rules/B.list"), "DOMAIN-SUFFIX,ban.example\nDOMAIN-SUFFIX,other.example\n", "utf8");
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      [
+        "publishBaseUrl: http://127.0.0.1:8787",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "globalRemove:",
+        "  - ban.example",
+        "customProxyGroups:",
+        "  - name: Proxy",
+        "    type: select",
+        "    options:",
+        "      - DIRECT",
+        "ruleSets:",
+        "  - id: final",
+        "    policy: Proxy",
+        "    source:",
+        "      type: final",
+        "ruleProviders:",
+        "  - name: A",
+        "    output: A_Domain.yaml",
+        "    behavior: domain",
+        "    sources:",
+        "      - name: A",
+        "        type: clash-list",
+        "        path: config/rules/A.list",
+        "  - name: B",
+        "    output: B_Domain.yaml",
+        "    behavior: domain",
+        "    sources:",
+        "      - name: B",
+        "        type: clash-list",
+        "        path: config/rules/B.list",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    await generateOutputs({ root, configFile: "routes.yaml" });
+
+    const a = await readFile(path.join(root, "output/rules/A_Domain.yaml"), "utf8");
+    const b = await readFile(path.join(root, "output/rules/B_Domain.yaml"), "utf8");
+    expect(a).toContain("'+.keep.example'");
+    expect(a).not.toContain("ban.example");
+    expect(b).toContain("'+.other.example'");
+    expect(b).not.toContain("ban.example");
+  });
 });

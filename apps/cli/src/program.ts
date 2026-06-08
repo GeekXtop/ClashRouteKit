@@ -333,6 +333,7 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
     const rulePath = path.join(options.root, "output/rules", provider.output);
     await mkdir(path.dirname(rulePath), { recursive: true });
     const exclude = [
+      ...(config.globalRemove ?? []),
       ...(provider.exclude ?? []),
       ...(provider.remove ?? []),
     ];
