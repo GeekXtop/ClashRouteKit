@@ -36,7 +36,6 @@ export function AppShell({
   children,
   dirty,
   enabledCount,
-  inspector,
   onSelectView,
   selectedView,
   status,
@@ -44,7 +43,6 @@ export function AppShell({
   children: ReactNode;
   dirty: boolean;
   enabledCount: number;
-  inspector: ReactNode;
   onSelectView: (view: ProjectView) => void;
   selectedView: ProjectView;
   status: ProjectStatus;
@@ -92,8 +90,6 @@ export function AppShell({
         </aside>
 
         <section className="main-panel">{children}</section>
-
-        <aside className="right-rail">{inspector}</aside>
       </main>
     </div>
   );

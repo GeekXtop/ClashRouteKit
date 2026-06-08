@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Plus, Search, Upload } from "lucide-react";
 import type { RouteKitProjectConfig, RuleSet } from "@clash-route-kit/core";
+import { policyTone } from "../proxyGroups.js";
 import type { CustomProxyGroupStat, RouteSummaryRow } from "../routeSummary.js";
 import { PreviewWorkspace, type PreviewMode } from "./PreviewWorkspace.js";
 import { RoutePicker } from "./RoutePicker.js";
@@ -171,7 +172,7 @@ export function RouteWorkspace({
               aria-label={`筛选 ${name}`}
               onClick={() => setPolicyFilter(name)}
             >
-              <span className="policy-dot" />
+              <span className={`policy-dot tone-${policyTone(name)}`} />
               <span>{name}</span>
               <span className="count">{statByName.get(name)?.ruleSets ?? 0}</span>
             </button>
@@ -182,44 +183,59 @@ export function RouteWorkspace({
           {sectionOrder.map((label) => (
             <div className="route-section" key={label}>
               <div className="route-section-header">{label}</div>
-              {bySection.get(label)!.map((ruleSet) => (
-                <div
-                  key={ruleSet.id}
-                  data-testid={`route-row-${ruleSet.id}`}
-                  className={`module-row ${selectedRuleSet?.id === ruleSet.id ? "selected" : ""}`}
-                  role="button"
-                  tabIndex={0}
-                  draggable
-                  onDragStart={() => {
-                    dragIdRef.current = ruleSet.id;
-                  }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    reorderByDrop(ruleSet.id);
-                  }}
-                  onClick={() => onSelectRuleSet(ruleSet.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") onSelectRuleSet(ruleSet.id);
-                  }}
-                >
-                  <span className={`status-dot ${ruleSet.enabled !== false ? "active" : "paused"}`} />
-                  <span className="module-main">
-                    <span className="module-name">{ruleSet.id}</span>
-                    <span className="module-policy">
-                      {ruleSet.policy} / {sourceLabel(ruleSet)}
+              {bySection.get(label)!.map((ruleSet) => {
+                const tone = ruleSet.source.type === "final" ? "fin" : policyTone(ruleSet.policy);
+                return (
+                  <div
+                    key={ruleSet.id}
+                    data-testid={`route-row-${ruleSet.id}`}
+                    className={`route-row tone-${tone} ${selectedRuleSet?.id === ruleSet.id ? "sel" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    draggable
+                    onDragStart={() => {
+                      dragIdRef.current = ruleSet.id;
+                    }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      reorderByDrop(ruleSet.id);
+                    }}
+                    onClick={() => onSelectRuleSet(ruleSet.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") onSelectRuleSet(ruleSet.id);
+                    }}
+                  >
+                    <span className="grip">⠿</span>
+                    <span className="route-meta">
+                      <span className="route-name">{ruleSet.id}</span>
+                      <span className="route-src">{sourceLabel(ruleSet)}</span>
                     </span>
-                  </span>
-                  <label className="switch" onClick={(event) => event.stopPropagation()}>
-                    <input
-                      checked={ruleSet.enabled !== false}
-                      type="checkbox"
-                      onChange={() => onToggleRuleSet(ruleSet.id)}
-                    />
-                    <span />
-                  </label>
-                </div>
-              ))}
+                    {ruleSet.source.type !== "final" ? (
+                      <label className="switch" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          checked={ruleSet.enabled !== false}
+                          type="checkbox"
+                          onChange={() => onToggleRuleSet(ruleSet.id)}
+                        />
+                        <span />
+                      </label>
+                    ) : null}
+                    <span className={`pc tone-${tone}`}>{ruleSet.policy}</span>
+                    <button
+                      className="route-del"
+                      type="button"
+                      aria-label={`删除 ${ruleSet.id}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDeleteRuleSet(ruleSet.id);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           ))}
           {visible.length === 0 ? <div className="empty-state">没有匹配 ruleset</div> : null}

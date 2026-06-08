@@ -5,6 +5,7 @@ import {
   composeNodeFilter,
   detectProxyGroupCycles,
   parseNodeFilter,
+  policyTone,
 } from "../src/proxyGroups.js";
 
 function group(name: string, options: string[]): CustomProxyGroup {
@@ -69,5 +70,18 @@ describe("buildProxyGroupTree", () => {
   it("marks a cyclic reference instead of recursing forever", () => {
     const tree = buildProxyGroupTree([group("A", ["B"]), group("B", ["A"])], "A");
     expect(tree.children[0]!.children[0]!.cyclic).toBe(true);
+  });
+});
+
+describe("policyTone", () => {
+  it("maps common semantics to fixed tones", () => {
+    expect(policyTone("全球直连")).toBe("dir");
+    expect(policyTone("广告拦截")).toBe("rej");
+    expect(policyTone("漏网之鱼")).toBe("fin");
+  });
+
+  it("assigns a stable tone to other names", () => {
+    expect(policyTone("AI")).toBe(policyTone("AI"));
+    expect(["cat", "reg"]).toContain(policyTone("AI"));
   });
 });

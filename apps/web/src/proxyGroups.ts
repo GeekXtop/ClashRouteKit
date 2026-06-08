@@ -118,3 +118,22 @@ export function groupsInCycles(groups: CustomProxyGroup[]): Set<string> {
   }
   return names;
 }
+
+export type PolicyTone = "dir" | "rej" | "cat" | "reg" | "fin";
+
+/**
+ * Assign a design-book color tone to a policy/proxy-group name.
+ * Common semantics get fixed tones (direct=green, reject=red, final=yellow);
+ * everything else hashes deterministically to purple (service) or blue (region/proxy).
+ */
+export function policyTone(name: string): PolicyTone {
+  const lower = name.toLowerCase();
+  if (/直连|direct|局域|lan|国内/.test(lower)) return "dir";
+  if (/拦截|广告|reject|adblock|ad-?block|\bban\b/.test(lower)) return "rej";
+  if (/final|漏网|兜底|fish/.test(lower)) return "fin";
+  let hash = 0;
+  for (let index = 0; index < name.length; index += 1) {
+    hash = (hash * 31 + name.charCodeAt(index)) >>> 0;
+  }
+  return hash % 2 === 0 ? "cat" : "reg";
+}

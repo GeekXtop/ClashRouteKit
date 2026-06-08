@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { renderIni } from "@clash-route-kit/core";
 import { requestLocalAction, type LocalRouteKitAction } from "./actions.js";
 import { AppShell } from "./components/AppShell.js";
-import { InspectorPanel } from "./components/InspectorPanel.js";
 import type { PreviewMode } from "./components/PreviewWorkspace.js";
 import type { RuleFileState } from "./components/RuleFileWorkspace.js";
 import { WorkspaceRouter } from "./components/WorkspaceRouter.js";
@@ -184,16 +183,6 @@ export default function App() {
     <AppShell
       dirty={project.dirty}
       enabledCount={enabledCount}
-      inspector={
-        <InspectorPanel
-          config={config}
-          customProxyGroupStats={customProxyGroupStats}
-          project={project}
-          routeRowsCount={routeRows.length}
-          saveReadiness={saveReadiness}
-          selectedRuleSet={selectedRuleSet}
-        />
-      }
       selectedView={project.selectedView}
       status={project.status}
       onSelectView={(selectedView) => setProject((current) => setProjectSelection(current, { selectedView }))}

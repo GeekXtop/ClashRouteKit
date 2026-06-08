@@ -205,16 +205,20 @@ export function CatalogWorkspace({
             <section className="catalog-grid">
               <p className={`project-message ${entriesStatus}`}>{entriesMessage}</p>
               <div className="catalog-entries">
-                {filteredEntries.map((entry) => (
-                  <button
-                    key={entry}
-                    type="button"
-                    className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
-                    onClick={() => setSelectedEntry(entry)}
-                  >
-                    {entry}
-                  </button>
-                ))}
+                {filteredEntries.map((entry) => {
+                  const isCategory = entry.startsWith("category");
+                  return (
+                    <button
+                      key={entry}
+                      type="button"
+                      className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
+                      onClick={() => setSelectedEntry(entry)}
+                    >
+                      <span className={`bdg ${isCategory ? "b-cat" : "b-geo"}`}>{isCategory ? "CAT" : "GEO"}</span>
+                      <span className="en-nm">{entry}</span>
+                    </button>
+                  );
+                })}
                 {filteredEntries.length === 0 && entriesStatus !== "loading" ? (
                   <div className="empty-state">无匹配条目</div>
                 ) : null}
