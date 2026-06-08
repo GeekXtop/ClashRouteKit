@@ -5,7 +5,6 @@ import { AppShell } from "./components/AppShell.js";
 import { InspectorPanel } from "./components/InspectorPanel.js";
 import type { PreviewMode } from "./components/PreviewWorkspace.js";
 import type { RuleFileState } from "./components/RuleFileWorkspace.js";
-import { SubscriptionPanel } from "./components/SubscriptionPanel.js";
 import { WorkspaceRouter } from "./components/WorkspaceRouter.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
 import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
@@ -21,7 +20,6 @@ import { createInitialActionStates, updateActionState } from "./publishWorkflow.
 import { listRuleFiles, loadRuleFile, saveRuleFile } from "./ruleFiles.js";
 import { createCustomProxyGroupStats, createRouteSummary } from "./routeSummary.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
-import { useSubscriptions } from "./useSubscriptions.js";
 
 export default function App() {
   const [project, setProject] = useState(() =>
@@ -40,7 +38,6 @@ export default function App() {
   });
 
   const config = project.draftConfig;
-  const subscriptions = useSubscriptions(config);
   const routeRows = useMemo(() => createRouteSummary(config), [config]);
   const customProxyGroupStats = useMemo(() => createCustomProxyGroupStats(config), [config]);
   const iniPreview = useMemo(() => renderIni(config), [config]);
@@ -183,21 +180,6 @@ export default function App() {
     }
   }
 
-  const subscriptionPanel = (
-    <SubscriptionPanel
-      copied={subscriptions.copied}
-      endpoint={subscriptions.endpoint}
-      outputUrl={subscriptions.outputUrl}
-      providers={subscriptions.providers}
-      onAdd={subscriptions.add}
-      onCopy={subscriptions.copyOutputUrl}
-      onEndpointChange={subscriptions.updateEndpoint}
-      onImport={subscriptions.importLines}
-      onRemove={subscriptions.remove}
-      onUpdate={subscriptions.update}
-    />
-  );
-
   return (
     <AppShell
       dirty={project.dirty}
@@ -231,7 +213,6 @@ export default function App() {
         selectedCustomProxyGroup={selectedCustomProxyGroup}
         selectedProvider={selectedProvider}
         selectedRuleSet={selectedRuleSet}
-        subscriptionPanel={subscriptionPanel}
         onRuleSetSearchChange={setRuleSetSearch}
         onAddGeositeRoute={draftActions.addGeositeRoute}
         onImportIni={draftActions.importIni}

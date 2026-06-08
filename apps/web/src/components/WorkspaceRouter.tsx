@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type {
   CustomProxyGroup,
   RouteKitProjectConfig,
@@ -65,7 +64,6 @@ export function WorkspaceRouter({
   selectedCustomProxyGroup,
   selectedProvider,
   selectedRuleSet,
-  subscriptionPanel,
 }: {
   actionStates: LocalActionStates;
   config: RouteKitProjectConfig;
@@ -112,7 +110,6 @@ export function WorkspaceRouter({
   selectedCustomProxyGroup: CustomProxyGroup | undefined;
   selectedProvider: RuleProviderConfig | undefined;
   selectedRuleSet: RuleSet | undefined;
-  subscriptionPanel: ReactNode;
 }) {
   if (project.selectedView === "catalog") {
     return (
