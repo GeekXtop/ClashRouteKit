@@ -84,4 +84,23 @@ describe("renderIni", () => {
     expect(ini).toContain("enable_rule_generator=false");
     expect(ini).toContain("overwrite_original_rules=false");
   });
+
+  it("emits clash_rule_base only when provided", () => {
+    const without = renderIni({
+      publishBaseUrl: "http://127.0.0.1:8787",
+      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+      ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+    });
+    expect(without).not.toContain("clash_rule_base=");
+
+    const withBase = renderIni(
+      {
+        publishBaseUrl: "http://127.0.0.1:8787",
+        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+        ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+      },
+      { clashRuleBase: "https://example.com/Base.yml" },
+    );
+    expect(withBase).toContain("clash_rule_base=https://example.com/Base.yml");
+  });
 });
