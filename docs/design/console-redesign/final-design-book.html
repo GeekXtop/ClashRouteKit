@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClashRouteKit 控制台 · 最终设计册</title>
+<style>
+  body{margin:0;background:#0a0e14;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px}
+  h2{color:#e6edf3;font-size:20px;margin:0 0 4px}
+  .subtitle{color:#7d8590;font-size:13px;margin:0 0 18px}
+  .book{--bg0:#0d1117;--bg1:#10151c;--bg2:#161b22;--bg3:#11161d;--bd:#30363d;--bd2:#21262d;--tx:#c9d1d9;--tx1:#e6edf3;--tx2:#7d8590;--mut:#586069;
+        --dir:#3fb950;--rej:#f85149;--cat:#8957e5;--reg:#1f6feb;--fin:#e3b341;--local:#bb8009;max-width:1080px;margin:0 auto}
+  .book *{box-sizing:border-box}
+  .page{margin:0 0 26px}
+  .phead{display:flex;align-items:center;gap:9px;margin:0 0 8px}
+  .phead .pno{width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;background:#1f6feb22;color:#79b8ff}
+  .phead h3{margin:0;font-size:16px;color:var(--tx1)}
+  .phead .role{font-size:11px;color:var(--tx2)}
+  .phead .ln{flex:1;height:1px;background:var(--bd2)}
+  .pnote{font-size:11px;color:var(--tx2);margin:0 0 8px;line-height:1.5}
+  .pnote b{color:#9fdfb4}
+  .nav{display:flex;gap:2px;background:var(--bg0);border:1px solid var(--bd);border-radius:8px 8px 0 0;padding:6px 8px;font-size:12px}
+  .nav .t{padding:5px 10px;border-radius:6px;color:#9da7b3;white-space:nowrap}
+  .nav .t.on{background:#1f6feb22;color:#cfe1ff;font-weight:600}
+  .nav .sp{flex:1}
+  .frame{border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;background:var(--bg1)}
+  .cols{display:flex;min-height:230px}
+  .c-l{flex:0 0 150px;background:var(--bg0);border-right:1px solid var(--bd2);padding:8px;overflow:auto}
+  .c-m{flex:1;min-width:0;padding:9px 11px;overflow:auto}
+  .c-r{flex:0 0 196px;background:var(--bg0);border-left:1px solid var(--bd2);padding:9px 11px}
+  .lab{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx2);margin:8px 0 5px;display:flex;align-items:center;gap:6px}
+  .lab:first-child{margin-top:0}.lab .ln{flex:1;height:1px;background:var(--bd2)}
+  .li{display:flex;align-items:center;gap:6px;font-size:11px;color:#9da7b3;padding:4px 7px;border-radius:6px;margin:1px 0}
+  .li.on{background:#1f6feb22;color:#cfe1ff}.li .c{margin-left:auto;font-size:9px;color:var(--mut)}
+  .li.new{color:#79b8ff;border:1px dashed #1f6feb44;justify-content:center;margin-top:6px}
+  .li.rm{color:#ff938b;border:1px solid #f8514933;background:#f851490d;justify-content:flex-start;gap:6px}
+  .row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx);background:var(--bg2);border-radius:6px;padding:5px 8px;margin:3px 0;border-left:3px solid var(--bd)}
+  .row .grip{color:var(--mut)}.row .m{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .x{color:var(--mut);font-size:11px}
+  .row.sel{outline:2px solid var(--reg);background:#1f6feb18}
+  .row.dir{border-left-color:var(--dir)} .row.rej{border-left-color:var(--rej)} .row.cat{border-left-color:var(--cat)} .row.fin{border-left-color:var(--fin)}
+  .pc{font-size:9px;padding:1px 7px;border-radius:9px}
+  .pc.dir{background:#1f6f3f33;color:#5fd98a}.pc.rej{background:#f8514933;color:#ff938b}.pc.cat{background:#8957e533;color:#c79bff}.pc.fin{background:#bb800933;color:#e3b341}
+  .bdg{font-size:8px;padding:0 5px;border-radius:4px;flex:0 0 auto}
+  .b-geo{background:#8957e533;color:#c79bff}.b-list{background:#2ea04333;color:#5fd98a}.b-dler{background:#1f6feb33;color:#79b8ff}.b-local{background:#bb800933;color:#e3b341}.b-ip{background:#3b82f633;color:#93c5fd}
+  .tg{width:22px;height:12px;background:#238636;border-radius:7px;position:relative;flex:0 0 auto}.tg::after{content:'';position:absolute;right:1px;top:1px;width:10px;height:10px;background:#fff;border-radius:50%}
+  .tg.off{background:var(--bd)}.tg.off::after{right:auto;left:1px}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:3px 8px;font-size:11px;color:var(--tx);margin:2px 3px 2px 0}
+  .chip.add{border-style:dashed;color:#79b8ff}.chip.reg{border-color:#1f6feb55;background:#1f6feb18}.chip.svc{border-color:#8957e555;background:#8957e518}.chip.dir{border-color:#3fb95055;color:#7ee787}.chip.rej{border-color:#f8514955;color:#ff938b}
+  .tbar{display:flex;align-items:center;gap:8px;background:var(--bg0);border:1px solid var(--bd);border-top:none;padding:6px 10px;font-size:11px;color:#9da7b3}
+  .tbar .box{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:3px 9px;color:var(--mut)}
+  .tbar .sp{flex:1}.tbar .btn{background:var(--reg);color:#fff;border-radius:6px;padding:3px 10px;font-size:11px}.tbar .gho{border:1px solid var(--bd);border-radius:6px;padding:3px 9px;color:#c9d1d9}
+  .ipt{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--tx1)}
+  .mono{font-family:ui-monospace,monospace}
+  .pill{font-size:10.5px;color:#9da7b3;padding:3px 9px;border-radius:20px;border:1px solid var(--bd)}.pill.on{background:#1f6feb22;color:#cfe1ff;border-color:#1f6feb55}.pill .c{color:var(--mut);font-size:9px;margin-left:3px}
+  .note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:7px;border-top:1px dashed var(--bd2);padding-top:6px}
+  .small{font-size:10px;color:var(--tx2)}
+  .doms{background:var(--bg0);border:1px solid var(--bd2);border-radius:6px;padding:6px 8px;font-family:ui-monospace,monospace;font-size:10px;line-height:1.6;color:#9da7b3}
+  .doms span{color:#56d364}
+  .seg{display:inline-flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden}.seg span{padding:3px 9px;font-size:11px;color:#9da7b3}.seg span.on{background:#1f6feb33;color:#cfe1ff}
+  .stepper{display:flex;align-items:flex-start;margin:2px 0}
+  .nd{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;text-align:center}
+  .nd::before{content:'';position:absolute;top:12px;left:-50%;width:100%;height:2px;background:var(--bd2)}.nd:first-child::before{display:none}.nd.done::before,.nd.run::before{background:#238636}
+  .nd .dot{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;z-index:1}
+  .nd .dot.done{background:#238636;color:#fff}.nd .dot.run{background:var(--reg);color:#fff}.nd .dot.idle{background:var(--bg2);border:1px solid var(--bd);color:var(--mut)}
+  .nd .nm{font-size:10px;color:var(--tx);margin-top:5px}
+  .tree{font-family:ui-monospace,monospace;font-size:10.5px;line-height:1.8;color:var(--tx)}
+  .tree .tag{font-size:8px;padding:0 4px;border-radius:4px;margin-left:3px}
+  .ro{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--bd2);border-radius:6px;padding:5px 8px;margin:4px 0;font-size:11px}
+  .ro .k{color:var(--tx2);flex:0 0 92px;font-size:10px}.ro .v{flex:1;color:var(--tx1);font-family:ui-monospace,monospace;font-size:10.5px;word-break:break-all}
+  .ro .bd{flex:0 0 auto;font-size:8px;border-radius:4px;padding:1px 5px}.auto{background:#2ea04322;color:#56d364}.fix{background:#bb800922;color:#e3b341}.der{background:#8957e522;color:#c79bff}
+</style>
+</head>
+<body>
+<h2>ClashRouteKit 控制台 · 最终设计册</h2>
+<p class="subtitle">融合全部迭代的定稿。从上到下＝工作流顺序 ①规则目录 → ②规则源 → ③策略组 → ④路由 → ⑤发布。每页一版、无冗余。这是 B 层实现的视觉与布局基准。</p>
+
+<div class="book">
+
+  <!-- ① 规则目录（注：最终密集版见 catalog-dense.html，以其为准） -->
+  <div class="page">
+    <div class="phead"><span class="pno">1</span><h3>规则目录</h3><span class="role">素材 · 原子</span><span class="ln"></span></div>
+    <p class="pnote">浏览上游全部条目 + 选中看完整域名/include 树 + 同步 vendorRepos + <b>本地 .list 增删改</b>。不在此加规则。<b>最终密集版见 catalog-dense.html，以其为准。</b></p>
+    <div class="nav"><span class="t on">规则目录</span><span class="t">规则源</span><span class="t">策略组</span><span class="t">路由</span><span class="sp"></span><span class="t">发布</span></div>
+    <div class="frame"><div class="cols">
+      <div class="c-l" style="flex:0 0 188px">
+        <div class="lab">条目（全列）· 1–40 / 1479</div>
+        <div class="li"><span class="bdg b-geo">GEO</span>category-ai-!cn<span class="c">19</span></div>
+        <div class="li on"><span class="bdg b-geo">GEO</span>steam<span class="c">14</span></div>
+        <div class="li"><span class="bdg b-geo">GEO</span>openai<span class="c">~90</span></div>
+        <div class="li"><span class="bdg b-list">LIST</span>ACL4SSR/Steam</div>
+        <div class="li"><span class="bdg b-dler">DLER</span>AI Suite</div>
+        <div class="lab">本地 .list（可编辑 ✦）</div>
+        <div class="li"><span class="bdg b-local">本地</span>My_AI.list</div>
+        <div class="li new">＋ 新建本地 .list</div>
+      </div>
+      <div class="c-m">
+        <div style="font-size:14px;color:var(--tx1);font-weight:600">steam</div>
+        <div class="small mono" style="margin:3px 0 8px">GEOSITE · data/steam · 叶子分类（无 include）</div>
+        <div class="lab">全部域名（展开 include 后）· 14<span class="ln"></span>复制</div>
+        <div class="doms"><div><span>DOMAIN-SUFFIX,</span>steampowered.com</div><div><span>DOMAIN-SUFFIX,</span>steamcommunity.com</div><div><span>DOMAIN-SUFFIX,</span>valvesoftware.com</div><div style="color:var(--mut)">… 再 11 条</div></div>
+        <div class="note">组合分类（category-games）显示 include 树 + 合并去重总数。本地 .list 选中则变成文本编辑器（增删行、保存）。</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ② 规则源 -->
+  <div class="page">
+    <div class="phead"><span class="pno">2</span><h3>规则源 Providers</h3><span class="role">产物 · 分子</span><span class="ln"></span></div>
+    <p class="pnote">把多个来源（geosite / dler / 本地 .list）合并去重成一个 output YAML。<b>左栏只放 Provider</b>。<b>全局移除清单</b>共享一份。右栏看产物 + 被引用。</p>
+    <div class="nav"><span class="t">规则目录</span><span class="t on">规则源</span><span class="t">策略组</span><span class="t">路由</span><span class="sp"></span><span class="t">发布</span></div>
+    <div class="frame"><div class="cols">
+      <div class="c-l">
+        <div class="lab">Providers</div>
+        <div class="li">Custom_Direct<span class="c">1</span></div>
+        <div class="li">Custom_Proxy<span class="c">1</span></div>
+        <div class="li on">AI<span class="c">7</span></div>
+        <div class="li">Developer<span class="c">1</span></div>
+        <div class="li new">＋ 新建规则源</div>
+        <div class="li rm" style="margin-top:9px">🗑 全局移除清单 ✦</div>
+      </div>
+      <div class="c-m">
+        <div style="display:flex;gap:8px;margin-bottom:9px"><span class="ipt" style="flex:0 0 90px">AI</span><span class="ipt" style="flex:1">AI_Domain.yaml</span><span class="ipt" style="flex:0 0 80px">domain</span></div>
+        <div class="lab">来源（按序合并 → 去重）· 7<span class="ln"></span></div>
+        <div class="row"><span class="grip">⠿</span><span class="bdg b-dler">DLER</span><span class="m">Clash/Provider/AI Suite.yaml</span><span class="x">✕</span></div>
+        <div class="row"><span class="grip">⠿</span><span class="bdg b-geo">GEO</span><span class="m">openai · anthropic · google-gemini</span><span class="x">✕</span></div>
+        <div class="row"><span class="grip">⠿</span><span class="bdg b-local">本地</span><span class="m">My_AI.list</span><span class="x">✕</span></div>
+        <div class="row" style="border-left:none;border:1px dashed #1f6feb55;color:#79b8ff;justify-content:center">＋ 添加来源（从目录挑）</div>
+        <div class="note">per-provider exclude（关键词）折叠在「高级」；全局 remove 见左栏共享清单。</div>
+      </div>
+      <div class="c-r">
+        <div class="lab">产物</div>
+        <div class="row" style="border-left-color:var(--dir)"><span class="m">合并去重 ~520 域名</span></div>
+        <div class="lab">被引用</div>
+        <div class="ro"><span class="v">provider:AI.yaml → 🤖 AI</span></div>
+        <div class="lab">INI 引用</div>
+        <div class="small mono" style="word-break:break-all">&lt;baseUrl&gt;/rules/AI_Domain.yaml</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ③ 策略组 -->
+  <div class="page">
+    <div class="phead"><span class="pno">3</span><h3>策略组</h3><span class="role">去向 · 出口</span><span class="ln"></span></div>
+    <p class="pnote">流量发去哪。服务组（select，引用其它组）+ 地区组（url-test，节点正则）。选项＝引用图、可嵌套；地区组支持多订阅筛选。右栏引用关系树 + 无环校验。</p>
+    <div class="nav"><span class="t">规则目录</span><span class="t">规则源</span><span class="t on">策略组</span><span class="t">路由</span><span class="sp"></span><span class="t">发布</span></div>
+    <div class="frame"><div class="cols">
+      <div class="c-l">
+        <div class="lab">服务组</div>
+        <div class="li on">🤖 AI<span class="c">select</span></div>
+        <div class="li">🛑 广告拦截<span class="c">select</span></div>
+        <div class="li">🎯 全球直连<span class="c">select</span></div>
+        <div class="lab">地区组</div>
+        <div class="li">🇭🇰 香港<span class="c">url-test</span></div>
+        <div class="li">🇺🇸 美国<span class="c">url-test</span></div>
+        <div class="li new">＋ 新建组</div>
+      </div>
+      <div class="c-m">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:9px"><span class="ipt" style="flex:1">🤖 AI</span><span class="seg"><span class="on">select</span><span>url-test</span><span>fallback</span><span>lb</span></span></div>
+        <div class="lab">选项（引用 · 拖序）<span class="ln"></span></div>
+        <div style="margin-bottom:8px"><span class="chip svc">⠿ 手动选择 ✕</span><span class="chip reg">⠿ 🇭🇰 香港 ✕</span><span class="chip reg">⠿ 🇺🇸 美国 ✕</span><span class="chip dir">DIRECT</span><span class="chip add">＋ 添加引用</span></div>
+        <div class="lab">节点筛选（地区组用）<span class="ln"></span></div>
+        <div style="display:flex;gap:8px"><span class="ipt" style="flex:0 0 130px">来源 订阅#0 (GROUPID)</span><span class="ipt mono" style="flex:1">!! (港|HK)</span></div>
+        <div class="small" style="margin-top:5px">正则预设：<span class="chip" style="padding:1px 7px">🇭🇰</span><span class="chip" style="padding:1px 7px">🇺🇸</span><span class="chip" style="padding:1px 7px">🇯🇵</span> · 测速URL/间隔/容差（非 select）</div>
+      </div>
+      <div class="c-r">
+        <div class="lab">引用关系树</div>
+        <div class="tree">节点选择<br>├ 订阅A<br>│ ├ 🇭🇰A·港<br>│ └ 🇺🇸A·美<br>└ ♻️ 混合自动</div>
+        <div class="note" style="color:#7ee787;border-color:#2ea04333">✓ 引用都存在 · 无环</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ④ 路由 -->
+  <div class="page">
+    <div class="phead"><span class="pno">4</span><h3>路由</h3><span class="role">装配 · 合并</span><span class="ln"></span></div>
+    <p class="pnote">规则顺序＝优先级。三列：左筛选 ｜ 中有序列表（段+拖动跨段）｜ 右编辑选中。＋添加规则＝category 选择器；<b>导入 INI 在此</b>。</p>
+    <div class="nav"><span class="t">规则目录</span><span class="t">规则源</span><span class="t">策略组</span><span class="t on">路由</span><span class="sp"></span><span class="t">发布</span></div>
+    <div class="tbar"><span class="box">🔍 搜索 ruleset</span><span style="color:var(--mut)">全部 61 条 · 6 段</span><span class="sp"></span><span style="color:var(--mut)">⠿ 拖动调序</span><span class="gho">⇪ 导入 INI</span><span class="btn">＋ 添加规则</span></div>
+    <div class="frame"><div class="cols">
+      <div class="c-l">
+        <div class="lab">视图</div><div class="li on">▦ 全部规则<span class="c">61</span></div>
+        <div class="lab">按策略筛选</div>
+        <div class="li"><span style="width:8px;height:8px;border-radius:2px;background:var(--dir)"></span>全球直连<span class="c">11</span></div>
+        <div class="li"><span style="width:8px;height:8px;border-radius:2px;background:var(--rej)"></span>广告拦截<span class="c">2</span></div>
+        <div class="li"><span style="width:8px;height:8px;border-radius:2px;background:var(--cat)"></span>AI<span class="c">4</span></div>
+        <div class="li new">＋ 新建策略组</div>
+      </div>
+      <div class="c-m">
+        <div class="lab">局域网/直连<span class="ln"></span></div>
+        <div class="row dir"><span class="grip">⠿</span><span class="m">GEOSITE : private</span><span class="tg"></span><span class="pc dir">全球直连</span><span class="x">✕</span></div>
+        <div class="lab" style="color:#ff938b">拦截<span class="ln" style="background:#f8514933"></span></div>
+        <div class="row rej"><span class="grip">⠿</span><span class="m">.list : BanAD</span><span class="tg"></span><span class="pc rej">广告拦截</span><span class="x">✕</span></div>
+        <div class="lab">海外类目<span class="ln"></span></div>
+        <div class="row cat sel"><span class="grip">⠿</span><span class="m">GEOSITE : openai</span><span class="tg"></span><span class="pc cat">AI</span><span class="x">✕</span></div>
+        <div class="row cat"><span class="grip">⠿</span><span class="m">GEOSITE : steam</span><span class="tg"></span><span class="pc cat">Steam</span><span class="x">✕</span></div>
+        <div class="lab">收尾<span class="ln"></span></div>
+        <div class="row fin"><span class="grip">⠿</span><span class="m">FINAL</span><span class="pc fin">漏网之鱼</span></div>
+      </div>
+      <div class="c-r">
+        <div class="lab">编辑选中规则</div>
+        <div style="font-size:13px;color:var(--tx1);font-weight:600;margin-bottom:7px">GEOSITE : openai</div>
+        <div class="small">匹配（点改）</div><div class="ipt mono" style="margin:3px 0 7px">GEOSITE : openai</div>
+        <div class="small">目标策略（移动到）</div><div class="ipt" style="margin:3px 0 7px">🤖 AI ▾</div>
+        <div class="small">域名预览 · 90</div>
+        <div class="doms" style="margin-top:3px"><div><span>+.</span>openai.com</div><div><span>+.</span>chatgpt.com</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ⑤ 发布 -->
+  <div class="page">
+    <div class="phead"><span class="pno">5</span><h3>发布</h3><span class="role">产出</span><span class="ln"></span></div>
+    <p class="pnote">纵向叙事：目标 → 执行 → 产物。仓库自动探测、分支固定 publish、baseUrl 派生。<b>输出文件名 + SubConverter 开关并入此页</b>（概览/设置已删）。</p>
+    <div class="nav"><span class="t">规则目录</span><span class="t">规则源</span><span class="t">策略组</span><span class="t">路由</span><span class="sp"></span><span class="t on">发布</span></div>
+    <div class="frame" style="padding:12px 14px">
+      <div class="lab" style="margin-top:0">① 发布到哪</div>
+      <div class="seg" style="margin-bottom:8px"><span>本地 LAN</span><span class="on">GitHub</span></div>
+      <div class="ro"><span class="k">仓库</span><span class="v">GeekX-top / ClashRouteKit</span><span class="bd auto">自动探测</span></div>
+      <div class="ro"><span class="k">分支</span><span class="v">publish</span><span class="bd fix">固定</span></div>
+      <div class="ro"><span class="k">publishBaseUrl</span><span class="v">raw.githubusercontent.com/…/publish</span><span class="bd der">派生</span></div>
+      <div class="small" style="margin:3px 0 6px">输出文件名 Custom_Clash.ini · 高级开关 enable_rule_generator(锁定)/overwrite_original_rules/clash_rule_base</div>
+      <div class="lab">② 执行 &nbsp;<span class="btn" style="background:var(--reg);color:#fff;border-radius:6px;padding:2px 10px;font-size:11px">▶ 一键发布</span></div>
+      <div class="stepper">
+        <div class="nd done"><div class="dot done">✓</div><div class="nm">保存</div></div>
+        <div class="nd done"><div class="dot done">✓</div><div class="nm">检查</div></div>
+        <div class="nd run"><div class="dot run">3</div><div class="nm">生成</div></div>
+        <div class="nd"><div class="dot idle">4</div><div class="nm">提交</div></div>
+        <div class="nd"><div class="dot idle">5</div><div class="nm">推送</div></div>
+      </div>
+      <div class="lab">③ 产物（推送后可复制）</div>
+      <div class="ro" style="opacity:.55"><span class="bd" style="background:#30363d55;color:#9da7b3">INI</span><span class="v">…/publish/templates/Custom_Clash.ini ⧉</span></div>
+      <div class="ro" style="opacity:.55"><span class="bd" style="background:#30363d55;color:#9da7b3">RULES</span><span class="v">…/publish/rules/&lt;file&gt;.yaml ⧉</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

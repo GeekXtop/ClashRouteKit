@@ -14,6 +14,18 @@
 
 **前置：** 计划 1（`RuleSet.section`/`template` 开关/`globalRemove`）+ 计划 2（`parseDomainListEntry`/`parseIniToConfig`）+ 计划 3 已合并。
 
+## 视觉基准（B 层必须还原，不得沿用原风格）
+
+B 层每个页面的视觉与布局以 `docs/design/console-redesign/` 下的设计稿为**唯一基准**：
+- `final-design-book.html` — ②规则源 ③策略组 ④路由 ⑤发布 四页定稿；
+- `catalog-dense.html` — ①规则目录页最终密集版。
+
+深色 GitHub 风主题、5 标签工作流导航、三列/段/拖动等都要按图还原。**先做 B0（主题基础）再做各页**，否则会做成现有 app 的原风格。配色 token 见 `docs/design/console-redesign/README.md`。
+
+### Task B0：主题基础（先于其它 B 任务）
+- **Modify** `apps/web/src/styles.css`：把 README 的配色抽成 `:root` CSS 变量（`--bg0..3`/`--bd`/`--tx*`/策略色等），定义共享类（顶栏 `.nav`、`.frame`、三列 `.cols/.c-l/.c-m/.c-r`、`.row`/`.pc`/`.chip`/`.bdg`/`.tg` 等，对照设计稿 HTML 的 class 与样式）。后续 B1–B6 组件复用这套类，保证整体风格统一为设计稿样式。
+- **测试点**：`apps/web/tests/stylesRegression.test.ts` 扩断言关键变量/类存在；目测对照设计稿。
+
 ---
 
 ## 现状 → 目标映射（已核实）

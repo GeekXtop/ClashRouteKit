@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>规则目录 · 密集版</title>
+<style>
+  body{margin:0;background:#0a0e14;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px}
+  h2{color:#e6edf3;font-size:20px;margin:0 0 4px}
+  .subtitle{color:#7d8590;font-size:13px;margin:0 0 16px}
+  .ct{--bg0:#0d1117;--bg1:#10151c;--bg2:#161b22;--bg3:#11161d;--bd:#30363d;--bd2:#21262d;--tx:#c9d1d9;--tx1:#e6edf3;--tx2:#7d8590;--mut:#586069;max-width:1080px;margin:0 auto}
+  .ct *{box-sizing:border-box}
+  .nav{display:flex;gap:2px;background:var(--bg0);border:1px solid var(--bd);border-radius:8px 8px 0 0;padding:6px 8px;font-size:12px}
+  .nav .t{padding:5px 10px;border-radius:6px;color:#9da7b3}.nav .t.on{background:#1f6feb22;color:#cfe1ff;font-weight:600}.nav .sp{flex:1}
+  .sbar{display:flex;align-items:center;gap:9px;background:var(--bg0);border:1px solid var(--bd);border-top:none;padding:7px 11px}
+  .sbar .box{flex:1;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--tx)}
+  .sbar .meta{font-size:10.5px;color:var(--mut)}
+  .sbar .sort{font-size:10.5px;color:#9da7b3;border:1px solid var(--bd);border-radius:6px;padding:3px 8px}
+  .wrap{display:flex;border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;min-height:340px}
+  .repos{flex:0 0 184px;background:var(--bg0);border-right:1px solid var(--bd2);padding:7px;overflow:auto}
+  .all{display:flex;align-items:center;font-size:11.5px;color:#cfe1ff;background:#1f6feb22;border-radius:6px;padding:5px 8px;margin-bottom:6px}.all .c{margin-left:auto;font-size:10px;color:#9da7b3}
+  .sec{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);margin:8px 2px 4px;display:flex;align-items:center;gap:5px}
+  .sec .ro{color:#6e7681;font-size:8px;border:1px solid var(--bd);border-radius:3px;padding:0 3px}
+  .sec .ed{color:#e3b341}
+  .repo{padding:5px 8px;border-radius:6px;margin:2px 0;cursor:pointer}
+  .repo:hover{background:var(--bg2)}.repo.on{background:#1f6feb1a;outline:1px solid #1f6feb44}
+  .repo .r1{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx)}
+  .repo .r1 .c{margin-left:auto;font-size:9.5px;color:var(--mut)}
+  .repo .r2{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--mut);margin-top:2px}
+  .repo .r2 .sync{color:#56d364}.repo .r2 .stale{color:#e3b341}
+  .repo .r2 .go{margin-left:auto;color:#58a6ff}
+  .addrepo{font-size:10.5px;color:#79b8ff;text-align:center;border:1px dashed #1f6feb44;border-radius:6px;padding:4px;margin-top:5px}
+  .mid{flex:1;min-width:0;background:var(--bg1);padding:8px 9px;overflow:auto}
+  .mh{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx2);margin-bottom:6px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px}
+  .en{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx);background:var(--bg2);border:1px solid var(--bd2);border-radius:5px;padding:3px 7px;min-width:0}
+  .en:hover{border-color:#1f6feb55}.en.on{background:#1f6feb1f;border-color:#1f6feb}
+  .en .bdg{font-size:7.5px;padding:0 3px;border-radius:3px;flex:0 0 auto}
+  .b-geo{background:#8957e533;color:#c79bff}.b-cat{background:#8957e544;color:#d6b8ff}.b-list{background:#2ea04333;color:#5fd98a}.b-dler{background:#1f6feb33;color:#79b8ff}.b-local{background:#bb800933;color:#e3b341}
+  .en .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .en .ct2{font-size:9px;color:var(--mut);flex:0 0 auto}
+  .en .pen{color:#58a6ff;font-size:9px;flex:0 0 auto}
+  .det{flex:0 0 206px;background:var(--bg0);border-left:1px solid var(--bd2);padding:9px 11px}
+  .det .nm{font-size:14px;color:var(--tx1);font-weight:600}
+  .det .meta{font-size:9.5px;color:var(--tx2);margin:2px 0 8px;font-family:ui-monospace,monospace}
+  .kv{display:flex;gap:6px;margin-bottom:8px}
+  .kv .b{flex:1;background:var(--bg2);border:1px solid var(--bd2);border-radius:6px;padding:5px 6px;text-align:center}
+  .kv .b .n{font-size:14px;color:var(--tx1);font-weight:600}.kv .b .l{font-size:8.5px;color:var(--tx2)}
+  .dl{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx2);margin:0 0 4px;display:flex}.dl .cp{margin-left:auto;color:#58a6ff}
+  .doms{background:var(--bg1);border:1px solid var(--bd2);border-radius:6px;padding:5px 7px;font-family:ui-monospace,monospace;font-size:9.5px;line-height:1.65;color:#9da7b3;max-height:150px;overflow:auto}
+  .doms span{color:#56d364}
+  .rohint{margin-top:8px;font-size:9px;color:var(--mut);border-top:1px dashed var(--bd2);padding-top:6px}
+</style>
+</head>
+<body>
+<h2>规则目录 · 密集版（只读上游 + 可编辑本地）</h2>
+<p class="subtitle">全宽搜索 ｜ 左：数据源=仓库（同步状态内嵌）｜ 中：双列密集条目网格 ｜ 右：详情。上游只读、本地可编辑，分区标清楚。这是 ① 规则目录页的最终基准（取代设计册里的 ① 页）。</p>
+
+<div class="ct">
+<div class="nav"><span class="t on">规则目录</span><span class="t">规则源</span><span class="t">策略组</span><span class="t">路由</span><span class="sp"></span><span class="t">发布</span></div>
+<div class="sbar"><div class="box">🔍 搜索全部条目（名称 / 域名）…</div><span class="meta">1558 条 · 4 源</span><span class="sort">排序：名称 ▾</span></div>
+<div class="wrap">
+
+  <div class="repos">
+    <div class="all">▦ 全部<span class="c">1558</span></div>
+    <div class="sec">上游 <span class="ro">只读</span></div>
+    <div class="repo on"><div class="r1">domain-list-community<span class="c">1479</span></div><div class="r2"><span class="sync">● 3天前同步</span><span class="go">⟳</span></div></div>
+    <div class="repo"><div class="r1">ACL4SSR<span class="c">45</span></div><div class="r2"><span class="sync">● 3天前</span><span class="go">⟳</span></div></div>
+    <div class="repo"><div class="r1">dler-io<span class="c">30</span></div><div class="r2"><span class="stale">● 12天前</span><span class="go">⟳</span></div></div>
+    <div class="addrepo">＋ 添加上游仓库</div>
+    <div class="sec">本地 <span class="ed">可编辑 ✦</span></div>
+    <div class="repo"><div class="r1">本地 .list<span class="c">4</span></div><div class="r2"><span style="color:#7d8590">My_AI · Direct · Proxy · Dev</span></div></div>
+    <div class="addrepo">＋ 新建本地 .list</div>
+  </div>
+
+  <div class="mid">
+    <div class="mh">全部条目 · 1–48 / 1558</div>
+    <div class="grid">
+      <div class="en"><span class="bdg b-cat">CAT</span><span class="nm">category-ai-!cn</span><span class="ct2">19</span></div>
+      <div class="en on"><span class="bdg b-geo">GEO</span><span class="nm">steam</span><span class="ct2">14</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">openai</span><span class="ct2">90</span></div>
+      <div class="en"><span class="bdg b-cat">CAT</span><span class="nm">category-games</span><span class="ct2">1.2k</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">anthropic</span><span class="ct2">20</span></div>
+      <div class="en"><span class="bdg b-cat">CAT</span><span class="nm">category-social-media-!cn</span><span class="ct2">25</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">github</span><span class="ct2">40</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">youtube</span><span class="ct2">30</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">netflix</span><span class="ct2">25</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">google</span><span class="ct2">200</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">microsoft</span><span class="ct2">120</span></div>
+      <div class="en"><span class="bdg b-cat">CAT</span><span class="nm">category-entertainment</span><span class="ct2">~2k</span></div>
+      <div class="en"><span class="bdg b-list">LST</span><span class="nm">ACL4SSR/Steam</span><span class="ct2">—</span></div>
+      <div class="en"><span class="bdg b-dler">DLR</span><span class="nm">AI Suite</span><span class="ct2">—</span></div>
+      <div class="en"><span class="bdg b-local">本地</span><span class="nm">My_AI.list</span><span class="pen">✎</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">telegram</span><span class="ct2">12</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">cloudflare</span><span class="ct2">18</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">disney</span><span class="ct2">15</span></div>
+      <div class="en"><span class="bdg b-cat">CAT</span><span class="nm">category-dev</span><span class="ct2">~300</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">spotify</span><span class="ct2">10</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">cursor</span><span class="ct2">6</span></div>
+      <div class="en"><span class="bdg b-geo">GEO</span><span class="nm">perplexity</span><span class="ct2">8</span></div>
+      <div class="en" style="color:var(--mut);grid-column:1/3;justify-content:center;border-style:dashed">⋮ 滚动加载剩余 1510 条</div>
+    </div>
+  </div>
+
+  <div class="det">
+    <div class="nm">steam</div>
+    <div class="meta">GEOSITE · 只读 · 叶子分类</div>
+    <div class="kv"><div class="b"><div class="n">14</div><div class="l">域名</div></div><div class="b"><div class="n">0</div><div class="l">include</div></div><div class="b"><div class="n">@cn</div><div class="l">属性</div></div></div>
+    <div class="dl">全部域名<span class="cp">复制</span></div>
+    <div class="doms"><div><span>+.</span>steampowered.com</div><div><span>+.</span>steamcommunity.com</div><div><span>+.</span>steamstatic.com</div><div><span>+.</span>valvesoftware.com</div><div><span>+.</span>steamgames.com</div><div><span>+.</span>steam-chat.com</div><div style="color:var(--mut)">… 再 8 条</div></div>
+    <div class="rohint">上游条目只读（同步覆盖）。选中本地 .list 时此处变为文本编辑器（增删行 + 保存）。</div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>
