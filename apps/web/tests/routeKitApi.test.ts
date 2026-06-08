@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import path from "node:path";
 import {
   listCatalogEntries,
+  listCatalogSources,
   listProjectRuleFiles,
   readCatalogEntry,
+  readCatalogEntryDomains,
   readGitRemote,
   readProjectConfigFile,
   readProjectRuleFile,
@@ -41,6 +43,56 @@ describe("routeKitApi", () => {
       },
     });
     expect(url).toBe("git@github.com:acme/routes.git");
+  });
+
+  it("expands a catalog entry's includes into a domain rule list", async () => {
+    const files: Record<string, string> = {
+      "category-ai-!cn": "include:openai\nxai.com\n",
+      openai: "openai.com\nfull:chatgpt.com\n",
+    };
+    const domains = await readCatalogEntryDomains({
+      ...baseOptions,
+      origin: "domain-list-community",
+      name: "category-ai-!cn",
+      readText: async (filePath: string) => {
+        const name = filePath.split(/[\\/]/).pop() ?? "";
+        const content = files[name];
+        if (content === undefined) throw new Error(`missing ${name}`);
+        return content;
+      },
+    });
+    expect(domains).toContain("DOMAIN-SUFFIX,xai.com");
+    expect(domains).toContain("DOMAIN-SUFFIX,openai.com");
+    expect(domains).toContain("DOMAIN,chatgpt.com");
+  });
+
+  it("lists list-dir entries by stripping the .list suffix", async () => {
+    const entries = await listCatalogEntries({
+      ...baseOptions,
+      origin: "ACL4SSR",
+      readDirectory: async () => ["BanAD.list", "Apple.list", "README.md", "Providers"],
+    });
+    expect(entries).toEqual(["Apple", "BanAD"]);
+  });
+
+  it("lists catalog sources with counts, kinds and sync time", async () => {
+    const sources = await listCatalogSources({
+      ...baseOptions,
+      readDirectory: async (dir: string) => {
+        if (dir.includes("domain-list-community")) return ["openai", "steam", "README.md"];
+        if (dir.includes("ACL4SSR")) return ["BanAD.list", "x.list"];
+        if (dir.includes("rules")) return ["AI.list"];
+        return [];
+      },
+      statMtime: async () => 1_700_000_000_000,
+    });
+    const byId = Object.fromEntries(sources.map((source) => [source.id, source]));
+    expect(byId["domain-list-community"]!.count).toBe(2);
+    expect(byId["domain-list-community"]!.kind).toBe("upstream");
+    expect(byId["domain-list-community"]!.syncedAt).toBe(1_700_000_000_000);
+    expect(byId["ACL4SSR"]!.count).toBe(2);
+    expect(byId["local"]!.kind).toBe("local");
+    expect(byId["local"]!.count).toBe(1);
   });
 
   it("returns diagnostics for a failed check action", async () => {

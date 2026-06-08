@@ -20,6 +20,12 @@ function createSource(type: RuleProviderSource["type"]): RuleProviderSource {
   return { name: "Source", type, path: type === "clash-list" ? "config/rules/Source.list" : "" };
 }
 
+function sourceBadge(type: RuleProviderSource["type"]): { label: string; cls: string } {
+  if (type === "domain-list-community") return { label: "GEO", cls: "b-geo" };
+  if (type === "clash-provider") return { label: "PROV", cls: "b-dler" };
+  return { label: "LST", cls: "b-list" };
+}
+
 function updateSource(source: RuleProviderSource, patch: Partial<RuleProviderSource>): RuleProviderSource {
   return { ...source, ...patch } as RuleProviderSource;
 }
@@ -101,6 +107,8 @@ export function RuleProviderEditor({
         </div>
         {provider.sources.map((source, index) => (
           <div className="source-row" key={`${source.name}-${index}`}>
+            <span className="grip" aria-hidden="true">⠿</span>
+            <span className={`bdg ${sourceBadge(source.type).cls}`}>{sourceBadge(source.type).label}</span>
             <select
               value={source.type}
               onChange={(event) =>

@@ -1,4 +1,4 @@
-import { Clipboard, Play, Search } from "lucide-react";
+import { Clipboard, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { LocalRouteKitAction } from "../actions.js";
@@ -25,11 +25,11 @@ const actionLabels: Record<LocalRouteKitAction, string> = {
   "git-push": "推送发布",
 };
 
-function statusLabel(status: ActionStatus): string {
-  if (status === "running") return "运行中";
-  if (status === "success") return "通过";
-  if (status === "error") return "失败";
-  return "未运行";
+function stepStatusClass(status: ActionStatus): string {
+  if (status === "success") return "done";
+  if (status === "running") return "run";
+  if (status === "error") return "err";
+  return "idle";
 }
 
 export function PublishPanel({
@@ -65,8 +65,10 @@ export function PublishPanel({
   const [repo, setRepo] = useState(parsedRepo?.repo ?? "");
   const [detectMessage, setDetectMessage] = useState("");
   const [copiedUrl, setCopiedUrl] = useState("");
+  const [lastAction, setLastAction] = useState<LocalRouteKitAction | null>(null);
   const running = Object.values(actionStates).some((state) => state.status === "running");
   const saving = projectStatus === "saving";
+  const saveStepClass = saving ? "run" : projectStatus === "error" ? "err" : dirty ? "idle" : "done";
   const rawUrls =
     owner.trim() && repo.trim()
       ? createRawUrlTemplates({ owner: owner.trim(), repo: repo.trim() }, template.output)
@@ -211,39 +213,60 @@ export function PublishPanel({
         <div className="publish-section">
           <div className="entity-list-header">
             <h3>③ 执行</h3>
-          </div>
-          <div className="publish-save-row">
-            <button className="command-button primary" disabled={saving || !saveReadiness.ok} type="button" onClick={onSave}>
+            <button
+              className="command-button primary"
+              disabled={saving || !saveReadiness.ok}
+              type="button"
+              onClick={onSave}
+            >
               保存配置
             </button>
-            <p className={`project-message ${projectStatus}`}>{projectMessage}</p>
           </div>
           <p className="operation-hint">
             将写入 <code>config/routes.yaml</code>，当前草稿 YAML {draftYamlLength} 字符。
             {!saveReadiness.ok ? ` ${saveReadiness.reason}` : ""}
           </p>
 
-          <div className="publish-sequence">
+          <div className="stepper">
+            <button
+              type="button"
+              className={`nd ${saveStepClass}`}
+              disabled={saving}
+              onClick={onSave}
+            >
+              <span className={`dot ${saveStepClass}`}>{saveStepClass === "done" ? "✓" : "1"}</span>
+              <span className="nm">保存</span>
+            </button>
             {publishActions.map((action, index) => {
-              const state = actionStates[action];
-              const warning = getPublishActionWarning(action, actionStates);
+              const cls = stepStatusClass(actionStates[action].status);
               return (
-                <div className="publish-step" key={action}>
-                  <div className="publish-step-header">
-                    <span className="step-index">{index + 1}</span>
-                    <strong>{actionLabels[action]}</strong>
-                    <span className={`run-state ${state.status}`}>{statusLabel(state.status)}</span>
-                    <button className="command-button" disabled={running} type="button" onClick={() => onRun(action)}>
-                      <Play size={16} />
-                      运行
-                    </button>
-                  </div>
-                  {warning ? <p className="action-warning">{warning}</p> : null}
-                  <pre className="action-output action-output-compact">{state.output}</pre>
-                </div>
+                <button
+                  key={action}
+                  type="button"
+                  className={`nd ${cls}`}
+                  disabled={running}
+                  onClick={() => {
+                    setLastAction(action);
+                    onRun(action);
+                  }}
+                >
+                  <span className={`dot ${cls}`}>{cls === "done" ? "✓" : index + 2}</span>
+                  <span className="nm">{actionLabels[action]}</span>
+                </button>
               );
             })}
           </div>
+
+          {lastAction ? (
+            <>
+              {getPublishActionWarning(lastAction, actionStates) ? (
+                <p className="action-warning">{getPublishActionWarning(lastAction, actionStates)}</p>
+              ) : null}
+              <pre className="action-output action-output-compact">{actionStates[lastAction].output}</pre>
+            </>
+          ) : (
+            <p className={`project-message ${projectStatus}`}>{projectMessage}</p>
+          )}
         </div>
       </div>
     </section>
