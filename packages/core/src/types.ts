@@ -121,3 +121,9 @@ export interface DomainProviderRule {
   rule: string;
   payload: string;
 }
+
+export interface RenderIniOptions {
+  enableRuleGenerator?: boolean;
+  overwriteOriginalRules?: boolean;
+  clashRuleBase?: string;
+}

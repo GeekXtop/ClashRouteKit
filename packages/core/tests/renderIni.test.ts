@@ -61,4 +61,27 @@ describe("renderIni", () => {
 
     expect(ini).not.toContain("youtube");
   });
+
+  it("defaults the rule-generator and overwrite flags to true", () => {
+    const ini = renderIni({
+      publishBaseUrl: "http://127.0.0.1:8787",
+      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+      ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+    });
+    expect(ini).toContain("enable_rule_generator=true");
+    expect(ini).toContain("overwrite_original_rules=true");
+  });
+
+  it("honors overridden rule-generator and overwrite flags", () => {
+    const ini = renderIni(
+      {
+        publishBaseUrl: "http://127.0.0.1:8787",
+        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+        ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+      },
+      { enableRuleGenerator: false, overwriteOriginalRules: false },
+    );
+    expect(ini).toContain("enable_rule_generator=false");
+    expect(ini).toContain("overwrite_original_rules=false");
+  });
 });
