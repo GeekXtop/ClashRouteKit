@@ -191,21 +191,13 @@ export function PublishPanel({
             </label>
           </div>
           <div className="action-toolbar">
-            <label className="check-line">
-              <input
-                type="checkbox"
-                checked={template.enableRuleGenerator ?? false}
-                onChange={(event) => onSetTemplateField({ enableRuleGenerator: event.target.checked })}
-              />
-              <span>enable_rule_generator</span>
+            <label className="check-line locked">
+              <input type="checkbox" checked disabled />
+              <span>enable_rule_generator（锁定）</span>
             </label>
-            <label className="check-line">
-              <input
-                type="checkbox"
-                checked={template.overwriteOriginalRules ?? false}
-                onChange={(event) => onSetTemplateField({ overwriteOriginalRules: event.target.checked })}
-              />
-              <span>overwrite_original_rules</span>
+            <label className="check-line locked">
+              <input type="checkbox" checked disabled />
+              <span>overwrite_original_rules（锁定）</span>
             </label>
           </div>
         </div>

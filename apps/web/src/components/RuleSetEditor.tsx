@@ -78,7 +78,6 @@ export function RuleSetEditor({
     );
   }
 
-  const enabled = ruleSet.enabled !== false;
   const source = ruleSet.source;
   const policyOptions =
     ruleSet.policy && !customProxyGroups.includes(ruleSet.policy)
@@ -132,10 +131,6 @@ export function RuleSetEditor({
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
-        </label>
-        <label className="check-row">
-          <input checked={enabled} type="checkbox" onChange={() => onToggleRuleSet(ruleSet.id)} />
-          <span>输出这一条 ruleset</span>
         </label>
 
         {source.type === "rule-provider" ? (

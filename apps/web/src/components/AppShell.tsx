@@ -1,4 +1,4 @@
-import { CheckCircle2, FileCode2, FileText, GitBranch, Layers3, Route, Send } from "lucide-react";
+import { FileCode2, FileText, Layers3, Route, Send } from "lucide-react";
 import type { ReactNode } from "react";
 import type { ProjectStatus, ProjectView } from "../projectController.js";
 
@@ -16,20 +16,10 @@ const navItems: NavItem[] = [
   { view: "publish", label: "发布", icon: <Send size={15} /> },
 ];
 
-function statusText(status: ProjectStatus): string {
-  if (status === "loading") return "读取中";
-  if (status === "saving") return "保存中";
-  if (status === "error") return "错误";
-  return "就绪";
-}
-
 export function AppShell({
   children,
-  dirty,
-  enabledCount,
   onSelectView,
   selectedView,
-  status,
 }: {
   children: ReactNode;
   dirty: boolean;
@@ -60,16 +50,6 @@ export function AppShell({
             </button>
           ))}
         </nav>
-        <div className="top-actions">
-          <span className={`status-pill ${dirty ? "dirty" : ""}`}>
-            <CheckCircle2 size={14} />
-            {dirty ? "未保存" : `${enabledCount} 启用`}
-          </span>
-          <span className={`status-pill project-${status}`}>
-            <GitBranch size={14} />
-            {statusText(status)}
-          </span>
-        </div>
       </header>
 
       <main className="page">{children}</main>
