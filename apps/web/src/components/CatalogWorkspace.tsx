@@ -213,6 +213,25 @@ export function CatalogWorkspace({
     ? entries.filter((entry) => entry.toLowerCase().includes(query))
     : entries;
   const sortedEntries = sortDir === "asc" ? filteredEntries : [...filteredEntries].reverse();
+  const isDomainListSource =
+    source.originKind === "domain-list" || (!source.originKind && source.id === "domain-list-community");
+  const categoryEntries = sortedEntries.filter((entry) => entry.startsWith("category"));
+  const geositeEntries = sortedEntries.filter((entry) => !entry.startsWith("category"));
+
+  const renderEntry = (entry: string) => {
+    const badge = entryBadge(source.originKind, entry);
+    return (
+      <button
+        key={entry}
+        type="button"
+        className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
+        onClick={() => setSelectedEntry(entry)}
+      >
+        <span className={`bdg ${badge.cls}`}>{badge.label}</span>
+        <span className="en-nm">{entry}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="catalog-workspace">
@@ -312,25 +331,23 @@ export function CatalogWorkspace({
           <div className="catalog-main">
             <section className="catalog-grid">
               <p className={`project-message ${entriesStatus}`}>{entriesMessage}</p>
-              <div className="catalog-entries">
-                {sortedEntries.map((entry) => {
-                  const badge = entryBadge(source.originKind, entry);
-                  return (
-                    <button
-                      key={entry}
-                      type="button"
-                      className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
-                      onClick={() => setSelectedEntry(entry)}
-                    >
-                      <span className={`bdg ${badge.cls}`}>{badge.label}</span>
-                      <span className="en-nm">{entry}</span>
-                    </button>
-                  );
-                })}
-                {sortedEntries.length === 0 && entriesStatus !== "loading" ? (
-                  <div className="empty-state">无匹配条目</div>
-                ) : null}
-              </div>
+              {isDomainListSource ? (
+                <>
+                  <details className="cat-group" open>
+                    <summary>分类 categories · {categoryEntries.length}</summary>
+                    <div className="catalog-entries">{categoryEntries.map(renderEntry)}</div>
+                  </details>
+                  <details className="cat-group" open>
+                    <summary>GEOSITE · {geositeEntries.length}</summary>
+                    <div className="catalog-entries">{geositeEntries.map(renderEntry)}</div>
+                  </details>
+                </>
+              ) : (
+                <div className="catalog-entries">{sortedEntries.map(renderEntry)}</div>
+              )}
+              {sortedEntries.length === 0 && entriesStatus !== "loading" ? (
+                <div className="empty-state">无匹配条目</div>
+              ) : null}
             </section>
             <aside className="catalog-detail">
               <CatalogDetail name={selectedEntry} detail={entryDetail} domains={entryDomains} status={detailStatus} />

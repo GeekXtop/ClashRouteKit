@@ -1657,6 +1657,34 @@ button.state {
   min-width: 0;
 }
 
+.cat-group {
+  display: grid;
+  gap: 6px;
+}
+
+.cat-group > summary {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--tx2);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style: none;
+}
+
+.cat-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cat-group > summary::before {
+  content: "▾ ";
+  color: var(--muted);
+}
+
+.cat-group:not([open]) > summary::before {
+  content: "▸ ";
+}
+
 .catalog-entry {
   min-height: 36px;
   padding: 5px 8px;
