@@ -2160,6 +2160,12 @@ button.state {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
+.ruleset-doms {
+  padding: 0 14px 14px;
+  display: grid;
+  gap: 6px;
+}
+
 .del-x {
   flex: 0 0 auto;
   border: 0;

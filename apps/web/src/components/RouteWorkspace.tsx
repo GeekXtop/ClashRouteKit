@@ -257,6 +257,7 @@ export function RouteWorkspace({
           {rightTab === "edit" ? (
             <RuleSetEditor
               customProxyGroups={policyNames}
+              fetcher={fetcher}
               publishBaseUrl={config.publishBaseUrl}
               ruleSet={selectedRuleSet}
               onDeleteRuleSet={onDeleteRuleSet}
