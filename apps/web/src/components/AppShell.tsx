@@ -1,35 +1,26 @@
-import {
-  CheckCircle2,
-  FileCode2,
-  FileText,
-  GitBranch,
-  Layers3,
-  Route,
-  Send,
-} from "lucide-react";
+import { CheckCircle2, FileCode2, FileText, GitBranch, Layers3, Route, Send } from "lucide-react";
 import type { ReactNode } from "react";
 import type { ProjectStatus, ProjectView } from "../projectController.js";
 
 interface NavItem {
   view: ProjectView;
   label: string;
-  description: string;
   icon: ReactNode;
 }
 
 const navItems: NavItem[] = [
-  { view: "catalog", label: "规则目录", description: "上游 / 本地素材", icon: <FileText size={17} /> },
-  { view: "providers", label: "规则源", description: "合并产物 Provider", icon: <FileCode2 size={17} /> },
-  { view: "customProxyGroups", label: "策略组", description: "出口 / 分组", icon: <Layers3 size={17} /> },
-  { view: "ruleSets", label: "路由", description: "规则顺序 / 装配", icon: <Route size={17} /> },
-  { view: "publish", label: "发布", description: "检查 / 生成 / 发布", icon: <Send size={17} /> },
+  { view: "catalog", label: "规则目录", icon: <FileText size={15} /> },
+  { view: "providers", label: "规则源", icon: <FileCode2 size={15} /> },
+  { view: "customProxyGroups", label: "策略组", icon: <Layers3 size={15} /> },
+  { view: "ruleSets", label: "路由", icon: <Route size={15} /> },
+  { view: "publish", label: "发布", icon: <Send size={15} /> },
 ];
 
 function statusText(status: ProjectStatus): string {
-  if (status === "loading") return "loading";
-  if (status === "saving") return "saving";
-  if (status === "error") return "error";
-  return "ready";
+  if (status === "loading") return "读取中";
+  if (status === "saving") return "保存中";
+  if (status === "error") return "错误";
+  return "就绪";
 }
 
 export function AppShell({
@@ -52,45 +43,36 @@ export function AppShell({
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
-            <Route size={22} />
+            <Route size={16} />
           </div>
-          <div>
-            <h1>ClashRouteKit</h1>
-            <span>config/routes.yaml</span>
-          </div>
+          <strong className="brand-name">ClashRouteKit</strong>
         </div>
-        <div className="top-actions">
-          <div className={`status-pill ${dirty ? "dirty" : ""}`}>
-            <CheckCircle2 size={16} />
-            <span>{dirty ? "unsaved" : `${enabledCount} active`}</span>
-          </div>
-          <div className={`status-pill project-${status}`}>
-            <GitBranch size={16} />
-            <span>{statusText(status)}</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="workspace editor-workspace">
-        <aside className="panel nav-panel" aria-label="editor navigation">
+        <nav className="tabnav" aria-label="导航">
           {navItems.map((item) => (
             <button
-              className={`nav-row ${selectedView === item.view ? "selected" : ""}`}
+              className={`tab ${selectedView === item.view ? "on" : ""} ${item.view === "publish" ? "tab-end" : ""}`}
               key={item.view}
               type="button"
               onClick={() => onSelectView(item.view)}
             >
-              <span className="nav-icon">{item.icon}</span>
-              <span>
-                <strong>{item.label}</strong>
-                <small>{item.description}</small>
-              </span>
+              <span className="tab-icon">{item.icon}</span>
+              {item.label}
             </button>
           ))}
-        </aside>
+        </nav>
+        <div className="top-actions">
+          <span className={`status-pill ${dirty ? "dirty" : ""}`}>
+            <CheckCircle2 size={14} />
+            {dirty ? "未保存" : `${enabledCount} 启用`}
+          </span>
+          <span className={`status-pill project-${status}`}>
+            <GitBranch size={14} />
+            {statusText(status)}
+          </span>
+        </div>
+      </header>
 
-        <section className="main-panel">{children}</section>
-      </main>
+      <main className="page">{children}</main>
     </div>
   );
 }
