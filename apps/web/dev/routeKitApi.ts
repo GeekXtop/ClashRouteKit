@@ -148,7 +148,7 @@ export async function writeProjectRuleFile(
 interface CatalogOriginDef {
   id: string;
   label: string;
-  kind: "domain-list" | "list-dir";
+  kind: "domain-list" | "list-dir" | "provider-yaml";
   dir: string;
 }
 
@@ -160,6 +160,7 @@ const CATALOG_ORIGINS: CatalogOriginDef[] = [
     dir: "vendor/domain-list-community/data",
   },
   { id: "ACL4SSR", label: "ACL4SSR", kind: "list-dir", dir: "vendor/ACL4SSR/Clash" },
+  { id: "dler-io", label: "dler-io", kind: "provider-yaml", dir: "vendor/Rules/Clash/Provider" },
 ];
 
 export interface CatalogEntriesOptions extends ProgramOptions {
@@ -177,6 +178,7 @@ export interface CatalogSourceInfo {
   id: string;
   label: string;
   kind: "upstream" | "local";
+  originKind?: string;
   count: number;
   syncedAt: number | null;
   browsable: boolean;
@@ -207,6 +209,20 @@ function listRules(text: string): string[] {
     .filter((line) => line.length > 0 && !line.startsWith("#"));
 }
 
+function isValidEntryName(name: string): boolean {
+  return /^[A-Za-z0-9_!.@ -]+$/.test(name) && !name.includes("..");
+}
+
+function parseProviderPayload(text: string): string[] {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.slice(2).trim().replace(/^["']|["']$/g, ""))
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+}
+
 export async function listCatalogEntries(options: CatalogEntriesOptions): Promise<string[]> {
   const def = catalogOrigin(options.origin);
   const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
@@ -217,13 +233,19 @@ export async function listCatalogEntries(options: CatalogEntriesOptions): Promis
       .map((name) => name.slice(0, -".list".length))
       .sort();
   }
+  if (def.kind === "provider-yaml") {
+    return entries
+      .filter((name) => name.endsWith(".yaml"))
+      .map((name) => name.slice(0, -".yaml".length))
+      .sort();
+  }
   return entries.filter((name) => !name.includes(".")).sort();
 }
 
 export async function readCatalogEntry(
   options: CatalogEntryOptions,
 ): Promise<DomainListEntryInfo & { name: string }> {
-  if (!/^[A-Za-z0-9_!.@-]+$/.test(options.name)) {
+  if (!isValidEntryName(options.name)) {
     throw new Error(`Invalid entry: ${options.name}`);
   }
   const def = catalogOrigin(options.origin);
@@ -233,12 +255,16 @@ export async function readCatalogEntry(
     const text = await readText(path.join(dir, `${options.name}.list`));
     return { name: options.name, includes: [], ruleCount: listRules(text).length };
   }
+  if (def.kind === "provider-yaml") {
+    const text = await readText(path.join(dir, `${options.name}.yaml`));
+    return { name: options.name, includes: [], ruleCount: parseProviderPayload(text).length };
+  }
   const text = await readText(path.join(dir, options.name));
   return { name: options.name, ...parseDomainListEntry(text) };
 }
 
 export async function readCatalogEntryDomains(options: CatalogEntryOptions): Promise<string[]> {
-  if (!/^[A-Za-z0-9_!.@-]+$/.test(options.name)) {
+  if (!isValidEntryName(options.name)) {
     throw new Error(`Invalid entry: ${options.name}`);
   }
   const def = catalogOrigin(options.origin);
@@ -247,10 +273,13 @@ export async function readCatalogEntryDomains(options: CatalogEntryOptions): Pro
   if (def.kind === "list-dir") {
     return listRules(await readText(path.join(dir, `${options.name}.list`)));
   }
+  if (def.kind === "provider-yaml") {
+    return parseProviderPayload(await readText(path.join(dir, `${options.name}.yaml`)));
+  }
   const base = "https://catalog.local/";
   const fetchText = async (url: string): Promise<string> => {
     const entryName = decodeURIComponent(url.slice(base.length));
-    if (!/^[A-Za-z0-9_!.@-]+$/.test(entryName)) {
+    if (!isValidEntryName(entryName)) {
       throw new Error(`Invalid include: ${entryName}`);
     }
     return readText(path.join(dir, entryName));
@@ -272,7 +301,15 @@ export async function listCatalogSources(options: CatalogSourcesOptions): Promis
     } catch {
       count = 0;
     }
-    sources.push({ id: def.id, label: def.label, kind: "upstream", count, syncedAt, browsable: true });
+    sources.push({
+      id: def.id,
+      label: def.label,
+      kind: "upstream",
+      originKind: def.kind,
+      count,
+      syncedAt,
+      browsable: true,
+    });
   }
   let localCount = 0;
   try {

@@ -20,6 +20,12 @@ const FALLBACK_SOURCES: CatalogSourceInfo[] = [
   { id: "local", label: "本地 .list", kind: "local", count: 0, syncedAt: null, browsable: true },
 ];
 
+function entryBadge(originKind: string | undefined, entry: string): { label: string; cls: string } {
+  if (originKind === "list-dir") return { label: "LST", cls: "b-list" };
+  if (originKind === "provider-yaml") return { label: "DLR", cls: "b-dler" };
+  return entry.startsWith("category") ? { label: "CAT", cls: "b-cat" } : { label: "GEO", cls: "b-geo" };
+}
+
 function CatalogDetail({
   name,
   detail,
@@ -133,6 +139,7 @@ export function CatalogWorkspace({
   const [entryDomains, setEntryDomains] = useState<string[]>([]);
   const [detailStatus, setDetailStatus] = useState<LoadStatus>("idle");
   const [search, setSearch] = useState<string>("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const source = sources.find((item) => item.id === selectedSourceId) ?? sources[0]!;
   const isLocal = source.kind === "local";
@@ -205,6 +212,7 @@ export function CatalogWorkspace({
   const filteredEntries = query
     ? entries.filter((entry) => entry.toLowerCase().includes(query))
     : entries;
+  const sortedEntries = sortDir === "asc" ? filteredEntries : [...filteredEntries].reverse();
 
   return (
     <div className="catalog-workspace">
@@ -215,6 +223,20 @@ export function CatalogWorkspace({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
+        {!isLocal ? (
+          <>
+            <span className="sbar-meta">
+              {entries.length} 条 · {sources.length} 源
+            </span>
+            <button
+              type="button"
+              className="sort-btn"
+              onClick={() => setSortDir((dir) => (dir === "asc" ? "desc" : "asc"))}
+            >
+              排序：名称 {sortDir === "asc" ? "↑" : "↓"}
+            </button>
+          </>
+        ) : null}
       </div>
       <div className="catalog-body">
         <aside className="catalog-sources">
@@ -291,8 +313,8 @@ export function CatalogWorkspace({
             <section className="catalog-grid">
               <p className={`project-message ${entriesStatus}`}>{entriesMessage}</p>
               <div className="catalog-entries">
-                {filteredEntries.map((entry) => {
-                  const isCategory = entry.startsWith("category");
+                {sortedEntries.map((entry) => {
+                  const badge = entryBadge(source.originKind, entry);
                   return (
                     <button
                       key={entry}
@@ -300,12 +322,12 @@ export function CatalogWorkspace({
                       className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
                       onClick={() => setSelectedEntry(entry)}
                     >
-                      <span className={`bdg ${isCategory ? "b-cat" : "b-geo"}`}>{isCategory ? "CAT" : "GEO"}</span>
+                      <span className={`bdg ${badge.cls}`}>{badge.label}</span>
                       <span className="en-nm">{entry}</span>
                     </button>
                   );
                 })}
-                {filteredEntries.length === 0 && entriesStatus !== "loading" ? (
+                {sortedEntries.length === 0 && entriesStatus !== "loading" ? (
                   <div className="empty-state">无匹配条目</div>
                 ) : null}
               </div>

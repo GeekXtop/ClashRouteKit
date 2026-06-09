@@ -75,6 +75,23 @@ describe("routeKitApi", () => {
     expect(entries).toEqual(["Apple", "BanAD"]);
   });
 
+  it("lists and reads provider-yaml entries with spaces from the payload", async () => {
+    const entries = await listCatalogEntries({
+      ...baseOptions,
+      origin: "dler-io",
+      readDirectory: async () => ["AI Suite.yaml", "Crypto.yaml", "README.md"],
+    });
+    expect(entries).toEqual(["AI Suite", "Crypto"]);
+
+    const domains = await readCatalogEntryDomains({
+      ...baseOptions,
+      origin: "dler-io",
+      name: "AI Suite",
+      readText: async () => "payload:\n  - DOMAIN-SUFFIX,openai.com\n  - DOMAIN,chatgpt.com\n  # comment\n",
+    });
+    expect(domains).toEqual(["DOMAIN-SUFFIX,openai.com", "DOMAIN,chatgpt.com"]);
+  });
+
   it("lists catalog sources with counts, kinds and sync time", async () => {
     const sources = await listCatalogSources({
       ...baseOptions,

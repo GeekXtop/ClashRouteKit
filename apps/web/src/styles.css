@@ -1416,8 +1416,15 @@ button.state {
   min-width: 0;
 }
 
+.catalog-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .catalog-search input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
@@ -1425,6 +1432,26 @@ button.state {
   background: var(--surface);
   color: var(--ink);
   outline: 0;
+}
+
+.sbar-meta {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.sort-btn {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg2);
+  color: var(--tx);
+  font-size: 11px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  border-color: var(--teal);
 }
 
 .catalog-search input:focus-visible {

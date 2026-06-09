@@ -73,6 +73,7 @@ export interface CatalogSourceInfo {
   id: string;
   label: string;
   kind: "upstream" | "local";
+  originKind?: string;
   count: number;
   syncedAt: number | null;
   browsable: boolean;
