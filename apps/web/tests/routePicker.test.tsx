@@ -42,4 +42,16 @@ describe("RoutePicker", () => {
     expect(screen.queryByText("openai")).toBeNull();
     expect(screen.getByText("youtube")).toBeTruthy();
   });
+
+  it("filters to category entries with the 仅分类 toggle", async () => {
+    const fetcher = vi.fn(async () => jsonResponse({ entries: ["openai", "category-ai-!cn"] }));
+    render(
+      <RoutePicker policies={["Proxy"]} sections={[]} fetcher={fetcher} onAdd={vi.fn()} onClose={vi.fn()} />,
+    );
+
+    await screen.findByText("openai");
+    fireEvent.click(screen.getByText("仅分类"));
+    expect(screen.queryByText("openai")).toBeNull();
+    expect(screen.getByText("category-ai-!cn")).toBeTruthy();
+  });
 });

@@ -25,6 +25,7 @@ export function RoutePicker({
   const [selectedEntry, setSelectedEntry] = useState("");
   const [policy, setPolicy] = useState(policies[0] ?? "");
   const [section, setSection] = useState("");
+  const [categoryOnly, setCategoryOnly] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -48,7 +49,9 @@ export function RoutePicker({
   }, [fetcher]);
 
   const query = search.trim().toLowerCase();
-  const filtered = query ? entries.filter((entry) => entry.toLowerCase().includes(query)) : entries;
+  const filtered = entries
+    .filter((entry) => (categoryOnly ? entry.startsWith("category") : true))
+    .filter((entry) => (query ? entry.toLowerCase().includes(query) : true));
 
   return (
     <div className="picker-overlay" role="dialog" aria-label="添加规则">
@@ -63,24 +66,37 @@ export function RoutePicker({
           </button>
         </div>
         <div className="picker-body">
-          <input
-            className="picker-search"
-            type="search"
-            placeholder="搜索 GEOSITE 条目…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+          <div className="picker-searchbar">
+            <input
+              className="picker-search"
+              type="search"
+              placeholder="搜索 GEOSITE 条目…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <button
+              type="button"
+              className={`sort-btn ${categoryOnly ? "on" : ""}`}
+              onClick={() => setCategoryOnly((value) => !value)}
+            >
+              仅分类
+            </button>
+          </div>
           <div className="picker-entries">
-            {filtered.map((entry) => (
-              <button
-                key={entry}
-                type="button"
-                className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
-                onClick={() => setSelectedEntry(entry)}
-              >
-                {entry}
-              </button>
-            ))}
+            {filtered.map((entry) => {
+              const isCategory = entry.startsWith("category");
+              return (
+                <button
+                  key={entry}
+                  type="button"
+                  className={`catalog-entry ${entry === selectedEntry ? "active" : ""}`}
+                  onClick={() => setSelectedEntry(entry)}
+                >
+                  <span className={`bdg ${isCategory ? "b-cat" : "b-geo"}`}>{isCategory ? "CAT" : "GEO"}</span>
+                  <span className="en-nm">{entry}</span>
+                </button>
+              );
+            })}
             {filtered.length === 0 && status !== "loading" ? (
               <div className="empty-state">无匹配条目</div>
             ) : null}

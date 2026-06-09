@@ -1454,6 +1454,12 @@ button.state {
   border-color: var(--teal);
 }
 
+.sort-btn.on {
+  border-color: var(--reg);
+  background: #1f6feb22;
+  color: #cfe1ff;
+}
+
 .catalog-search input:focus-visible {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(18, 110, 115, 0.16);
@@ -2197,7 +2203,15 @@ button.state {
   min-height: 0;
 }
 
+.picker-searchbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .picker-search {
+  flex: 1;
+  min-width: 0;
   height: 38px;
   padding: 0 12px;
   border: 1px solid var(--line);
