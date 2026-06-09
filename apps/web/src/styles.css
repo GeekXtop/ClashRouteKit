@@ -1571,6 +1571,26 @@ button.state {
   color: var(--fin);
 }
 
+.sync-all {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg2);
+  color: #58a6ff;
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.sync-all:hover {
+  border-color: var(--reg);
+}
+
+.sync-all:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .repo {
   padding: 6px 8px;
   border-radius: 6px;

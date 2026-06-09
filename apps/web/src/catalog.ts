@@ -94,3 +94,12 @@ export function formatSyncedAt(ms: number | null, nowMs: number): string {
   if (days <= 0) return "今天同步";
   return `${days}天前同步`;
 }
+
+export async function syncCatalogVendor(fetcher: Fetcher = globalThis.fetch): Promise<string> {
+  const response = await fetcher("/api/actions/sync-vendor", { method: "POST" });
+  const payload = (await response.json()) as { ok?: boolean; output?: string };
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.output ?? "同步失败");
+  }
+  return payload.output ?? "";
+}

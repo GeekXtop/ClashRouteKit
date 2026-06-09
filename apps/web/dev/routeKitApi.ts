@@ -14,13 +14,14 @@ import {
 import {
   checkConfig,
   generateOutputs,
+  syncVendor,
   type GenerateResult,
   type ProgramOptions,
 } from "../../cli/src/program.js";
 
 const execFileAsync = promisify(execFile);
 
-export type RouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
+export type RouteKitAction = "check" | "generate" | "sync-vendor" | "git-status" | "git-commit" | "git-push";
 
 export interface RouteKitActionResult {
   action: RouteKitAction;
@@ -377,6 +378,12 @@ export async function runRouteKitAction(
     };
   }
 
+  if (action === "sync-vendor") {
+    const results = await syncVendor(options);
+    const lines = results.map((result) => `[sync-vendor] ${result.action}: ${result.name} -> ${result.path}`);
+    return { action, ok: true, output: lines.length > 0 ? lines.join("\n") : "[sync-vendor] 无 vendorRepos" };
+  }
+
   if (action === "git-status") {
     const output = await runCommand("git", ["status", "--short"], options.root);
     return {
@@ -416,6 +423,7 @@ export async function runRouteKitAction(
 function parseRouteKitAction(pathname: string): RouteKitAction | null {
   if (pathname === "/api/actions/check") return "check";
   if (pathname === "/api/actions/generate") return "generate";
+  if (pathname === "/api/actions/sync-vendor") return "sync-vendor";
   if (pathname === "/api/actions/git-status") return "git-status";
   if (pathname === "/api/actions/git-commit") return "git-commit";
   if (pathname === "/api/actions/git-push") return "git-push";

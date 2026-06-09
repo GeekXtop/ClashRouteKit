@@ -7,6 +7,7 @@ import {
   fetchCatalogSources,
   formatDomainRule,
   formatSyncedAt,
+  syncCatalogVendor,
   type CatalogEntryDetail,
   type CatalogSourceInfo,
 } from "../catalog.js";
@@ -140,6 +141,8 @@ export function CatalogWorkspace({
   const [detailStatus, setDetailStatus] = useState<LoadStatus>("idle");
   const [search, setSearch] = useState<string>("");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [syncing, setSyncing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const source = sources.find((item) => item.id === selectedSourceId) ?? sources[0]!;
   const isLocal = source.kind === "local";
@@ -154,7 +157,7 @@ export function CatalogWorkspace({
     return () => {
       alive = false;
     };
-  }, [fetcher]);
+  }, [fetcher, refreshKey]);
 
   useEffect(() => {
     if (isLocal) return;
@@ -179,7 +182,7 @@ export function CatalogWorkspace({
     return () => {
       alive = false;
     };
-  }, [source.id, isLocal, fetcher]);
+  }, [source.id, isLocal, fetcher, refreshKey]);
 
   useEffect(() => {
     if (isLocal || !selectedEntry) return;
@@ -233,6 +236,18 @@ export function CatalogWorkspace({
     );
   };
 
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await syncCatalogVendor(fetcher);
+      setRefreshKey((key) => key + 1);
+    } catch {
+      // 同步失败时保留旧数据
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <div className="catalog-workspace">
       <div className="catalog-search">
@@ -267,6 +282,9 @@ export function CatalogWorkspace({
           </div>
           <div className="src-sec">
             上游 <span className="src-ro">只读</span>
+            <button type="button" className="sync-all" disabled={syncing} onClick={handleSync}>
+              {syncing ? "同步中…" : "⟳ 同步"}
+            </button>
           </div>
           {sources
             .filter((item) => item.kind === "upstream")
