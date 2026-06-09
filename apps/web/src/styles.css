@@ -1086,6 +1086,11 @@ button:disabled {
   padding: 0 14px 14px;
 }
 
+.src-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .source-row {
   display: grid;
   grid-template-columns: 14px auto minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 1.3fr) 32px;

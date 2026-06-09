@@ -1,4 +1,8 @@
+import { useState } from "react";
 import type { RuleProviderConfig, RuleProviderSource } from "@clash-route-kit/core";
+import { SourcePicker } from "./SourcePicker.js";
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export interface ProviderReference {
   ruleSetId: string;
@@ -33,6 +37,7 @@ function updateSource(source: RuleProviderSource, patch: Partial<RuleProviderSou
 export function RuleProviderEditor({
   provider,
   references,
+  fetcher = globalThis.fetch,
   onDeleteProvider,
   onSetProviderListField,
   onSetProviderSources,
@@ -40,11 +45,14 @@ export function RuleProviderEditor({
 }: {
   provider: RuleProviderConfig | undefined;
   references: ProviderReference[];
+  fetcher?: Fetcher;
   onDeleteProvider: (providerName: string) => void;
   onSetProviderListField: (providerName: string, field: "exclude" | "remove", values: string[]) => void;
   onSetProviderSources: (providerName: string, sources: RuleProviderSource[]) => void;
   onUpdateProvider: (providerName: string, patch: Partial<RuleProviderConfig>) => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   if (!provider) {
     return (
       <section className="panel editor-panel">
@@ -106,14 +114,19 @@ export function RuleProviderEditor({
 
       <div className="source-list">
         <div className="entity-list-header">
-          <h3>Sources</h3>
-          <button
-            className="command-button"
-            type="button"
-            onClick={() => onSetProviderSources(provider.name, [...provider.sources, createSource("clash-list")])}
-          >
-            添加 source
-          </button>
+          <h3>来源（按序合并 → 去重）</h3>
+          <div className="src-actions">
+            <button className="command-button" type="button" onClick={() => setPickerOpen(true)}>
+              ＋ 从目录挑
+            </button>
+            <button
+              className="command-button"
+              type="button"
+              onClick={() => onSetProviderSources(provider.name, [...provider.sources, createSource("clash-list")])}
+            >
+              手动添加
+            </button>
+          </div>
         </div>
         {provider.sources.map((source, index) => (
           <div className="source-row" key={`${source.name}-${index}`}>
@@ -203,6 +216,17 @@ export function RuleProviderEditor({
           </label>
         </div>
       </details>
+
+      {pickerOpen ? (
+        <SourcePicker
+          fetcher={fetcher}
+          onAdd={(newSource) => {
+            onSetProviderSources(provider.name, [...provider.sources, newSource]);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }
