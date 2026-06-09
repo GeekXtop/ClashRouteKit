@@ -24,6 +24,9 @@ function makeFetcher() {
     if (url.includes("/api/catalog/entries")) {
       return jsonResponse({ entries: ["anthropic", "openai", "youtube"] });
     }
+    if (url.includes("/api/catalog/domains")) {
+      return jsonResponse({ domains: ["DOMAIN-SUFFIX,openai.com"] });
+    }
     if (url.includes("/api/catalog/entry")) {
       return jsonResponse({ name: "openai", includes: ["openai-inc"], ruleCount: 3 });
     }
@@ -54,10 +57,10 @@ describe("CatalogWorkspace", () => {
     expect(screen.getByText("anthropic")).toBeTruthy();
   });
 
-  it("shows a read-only detail when an upstream entry is selected", async () => {
+  it("shows a read-only domain detail when an upstream entry is selected", async () => {
     renderWorkspace();
     fireEvent.click(await screen.findByText("openai"));
-    expect(await screen.findByText("openai-inc")).toBeTruthy();
+    expect(await screen.findByText("+.openai.com")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 

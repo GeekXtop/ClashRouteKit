@@ -54,9 +54,11 @@ function CatalogDetail({
       ? "正在读取…"
       : status === "error"
         ? "读取失败"
-        : detail
-          ? "GEOSITE · 只读"
-          : "";
+        : domains.length > 0
+          ? `${domains.length} 域名 · 只读`
+          : detail
+            ? "只读"
+            : "";
 
   return (
     <div className="catalog-detail-body">
@@ -66,31 +68,6 @@ function CatalogDetail({
           <span>{summary}</span>
         </div>
       </div>
-      {detail ? (
-        <div className="catalog-kv">
-          <div className="kv-cell">
-            <strong>{domains.length || detail.ruleCount}</strong>
-            <span>域名</span>
-          </div>
-          <div className="kv-cell">
-            <strong>{detail.includes.length}</strong>
-            <span>include</span>
-          </div>
-          <div className="kv-cell">
-            <strong>{detail.ruleCount}</strong>
-            <span>直接</span>
-          </div>
-        </div>
-      ) : null}
-      {detail && detail.includes.length > 0 ? (
-        <div className="catalog-includes">
-          {detail.includes.map((include) => (
-            <span key={include} className="catalog-include-chip">
-              {include}
-            </span>
-          ))}
-        </div>
-      ) : null}
       {domains.length > 0 ? (
         <>
           <div className="catalog-doms-head">
@@ -143,6 +120,8 @@ export function CatalogWorkspace({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [syncing, setSyncing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [categoryIncludes, setCategoryIncludes] = useState<Record<string, string[]>>({});
 
   const source = sources.find((item) => item.id === selectedSourceId) ?? sources[0]!;
   const isLocal = source.kind === "local";
@@ -245,6 +224,20 @@ export function CatalogWorkspace({
       // 同步失败时保留旧数据
     } finally {
       setSyncing(false);
+    }
+  }
+
+  function toggleExpand(category: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+    if (!categoryIncludes[category]) {
+      void fetchCatalogEntry(source.id, category, fetcher)
+        .then((detail) => setCategoryIncludes((prev) => ({ ...prev, [category]: detail.includes })))
+        .catch(() => {});
     }
   }
 
@@ -353,7 +346,49 @@ export function CatalogWorkspace({
                 <>
                   <details className="cat-group" open>
                     <summary>分类 categories · {categoryEntries.length}</summary>
-                    <div className="catalog-entries">{categoryEntries.map(renderEntry)}</div>
+                    <div className="cat-list">
+                      {categoryEntries.map((cat) => (
+                        <div key={cat} className="cat-item">
+                          <div className="cat-head">
+                            <button
+                              type="button"
+                              className="cat-toggle"
+                              aria-label={`展开 ${cat}`}
+                              onClick={() => toggleExpand(cat)}
+                            >
+                              {expanded.has(cat) ? "▾" : "▸"}
+                            </button>
+                            <button
+                              type="button"
+                              className={`catalog-entry ${cat === selectedEntry ? "active" : ""}`}
+                              onClick={() => setSelectedEntry(cat)}
+                            >
+                              <span className="bdg b-cat">CAT</span>
+                              <span className="en-nm">{cat}</span>
+                            </button>
+                          </div>
+                          {expanded.has(cat) ? (
+                            <div className="cat-members">
+                              {(categoryIncludes[cat] ?? []).map((member) => (
+                                <button
+                                  key={member}
+                                  type="button"
+                                  className={`catalog-entry ${member === selectedEntry ? "active" : ""}`}
+                                  onClick={() => setSelectedEntry(member)}
+                                >
+                                  <span className="bdg b-geo">GEO</span>
+                                  <span className="en-nm">{member}</span>
+                                </button>
+                              ))}
+                              {(categoryIncludes[cat]?.length ?? 0) === 0 ? (
+                                <span className="empty-line">无 include 或读取中…</span>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                      {categoryEntries.length === 0 ? <span className="empty-line">无分类</span> : null}
+                    </div>
                   </details>
                   <details className="cat-group" open>
                     <summary>GEOSITE · {geositeEntries.length}</summary>

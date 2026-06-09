@@ -1710,6 +1710,49 @@ button.state {
   content: "▸ ";
 }
 
+.cat-list {
+  display: grid;
+  gap: 4px;
+}
+
+.cat-item {
+  display: grid;
+  gap: 4px;
+}
+
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cat-toggle {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.cat-toggle:hover {
+  color: var(--ink);
+}
+
+.cat-head .catalog-entry {
+  flex: 1;
+  min-width: 0;
+}
+
+.cat-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px 0 6px 22px;
+}
+
 .catalog-entry {
   min-height: 36px;
   padding: 5px 8px;
