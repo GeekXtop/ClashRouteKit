@@ -197,8 +197,7 @@ export function CatalogWorkspace({
   const sortedEntries = sortDir === "asc" ? filteredEntries : [...filteredEntries].reverse();
   const isDomainListSource =
     source.originKind === "domain-list" || (!source.originKind && source.id === "domain-list-community");
-  const categoryEntries = sortedEntries.filter((entry) => entry.startsWith("category"));
-  const geositeEntries = sortedEntries.filter((entry) => !entry.startsWith("category"));
+  const topCategories = sortedEntries.filter((entry) => entry.startsWith("category"));
 
   const renderEntry = (entry: string) => {
     const badge = entryBadge(source.originKind, entry);
@@ -212,6 +211,47 @@ export function CatalogWorkspace({
         <span className={`bdg ${badge.cls}`}>{badge.label}</span>
         <span className="en-nm">{entry}</span>
       </button>
+    );
+  };
+
+  const renderNode = (name: string, keyPrefix: string) => {
+    const isCat = name.startsWith("category");
+    const isExpanded = expanded.has(name);
+    const members = categoryIncludes[name] ?? [];
+    return (
+      <div className="cat-item" key={`${keyPrefix}/${name}`}>
+        <div className="cat-head">
+          {isCat ? (
+            <button
+              type="button"
+              className="cat-toggle"
+              aria-label={`展开 ${name}`}
+              onClick={() => toggleExpand(name)}
+            >
+              {isExpanded ? "▾" : "▸"}
+            </button>
+          ) : (
+            <span className="cat-toggle-spacer" />
+          )}
+          <button
+            type="button"
+            className={`catalog-entry ${name === selectedEntry ? "active" : ""}`}
+            onClick={() => setSelectedEntry(name)}
+          >
+            <span className={`bdg ${isCat ? "b-cat" : "b-geo"}`}>{isCat ? "CAT" : "GEO"}</span>
+            <span className="en-nm">{name}</span>
+          </button>
+        </div>
+        {isCat && isExpanded ? (
+          <div className="cat-children">
+            {members.length > 0 ? (
+              members.map((member) => renderNode(member, `${keyPrefix}/${name}`))
+            ) : (
+              <span className="empty-line">无 include 或读取中…</span>
+            )}
+          </div>
+        ) : null}
+      </div>
     );
   };
 
@@ -342,61 +382,13 @@ export function CatalogWorkspace({
           <div className="catalog-main">
             <section className="catalog-grid">
               <p className={`project-message ${entriesStatus}`}>{entriesMessage}</p>
-              {isDomainListSource ? (
-                <>
-                  <details className="cat-group" open>
-                    <summary>分类 categories · {categoryEntries.length}</summary>
-                    <div className="cat-list">
-                      {categoryEntries.map((cat) => (
-                        <div key={cat} className="cat-item">
-                          <div className="cat-head">
-                            <button
-                              type="button"
-                              className="cat-toggle"
-                              aria-label={`展开 ${cat}`}
-                              onClick={() => toggleExpand(cat)}
-                            >
-                              {expanded.has(cat) ? "▾" : "▸"}
-                            </button>
-                            <button
-                              type="button"
-                              className={`catalog-entry ${cat === selectedEntry ? "active" : ""}`}
-                              onClick={() => setSelectedEntry(cat)}
-                            >
-                              <span className="bdg b-cat">CAT</span>
-                              <span className="en-nm">{cat}</span>
-                            </button>
-                          </div>
-                          {expanded.has(cat) ? (
-                            <div className="cat-members">
-                              {(categoryIncludes[cat] ?? []).map((member) => (
-                                <button
-                                  key={member}
-                                  type="button"
-                                  className={`catalog-entry ${member === selectedEntry ? "active" : ""}`}
-                                  onClick={() => setSelectedEntry(member)}
-                                >
-                                  <span className="bdg b-geo">GEO</span>
-                                  <span className="en-nm">{member}</span>
-                                </button>
-                              ))}
-                              {(categoryIncludes[cat]?.length ?? 0) === 0 ? (
-                                <span className="empty-line">无 include 或读取中…</span>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                      {categoryEntries.length === 0 ? <span className="empty-line">无分类</span> : null}
-                    </div>
-                  </details>
-                  <details className="cat-group" open>
-                    <summary>GEOSITE · {geositeEntries.length}</summary>
-                    <div className="catalog-entries">{geositeEntries.map(renderEntry)}</div>
-                  </details>
-                </>
-              ) : (
+              {query || !isDomainListSource ? (
                 <div className="catalog-entries">{sortedEntries.map(renderEntry)}</div>
+              ) : (
+                <div className="cat-list">
+                  {topCategories.map((cat) => renderNode(cat, "root"))}
+                  {topCategories.length === 0 ? <span className="empty-line">无分类</span> : null}
+                </div>
               )}
               {sortedEntries.length === 0 && entriesStatus !== "loading" ? (
                 <div className="empty-state">无匹配条目</div>

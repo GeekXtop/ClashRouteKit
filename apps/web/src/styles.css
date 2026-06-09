@@ -1767,6 +1767,19 @@ button.state {
   padding: 4px 0 6px 22px;
 }
 
+.cat-children {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 4px 9px;
+  padding-left: 12px;
+  border-left: 1px solid #21262d;
+}
+
+.cat-toggle-spacer {
+  flex: 0 0 auto;
+  width: 20px;
+}
+
 .catalog-entry {
   min-height: 36px;
   padding: 5px 8px;

@@ -22,13 +22,14 @@ function makeFetcher() {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/catalog/entries")) {
-      return jsonResponse({ entries: ["anthropic", "openai", "youtube"] });
+      return jsonResponse({ entries: ["category-ai-!cn", "openai", "youtube"] });
     }
     if (url.includes("/api/catalog/domains")) {
       return jsonResponse({ domains: ["DOMAIN-SUFFIX,openai.com"] });
     }
     if (url.includes("/api/catalog/entry")) {
-      return jsonResponse({ name: "openai", includes: ["openai-inc"], ruleCount: 3 });
+      const name = new URL(url, "http://x").searchParams.get("name") ?? "";
+      return jsonResponse({ name, includes: name === "category-ai-!cn" ? ["openai"] : [], ruleCount: 1 });
     }
     return jsonResponse({ ok: false });
   });
@@ -49,16 +50,24 @@ function renderWorkspace(overrides: Partial<Parameters<typeof CatalogWorkspace>[
 }
 
 describe("CatalogWorkspace", () => {
-  it("renders the source list and upstream entry grid", async () => {
+  it("renders sources and a categories-only top level", async () => {
     renderWorkspace();
     expect(screen.getByText("domain-list-community")).toBeTruthy();
     expect(screen.getByText("本地 .list")).toBeTruthy();
-    expect(await screen.findByText("openai")).toBeTruthy();
-    expect(screen.getByText("anthropic")).toBeTruthy();
+    expect(await screen.findByText("category-ai-!cn")).toBeTruthy();
+    expect(screen.queryByText("openai")).toBeNull();
   });
 
-  it("shows a read-only domain detail when an upstream entry is selected", async () => {
+  it("expands a category to reveal member geosites", async () => {
     renderWorkspace();
+    fireEvent.click(await screen.findByLabelText("展开 category-ai-!cn"));
+    expect(await screen.findByText("openai")).toBeTruthy();
+  });
+
+  it("shows a read-only domain detail when an entry is selected", async () => {
+    renderWorkspace();
+    await screen.findByText("category-ai-!cn");
+    fireEvent.change(screen.getByPlaceholderText(/搜索/), { target: { value: "openai" } });
     fireEvent.click(await screen.findByText("openai"));
     expect(await screen.findByText("+.openai.com")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
@@ -74,11 +83,12 @@ describe("CatalogWorkspace", () => {
     expect(screen.getByText("保存规则文件")).toBeTruthy();
   });
 
-  it("filters upstream entries by the search query", async () => {
+  it("filters entries flat by the search query", async () => {
     renderWorkspace();
-    await screen.findByText("openai");
+    await screen.findByText("category-ai-!cn");
     fireEvent.change(screen.getByPlaceholderText(/搜索/), { target: { value: "you" } });
-    expect(screen.queryByText("openai")).toBeNull();
     expect(screen.getByText("youtube")).toBeTruthy();
+    expect(screen.queryByText("category-ai-!cn")).toBeNull();
+    expect(screen.queryByText("openai")).toBeNull();
   });
 });
