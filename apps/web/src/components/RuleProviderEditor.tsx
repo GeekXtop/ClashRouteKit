@@ -60,6 +60,16 @@ export function RuleProviderEditor({
           <h2>编辑 Rule Provider</h2>
           <span>{provider.output}</span>
         </div>
+        <button
+          className="del-x"
+          type="button"
+          aria-label={`删除 ${provider.name}`}
+          onClick={() => {
+            if (window.confirm(`删除 rule provider ${provider.name}？`)) onDeleteProvider(provider.name);
+          }}
+        >
+          ✕
+        </button>
       </div>
       <div className="form-grid">
         <label>
@@ -161,14 +171,14 @@ export function RuleProviderEditor({
               />
             )}
             <button
-              className="icon-button"
+              className="del-x"
               type="button"
               aria-label="remove source"
               onClick={() =>
                 onSetProviderSources(provider.name, provider.sources.filter((_, itemIndex) => itemIndex !== index))
               }
             >
-              x
+              ✕
             </button>
           </div>
         ))}
@@ -193,16 +203,6 @@ export function RuleProviderEditor({
           </label>
         </div>
       </details>
-
-      <button
-        className="danger-button"
-        type="button"
-        onClick={() => {
-          if (window.confirm(`删除 rule provider ${provider.name}？`)) onDeleteProvider(provider.name);
-        }}
-      >
-        删除 Rule Provider
-      </button>
     </section>
   );
 }

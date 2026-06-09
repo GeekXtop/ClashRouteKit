@@ -983,9 +983,13 @@ button:disabled {
   width: 100%;
 }
 
+.entity-row:hover {
+  background: var(--bg2);
+}
+
 .entity-row.active {
-  border-color: var(--teal);
-  background: var(--teal-soft);
+  border-color: var(--reg);
+  background: #1f6feb1f;
 }
 
 .entity-row strong,
@@ -1709,10 +1713,13 @@ button.state {
   color: #93c5fd;
 }
 
-.catalog-entry:hover,
+.catalog-entry:hover {
+  border-color: #1f6feb55;
+}
+
 .catalog-entry.active {
-  border-color: var(--teal);
-  background: var(--teal-soft);
+  border-color: var(--reg);
+  background: #1f6feb1f;
 }
 
 .catalog-entry.active {
@@ -2046,10 +2053,14 @@ button.state {
   font-size: 13px;
 }
 
-.route-filter-row:hover,
+.route-filter-row:hover {
+  background: var(--bg2);
+}
+
 .route-filter-row.active {
-  border-color: var(--line);
-  background: var(--surface-soft);
+  border-color: #1f6feb44;
+  background: #1f6feb1a;
+  color: #cfe1ff;
 }
 
 .route-filter-row .count {
@@ -2149,17 +2160,19 @@ button.state {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
-.route-row .route-del {
+.del-x {
   flex: 0 0 auto;
   border: 0;
   background: transparent;
   color: #586069;
-  font-size: 12px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-.route-row .route-del:hover {
+.del-x:hover {
   color: var(--red);
   background: #f851490d;
 }

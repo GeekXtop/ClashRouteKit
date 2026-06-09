@@ -223,7 +223,7 @@ export function RouteWorkspace({
                     ) : null}
                     <span className={`pc tone-${tone}`}>{ruleSet.policy}</span>
                     <button
-                      className="route-del"
+                      className="del-x"
                       type="button"
                       aria-label={`删除 ${ruleSet.id}`}
                       onClick={(event) => {

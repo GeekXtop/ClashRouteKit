@@ -135,6 +135,16 @@ export function CustomProxyGroupEditor({
           <h2>编辑 Custom Proxy Group</h2>
           <span>{group.name}</span>
         </div>
+        <button
+          className="del-x"
+          type="button"
+          aria-label={`删除 ${group.name}`}
+          onClick={() => {
+            if (window.confirm(`删除 custom_proxy_group ${group.name}？`)) onDeleteGroup(group.name);
+          }}
+        >
+          ✕
+        </button>
       </div>
 
       {relevantCycle ? (
@@ -309,16 +319,6 @@ export function CustomProxyGroupEditor({
           <code className="output-line">{previewCustomProxyGroup(group)}</code>
         </label>
       </div>
-
-      <button
-        className="danger-button"
-        type="button"
-        onClick={() => {
-          if (window.confirm(`删除 custom_proxy_group ${group.name}？`)) onDeleteGroup(group.name);
-        }}
-      >
-        删除 custom_proxy_group
-      </button>
     </section>
   );
 }
