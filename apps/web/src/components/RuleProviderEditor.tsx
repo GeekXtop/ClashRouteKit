@@ -9,8 +9,6 @@ export interface ProviderReference {
   policy: string;
 }
 
-const sourceTypes: RuleProviderSource["type"][] = ["clash-list", "clash-provider", "domain-list-community"];
-
 function listText(values: string[] | undefined): string {
   return (values ?? []).join("\n");
 }
@@ -19,19 +17,15 @@ function parseListText(value: string): string[] {
   return value.split("\n");
 }
 
-function createSource(type: RuleProviderSource["type"]): RuleProviderSource {
-  if (type === "domain-list-community") return { name: "Source", type, entry: "" };
-  return { name: "Source", type, path: type === "clash-list" ? "config/rules/Source.list" : "" };
-}
-
 function sourceBadge(type: RuleProviderSource["type"]): { label: string; cls: string } {
   if (type === "domain-list-community") return { label: "GEO", cls: "b-geo" };
   if (type === "clash-provider") return { label: "PROV", cls: "b-dler" };
   return { label: "LST", cls: "b-list" };
 }
 
-function updateSource(source: RuleProviderSource, patch: Partial<RuleProviderSource>): RuleProviderSource {
-  return { ...source, ...patch } as RuleProviderSource;
+function sourceLabel(source: RuleProviderSource): string {
+  if (source.type === "domain-list-community") return `${source.name}：${source.entry || "(空)"}`;
+  return `${source.name}：${source.path || "(空)"}`;
 }
 
 export function RuleProviderEditor({
@@ -115,74 +109,15 @@ export function RuleProviderEditor({
       <div className="source-list">
         <div className="entity-list-header">
           <h3>来源（按序合并 → 去重）</h3>
-          <div className="src-actions">
-            <button className="command-button" type="button" onClick={() => setPickerOpen(true)}>
-              ＋ 从目录挑
-            </button>
-            <button
-              className="command-button"
-              type="button"
-              onClick={() => onSetProviderSources(provider.name, [...provider.sources, createSource("clash-list")])}
-            >
-              手动添加
-            </button>
-          </div>
+          <button className="command-button" type="button" onClick={() => setPickerOpen(true)}>
+            ＋ 从目录挑
+          </button>
         </div>
         {provider.sources.map((source, index) => (
           <div className="source-row" key={`${source.name}-${index}`}>
             <span className="grip" aria-hidden="true">⠿</span>
             <span className={`bdg ${sourceBadge(source.type).cls}`}>{sourceBadge(source.type).label}</span>
-            <select
-              value={source.type}
-              onChange={(event) =>
-                onSetProviderSources(
-                  provider.name,
-                  provider.sources.map((item, itemIndex) =>
-                    itemIndex === index ? createSource(event.target.value as RuleProviderSource["type"]) : item,
-                  ),
-                )
-              }
-            >
-              {sourceTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            <input
-              value={source.name}
-              onChange={(event) =>
-                onSetProviderSources(
-                  provider.name,
-                  provider.sources.map((item, itemIndex) =>
-                    itemIndex === index ? updateSource(item, { name: event.target.value }) : item,
-                  ),
-                )
-              }
-            />
-            {"path" in source ? (
-              <input
-                value={source.path}
-                onChange={(event) =>
-                  onSetProviderSources(
-                    provider.name,
-                    provider.sources.map((item, itemIndex) =>
-                      itemIndex === index ? updateSource(item, { path: event.target.value }) : item,
-                    ),
-                  )
-                }
-              />
-            ) : (
-              <input
-                value={source.entry}
-                onChange={(event) =>
-                  onSetProviderSources(
-                    provider.name,
-                    provider.sources.map((item, itemIndex) =>
-                      itemIndex === index ? updateSource(item, { entry: event.target.value }) : item,
-                    ),
-                  )
-                }
-              />
-            )}
+            <span className="src-label">{sourceLabel(source)}</span>
             <button
               className="del-x"
               type="button"
@@ -195,6 +130,9 @@ export function RuleProviderEditor({
             </button>
           </div>
         ))}
+        {provider.sources.length === 0 ? (
+          <div className="empty-state">还没有来源 · 点「从目录挑」添加</div>
+        ) : null}
       </div>
 
       <details className="advanced-block">

@@ -1093,10 +1093,24 @@ button:disabled {
 
 .source-row {
   display: grid;
-  grid-template-columns: 14px auto minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 1.3fr) 32px;
+  grid-template-columns: 14px auto minmax(0, 1fr) 32px;
   gap: 8px;
   align-items: center;
   min-width: 0;
+  background: var(--bg2);
+  border: 1px solid #21262d;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.src-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--tx);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
 .source-row .grip {
