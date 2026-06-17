@@ -74,3 +74,22 @@ export function createCustomProxyGroupStats(config: RouteKitProjectConfig): Cust
     options: group.options.length + (group.nodeFilters?.length ?? 0),
   }));
 }
+
+export interface InboundRuleSetRow {
+  id: string;
+  enabled: boolean;
+  source: string;
+}
+
+export function selectInboundRuleSets(
+  config: RouteKitProjectConfig,
+  groupName: string,
+): InboundRuleSetRow[] {
+  return config.ruleSets
+    .filter((ruleSet) => ruleSet.policy === groupName)
+    .map((ruleSet) => ({
+      id: ruleSet.id,
+      enabled: ruleSet.enabled !== false,
+      source: ruleSetSourceText(ruleSet),
+    }));
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCustomProxyGroupStats, createRouteSummary } from "../src/routeSummary.js";
+import { createCustomProxyGroupStats, createRouteSummary, selectInboundRuleSets } from "../src/routeSummary.js";
 
 describe("route summary", () => {
   const config = {
@@ -71,5 +71,17 @@ describe("route summary", () => {
       { name: "Tech", ruleSets: 2, options: 2 },
       { name: "Direct", ruleSets: 1, options: 1 },
     ]);
+  });
+
+  it("selects inbound ruleSets for a group in order, keeping disabled", () => {
+    expect(selectInboundRuleSets(config, "Tech")).toEqual([
+      { id: "developer-provider", enabled: true, source: "clash-domain:Local_Developer_Domain.yaml" },
+      { id: "developer-geosite-github", enabled: true, source: "[]GEOSITE,github" },
+    ]);
+    expect(selectInboundRuleSets(config, "Proxy")).toEqual([
+      { id: "streaming-geosite-netflix", enabled: false, source: "[]GEOSITE,netflix" },
+      { id: "final", enabled: true, source: "[]FINAL" },
+    ]);
+    expect(selectInboundRuleSets(config, "Nonexistent")).toEqual([]);
   });
 });
