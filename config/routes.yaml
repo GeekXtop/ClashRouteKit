@@ -10,10 +10,11 @@ vendorRepos:
     path: vendor/ACL4SSR
   - name: dler-io
     url: https://github.com/dler-io/Rules.git
-    path: vendor/dler-io
+    path: vendor/Rules
   - name: Aethersailor
     url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
     path: vendor/Custom_OpenClash_Rules
+    branch: main
 customProxyGroups:
   - name: Proxy
     type: select

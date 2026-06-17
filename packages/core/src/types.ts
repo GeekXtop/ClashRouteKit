@@ -56,6 +56,7 @@ export interface VendorRepoConfig {
   name: string;
   url: string;
   path: string;
+  branch?: string;
 }
 
 export interface SourceBase {

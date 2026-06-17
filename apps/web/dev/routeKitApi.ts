@@ -162,7 +162,7 @@ const CATALOG_ORIGINS: CatalogOriginDef[] = [
   },
   { id: "ACL4SSR", label: "ACL4SSR", kind: "list-dir", dir: "vendor/ACL4SSR/Clash" },
   { id: "dler-io", label: "dler-io", kind: "provider-yaml", dir: "vendor/Rules/Clash/Provider" },
-  { id: "Aethersailor", label: "Aethersailor", kind: "list-dir", dir: "vendor/Custom_OpenClash_Rules" },
+  { id: "Aethersailor", label: "Aethersailor", kind: "list-dir", dir: "vendor/Custom_OpenClash_Rules/rule" },
 ];
 
 export interface CatalogEntriesOptions extends ProgramOptions {

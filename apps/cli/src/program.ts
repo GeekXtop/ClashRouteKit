@@ -132,7 +132,12 @@ export async function syncVendor(options: SyncVendorOptions): Promise<VendorSync
     const repoPath = path.join(options.root, repo.path);
     const gitDir = path.join(repoPath, ".git");
     if (existsSync(gitDir)) {
-      await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
+      if (repo.branch) {
+        await runGit(["-C", repoPath, "fetch", "--depth", "1", "origin", repo.branch], options.root);
+        await runGit(["-C", repoPath, "checkout", "-B", repo.branch, "FETCH_HEAD"], options.root);
+      } else {
+        await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
+      }
       results.push({ name: repo.name, action: "pull", path: repoPath });
       continue;
     }
@@ -141,7 +146,10 @@ export async function syncVendor(options: SyncVendorOptions): Promise<VendorSync
       throw new Error(`Vendor path exists but is not a git repository: ${repoPath}`);
     }
 
-    await runGit(["clone", "--depth", "1", repo.url, repoPath], options.root);
+    const cloneArgs = ["clone", "--depth", "1"];
+    if (repo.branch) cloneArgs.push("--branch", repo.branch);
+    cloneArgs.push(repo.url, repoPath);
+    await runGit(cloneArgs, options.root);
     results.push({ name: repo.name, action: "clone", path: repoPath });
   }
 

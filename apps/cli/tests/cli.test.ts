@@ -430,6 +430,32 @@ vendorRepos:
     });
   });
 
+  it("fetches and checks out the configured branch for existing vendor repos", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      `
+vendorRepos:
+  - name: branched
+    url: https://example.com/branched.git
+    path: vendor/branched
+    branch: main
+`,
+      "utf8",
+    );
+    await mkdir(path.join(root, "vendor/branched/.git"), { recursive: true });
+    const calls: string[] = [];
+    await syncVendor({
+      root,
+      configFile: "routes.yaml",
+      runGit: async (args) => {
+        calls.push(args.join(" "));
+      },
+    });
+    expect(calls.some((args) => args.endsWith("fetch --depth 1 origin main"))).toBe(true);
+    expect(calls.some((args) => args.endsWith("checkout -B main FETCH_HEAD"))).toBe(true);
+  });
+
   it("requires vendor repositories to be declared in the project config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
