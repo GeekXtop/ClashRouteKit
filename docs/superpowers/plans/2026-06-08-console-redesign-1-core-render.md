@@ -51,7 +51,7 @@
 - Modify: `packages/core/src/ini.ts:55-74`
 - Test: `packages/core/tests/renderIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `packages/core/tests/renderIni.test.ts` 的 `describe("renderIni", ...)` 内追加：
 
@@ -80,12 +80,12 @@
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "rule-generator"`
 Expected: 第二个用例 FAIL（`renderIni` 当前只接受 1 个参数，`false` 开关被忽略，输出仍是 `enable_rule_generator=true`）。
 
-- [ ] **Step 3: 加 `RenderIniOptions` 类型**
+- [x] **Step 3: 加 `RenderIniOptions` 类型**
 
 在 `packages/core/src/types.ts` 末尾追加：
 
@@ -97,7 +97,7 @@ export interface RenderIniOptions {
 }
 ```
 
-- [ ] **Step 4: 改 `renderIni` 读取开关**
+- [x] **Step 4: 改 `renderIni` 读取开关**
 
 把 `packages/core/src/ini.ts` 顶部 import 改为同时引入类型：
 
@@ -142,12 +142,12 @@ export function renderIni(config: RouteKitConfig, options: RenderIniOptions = {}
 }
 ```
 
-- [ ] **Step 5: 运行测试确认通过**
+- [x] **Step 5: 运行测试确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/renderIni.test.ts`
 Expected: PASS（含原有两个用例 —— 默认仍输出 `=true`，向后兼容）。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/ini.ts packages/core/tests/renderIni.test.ts
@@ -162,7 +162,7 @@ git commit -m "feat(core): configurable rule-generator/overwrite flags in render
 - Modify: `packages/core/src/ini.ts`（`renderIni` 的 tail，Task 1 已铺好分支）
 - Test: `packages/core/tests/renderIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 追加：
 
@@ -187,14 +187,14 @@ git commit -m "feat(core): configurable rule-generator/overwrite flags in render
   });
 ```
 
-- [ ] **Step 2: 运行测试**
+- [x] **Step 2: 运行测试**
 
 Run: `pnpm exec vitest run -t "clash_rule_base"`
 Expected: PASS（Task 1 的 tail 已实现 `if (options.clashRuleBase)` 分支）。
 
 > 若 Step 2 失败，核对 Task 1 Step 4 的 tail 是否含 `if (options.clashRuleBase)` 分支并修正。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add packages/core/tests/renderIni.test.ts
@@ -210,7 +210,7 @@ git commit -m "test(core): cover clash_rule_base emission in renderIni"
 - Modify: `packages/core/src/ini.ts`（`renderIni` 的规则循环）
 - Test: `packages/core/tests/renderIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 追加：
 
@@ -236,12 +236,12 @@ git commit -m "test(core): cover clash_rule_base emission in renderIni"
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "section changes"`
 Expected: FAIL（输出不含 `; 拦截`；且 TS 报 `section` 不存在于 `RuleSet`）。
 
-- [ ] **Step 3: 给 `RuleSet` 加 `section?`**
+- [x] **Step 3: 给 `RuleSet` 加 `section?`**
 
 在 `packages/core/src/types.ts` 的 `RuleSet` 接口（[types.ts:31-36](packages/core/src/types.ts#L31)）加一行：
 
@@ -255,7 +255,7 @@ export interface RuleSet {
 }
 ```
 
-- [ ] **Step 4: 改 `renderIni` 规则循环以追踪 section**
+- [x] **Step 4: 改 `renderIni` 规则循环以追踪 section**
 
 把 Task 1 写入的 `renderIni` 中 `const ruleLines = config.ruleSets.flatMap(...)` 这一段替换为带 section 追踪的循环：
 
@@ -274,12 +274,12 @@ export interface RuleSet {
 
 （`renderRuleSet` 内对 `enabled === false` 的判断保留无妨，循环已先行 `continue`。）
 
-- [ ] **Step 5: 运行测试确认通过**
+- [x] **Step 5: 运行测试确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/renderIni.test.ts`
 Expected: PASS（含原有「skips disabled ruleSet entries」用例 —— 被禁用项在循环里 `continue`，既不输出规则也不输出其段头）。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/ini.ts packages/core/tests/renderIni.test.ts
@@ -294,7 +294,7 @@ git commit -m "feat(core): emit section comment separators in renderIni"
 - Modify: `packages/core/src/types.ts`（`template`、`RouteKitProjectConfig`）
 - Test: `packages/core/tests/configDocument.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `packages/core/tests/configDocument.test.ts` 的 `describe` 内追加（注意：用独立 yaml，含新字段）：
 
@@ -329,7 +329,7 @@ git commit -m "feat(core): emit section comment separators in renderIni"
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "globalRemove"`
 Expected: FAIL —— 运行期断言其实能过（YAML 透传），但 `pnpm typecheck` 会因 `config.template.clashRuleBase` / `config.globalRemove` 不在类型上而报错。先以类型错误为「失败」信号。
@@ -337,7 +337,7 @@ Expected: FAIL —— 运行期断言其实能过（YAML 透传），但 `pnpm t
 Run: `pnpm typecheck`
 Expected: FAIL，报 `clashRuleBase`/`globalRemove` 不存在。
 
-- [ ] **Step 3: 扩展类型**
+- [x] **Step 3: 扩展类型**
 
 把 `packages/core/src/types.ts` 的 `RouteKitProjectConfig`（[types.ts:93-99](packages/core/src/types.ts#L93)）替换为：
 
@@ -355,7 +355,7 @@ export interface RouteKitProjectConfig extends RouteKitConfig {
 }
 ```
 
-- [ ] **Step 4: 运行测试与类型检查确认通过**
+- [x] **Step 4: 运行测试与类型检查确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/configDocument.test.ts`
 Expected: PASS（原有「rejects legacy modules/proxyGroups」等用例不受影响）。
@@ -363,7 +363,7 @@ Expected: PASS（原有「rejects legacy modules/proxyGroups」等用例不受�
 Run: `pnpm typecheck`
 Expected: PASS。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add packages/core/src/types.ts packages/core/tests/configDocument.test.ts
@@ -377,7 +377,7 @@ git commit -m "feat(core): add template flags and globalRemove to project config
 **Files:**
 - Modify: `packages/core/src/index.ts:12-34`
 
-- [ ] **Step 1: 加类型 re-export**
+- [x] **Step 1: 加类型 re-export**
 
 在 `packages/core/src/index.ts` 的 `export type { ... } from "./types.js";` 块内，按字母序加入 `RenderIniOptions`：
 
@@ -408,12 +408,12 @@ export type {
 } from "./types.js";
 ```
 
-- [ ] **Step 2: 类型检查与全量测试**
+- [x] **Step 2: 类型检查与全量测试**
 
 Run: `pnpm typecheck && pnpm test`
 Expected: PASS（全工作区）。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add packages/core/src/index.ts

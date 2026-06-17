@@ -51,7 +51,7 @@ B 层每个页面的视觉与布局以 `docs/design/console-redesign/` 下的设
 - Modify: `apps/web/src/configMutations.ts`
 - Test: `apps/web/tests/configMutations.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/web/tests/configMutations.test.ts` 追加：
 
@@ -96,12 +96,12 @@ it("patches template fields without dropping output", () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `pnpm exec vitest run apps/web/tests/configMutations.test.ts -t "reorder"`
 Expected: FAIL（函数未定义）。
 
-- [ ] **Step 3: 实现三个 mutation**
+- [x] **Step 3: 实现三个 mutation**
 
 在 `apps/web/src/configMutations.ts` 末尾追加（复用文件内 `normalizeList`）：
 
@@ -141,7 +141,7 @@ export function setTemplateField(
 }
 ```
 
-- [ ] **Step 4: 运行确认通过 + 提交**
+- [x] **Step 4: 运行确认通过 + 提交**
 
 Run: `pnpm exec vitest run apps/web/tests/configMutations.test.ts`
 Expected: PASS。
@@ -164,7 +164,7 @@ git commit -m "feat(web): add reorderRuleSets/setGlobalRemove/setTemplateField m
 - Delete: `apps/web/src/components/ProjectWorkspace.tsx`
 - Test: `apps/web/tests/projectController.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/web/tests/projectController.test.ts` 追加（断言默认落地页与不再含 `project`）：
 
@@ -177,12 +177,12 @@ it("defaults the landing view to catalog", () => {
 
 （`sampleYaml`/`sampleConfig` 沿用该测试文件已有夹具；若无则用 configDocument 测试里的最小 yaml 经 `parseRouteKitConfig` 构造。）
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `pnpm exec vitest run apps/web/tests/projectController.test.ts -t "landing view"`
 Expected: FAIL（当前默认 `ruleSets`）。
 
-- [ ] **Step 3: 改 ProjectView 联合与默认 view**
+- [x] **Step 3: 改 ProjectView 联合与默认 view**
 
 把 `apps/web/src/projectController.ts:7-14` 的 `ProjectView` 改为：
 
@@ -197,7 +197,7 @@ export type ProjectView =
 
 把 `createProjectController` 里 `selectedView: "ruleSets"`（[projectController.ts:96](apps/web/src/projectController.ts#L96)）改为 `selectedView: "catalog"`。
 
-- [ ] **Step 4: 改 navItems（5 项，工作流顺序）**
+- [x] **Step 4: 改 navItems（5 项，工作流顺序）**
 
 把 `apps/web/src/components/AppShell.tsx:21-29` 的 `navItems` 替换为：
 
@@ -213,11 +213,11 @@ const navItems: NavItem[] = [
 
 （移除 `Settings2` import 若不再使用，避免未用告警。）
 
-- [ ] **Step 5: 改 WorkspaceRouter 分发**
+- [x] **Step 5: 改 WorkspaceRouter 分发**
 
 在 `apps/web/src/components/WorkspaceRouter.tsx`：删除 `project` 分支（[WorkspaceRouter.tsx:108-110](apps/web/src/components/WorkspaceRouter.tsx#L108)）与 `preview` 分支（[:151-163](apps/web/src/components/WorkspaceRouter.tsx#L151)）；删除对 `ProjectWorkspace`/`PreviewWorkspace`（preview 改入路由右栏，见 Task B5）的 import；新增 `catalog` 分支返回 `<CatalogWorkspace .../>`（组件见 Task B1）。`rules` 分支改由 CatalogWorkspace 内部承载（删除独立 `rules` 分支）。`ruleSets` 默认分支保留，由 Task B4 改造为三列。
 
-- [ ] **Step 6: 删除 ProjectWorkspace + 类型检查**
+- [x] **Step 6: 删除 ProjectWorkspace + 类型检查**
 
 ```bash
 git rm apps/web/src/components/ProjectWorkspace.tsx
@@ -226,7 +226,7 @@ git rm apps/web/src/components/ProjectWorkspace.tsx
 Run: `pnpm --filter @clash-route-kit/web typecheck`
 Expected: 仅剩对 `CatalogWorkspace` 未实现的引用错误（Task B1 解决）；先注释 catalog 分支占位以通过编译，或与 B1 同批提交。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add apps/web/src/projectController.ts apps/web/src/components/AppShell.tsx apps/web/src/components/WorkspaceRouter.tsx apps/web/tests/projectController.test.ts
@@ -241,7 +241,7 @@ git commit -m "feat(web): reorder nav to 5-tab workflow IA, drop overview view"
 - Modify: `apps/web/dev/routeKitApi.ts`
 - Test: `apps/web/tests/routeKitApi.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/web/tests/routeKitApi.test.ts` 追加（用可注入 reader，免依赖真实 vendor）：
 
@@ -268,12 +268,12 @@ it("reads a geosite entry's includes and rule count", async () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `pnpm exec vitest run apps/web/tests/routeKitApi.test.ts -t "catalog"`
 Expected: FAIL（未导出）。
 
-- [ ] **Step 3: 实现纯函数**
+- [x] **Step 3: 实现纯函数**
 
 在 `apps/web/dev/routeKitApi.ts` 顶部 core import 加入 `parseDomainListEntry`：
 
@@ -325,7 +325,7 @@ export async function readCatalogEntry(
 }
 ```
 
-- [ ] **Step 4: 接入 HTTP handler**
+- [x] **Step 4: 接入 HTTP handler**
 
 在 `createRouteKitApiHandler` 的路由判断里（`/api/project/config` 之前）加入：
 
@@ -351,7 +351,7 @@ export async function readCatalogEntry(
     }
 ```
 
-- [ ] **Step 5: 运行 + 提交**
+- [x] **Step 5: 运行 + 提交**
 
 Run: `pnpm exec vitest run apps/web/tests/routeKitApi.test.ts && pnpm --filter @clash-route-kit/web typecheck`
 Expected: PASS。

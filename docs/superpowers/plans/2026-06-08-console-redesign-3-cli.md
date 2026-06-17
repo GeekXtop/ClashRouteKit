@@ -36,7 +36,7 @@
 - Modify: `apps/cli/src/program.ts:335-338`
 - Test: `apps/cli/tests/cli.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/cli/tests/cli.test.ts` 的 `describe("CLI program", ...)` 内追加：
 
@@ -95,12 +95,12 @@
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "globalRemove to every provider"`
 Expected: FAIL（`ban.example` 仍出现在产物里 —— 当前未应用 globalRemove）。
 
-- [ ] **Step 3: 实现 —— 在 exclude 拼接中加入 globalRemove**
+- [x] **Step 3: 实现 —— 在 exclude 拼接中加入 globalRemove**
 
 把 `apps/cli/src/program.ts:335-338` 的 exclude 定义替换为：
 
@@ -112,12 +112,12 @@ Expected: FAIL（`ban.example` 仍出现在产物里 —— 当前未应用 glob
     ];
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `pnpm exec vitest run apps/cli/tests/cli.test.ts`
 Expected: PASS（原「excludes configured rules」用例的 `result.providers` 统计不受影响 —— 该用例 config 无 `globalRemove`，`config.globalRemove ?? []` 为空）。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add apps/cli/src/program.ts apps/cli/tests/cli.test.ts
@@ -132,7 +132,7 @@ git commit -m "feat(cli): apply project-level globalRemove to all providers"
 - Modify: `apps/cli/src/program.ts:301`
 - Test: `apps/cli/tests/cli.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 追加：
 
@@ -169,12 +169,12 @@ git commit -m "feat(cli): apply project-level globalRemove to all providers"
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "template flags through"`
 Expected: FAIL（当前 `renderIni(config)` 未传开关，输出仍是 `enable_rule_generator=true`、无 clash_rule_base）。
 
-- [ ] **Step 3: 实现 —— 传 options**
+- [x] **Step 3: 实现 —— 传 options**
 
 把 `apps/cli/src/program.ts:301` 的：
 
@@ -196,12 +196,12 @@ Expected: FAIL（当前 `renderIni(config)` 未传开关，输出仍是 `enable_
   );
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `pnpm exec vitest run apps/cli/tests/cli.test.ts`
 Expected: PASS（其它用例 config 无这些字段 → `undefined` → `renderIni` 内 `?? true` 回到默认，向后兼容）。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add apps/cli/src/program.ts apps/cli/tests/cli.test.ts
@@ -217,7 +217,7 @@ git commit -m "feat(cli): forward template flags to renderIni in generate"
 - Modify: `apps/cli/src/index.ts`
 - Test: `apps/cli/tests/importIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 新建 `apps/cli/tests/importIni.test.ts`：
 
@@ -258,12 +258,12 @@ describe("CLI importIni", () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run apps/cli/tests/importIni.test.ts`
 Expected: FAIL（`importIni` 未导出）。
 
-- [ ] **Step 3: 实现 importIni**
+- [x] **Step 3: 实现 importIni**
 
 在 `apps/cli/src/program.ts` 顶部 core import 块（[program.ts:7-19](apps/cli/src/program.ts#L7)）加入 `parseIniToConfig`、`serializeRouteKitConfig` 与类型 `ImportedConfig`：
 
@@ -316,12 +316,12 @@ export async function importIni(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `pnpm exec vitest run apps/cli/tests/importIni.test.ts`
 Expected: PASS。
 
-- [ ] **Step 5: 接入入口分发**
+- [x] **Step 5: 接入入口分发**
 
 在 `apps/cli/src/index.ts` 的 import 块加入 `importIni`：
 
@@ -367,7 +367,7 @@ import {
   );
 ```
 
-- [ ] **Step 6: 类型检查 + 提交**
+- [x] **Step 6: 类型检查 + 提交**
 
 Run: `pnpm typecheck`
 Expected: PASS。
@@ -385,7 +385,7 @@ git commit -m "feat(cli): add import command to parse SubConverter INI into scaf
 - Modify: `apps/cli/src/program.ts:398-426`
 - Test: `apps/cli/tests/cli.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 追加：
 
@@ -425,12 +425,12 @@ git commit -m "feat(cli): add import command to parse SubConverter INI into scaf
   });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "preview output by ruleSet section"`
 Expected: FAIL（输出无 `# 海外类目`）。
 
-- [ ] **Step 3: 实现 —— preview 追踪 section**
+- [x] **Step 3: 实现 —— preview 追踪 section**
 
 把 `apps/cli/src/program.ts:398-426` 的 `previewRules` 整体替换为：
 
@@ -471,7 +471,7 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
 }
 ```
 
-- [ ] **Step 4: 运行测试 + 全量 + 提交**
+- [x] **Step 4: 运行测试 + 全量 + 提交**
 
 Run: `pnpm exec vitest run apps/cli/tests/cli.test.ts`
 Expected: PASS（原「previews rule order」用例无 section → 不插入 `#` 行，仍含 `GEOSITE github -> 💻 Tech` 与 `FINAL -> 🚀 手动选择`）。

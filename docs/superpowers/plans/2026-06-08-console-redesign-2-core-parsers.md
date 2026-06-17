@@ -31,7 +31,7 @@
 - Modify: `packages/core/src/index.ts`
 - Test: `packages/core/tests/rules.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 新建 `packages/core/tests/rules.test.ts`：
 
@@ -59,12 +59,12 @@ describe("parseDomainListEntry", () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run packages/core/tests/rules.test.ts`
 Expected: FAIL（`parseDomainListEntry` 未导出）。
 
-- [ ] **Step 3: 加类型**
+- [x] **Step 3: 加类型**
 
 在 `packages/core/src/types.ts` 末尾追加：
 
@@ -75,7 +75,7 @@ export interface DomainListEntryInfo {
 }
 ```
 
-- [ ] **Step 4: 实现 parseDomainListEntry**
+- [x] **Step 4: 实现 parseDomainListEntry**
 
 在 `packages/core/src/rules.ts` 顶部 import 处加入类型（与现有 import 合并）：
 
@@ -109,7 +109,7 @@ export function parseDomainListEntry(content: string): DomainListEntryInfo {
 }
 ```
 
-- [ ] **Step 5: 导出**
+- [x] **Step 5: 导出**
 
 在 `packages/core/src/index.ts` 的 `export { ... } from "./rules.js";` 块加入 `parseDomainListEntry`：
 
@@ -125,12 +125,12 @@ export {
 
 并在 `export type { ... } from "./types.js";` 块按字母序加入 `DomainListEntryInfo`。
 
-- [ ] **Step 6: 运行测试确认通过**
+- [x] **Step 6: 运行测试确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/rules.test.ts`
 Expected: PASS。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/rules.ts packages/core/src/index.ts packages/core/tests/rules.test.ts
@@ -146,7 +146,7 @@ git commit -m "feat(core): add parseDomainListEntry for catalog browsing"
 - Create: `packages/core/src/import.ts`
 - Test: `packages/core/tests/importIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 新建 `packages/core/tests/importIni.test.ts`：
 
@@ -200,12 +200,12 @@ describe("parseIniToConfig · rulesets", () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
 Expected: FAIL（`parseIniToConfig` 未导出）。
 
-- [ ] **Step 3: 加 `ImportedConfig` 类型**
+- [x] **Step 3: 加 `ImportedConfig` 类型**
 
 在 `packages/core/src/types.ts` 末尾追加：
 
@@ -217,7 +217,7 @@ export interface ImportedConfig {
 }
 ```
 
-- [ ] **Step 4: 创建 import.ts（先实现 ruleset 解析与主循环骨架）**
+- [x] **Step 4: 创建 import.ts（先实现 ruleset 解析与主循环骨架）**
 
 新建 `packages/core/src/import.ts`：
 
@@ -309,7 +309,7 @@ export function parseIniToConfig(ini: string): ImportedConfig {
 }
 ```
 
-- [ ] **Step 5: 导出 parseIniToConfig 与 ImportedConfig**
+- [x] **Step 5: 导出 parseIniToConfig 与 ImportedConfig**
 
 在 `packages/core/src/index.ts` 顶部追加：
 
@@ -319,12 +319,12 @@ export { parseIniToConfig } from "./import.js";
 
 并在 `export type { ... } from "./types.js";` 块按字母序加入 `ImportedConfig`。
 
-- [ ] **Step 6: 运行测试确认通过**
+- [x] **Step 6: 运行测试确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
 Expected: PASS。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/import.ts packages/core/src/index.ts packages/core/tests/importIni.test.ts
@@ -339,7 +339,7 @@ git commit -m "feat(core): parse ruleset lines in parseIniToConfig"
 - Modify: `packages/core/src/import.ts`
 - Test: `packages/core/tests/importIni.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `packages/core/tests/importIni.test.ts` 追加一个 `describe`：
 
@@ -372,12 +372,12 @@ describe("parseIniToConfig · proxy groups", () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `pnpm exec vitest run -t "proxy groups"`
 Expected: FAIL（当前 `parseIniToConfig` 不处理 `custom_proxy_group`，`customProxyGroups` 为空）。
 
-- [ ] **Step 3: 实现 parseProxyGroupLine 并接入主循环**
+- [x] **Step 3: 实现 parseProxyGroupLine 并接入主循环**
 
 在 `packages/core/src/import.ts` 的 `parseRulesetSource` 之后、`parseIniToConfig` 之前插入：
 
@@ -441,12 +441,12 @@ function parseProxyGroupLine(body: string, warnings: string[]): CustomProxyGroup
 
 （即把现有 `if (key === "ruleset") { ... }` 的闭合 `}` 改为 `} else if (key === "custom_proxy_group") { ... }`。）
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts`
 Expected: PASS（ruleset 与 proxy group 两组用例全过）。
 
-- [ ] **Step 5: 类型检查 + 全量测试 + 提交**
+- [x] **Step 5: 类型检查 + 全量测试 + 提交**
 
 Run: `pnpm typecheck && pnpm test`
 Expected: PASS。
