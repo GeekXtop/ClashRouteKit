@@ -2693,3 +2693,105 @@ button.state {
     display: none;
   }
 }
+
+/* ── 策略组：列表行（色点 + 名 + 类型徽标）与入站规则区（#9 模型 1） ── */
+.cpg-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.cpg-row-main strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cpg-row-main .policy-dot {
+  flex: none;
+}
+.type-badge {
+  flex: none;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.type-badge.tb-url-test {
+  color: var(--green);
+  border-color: #3fb95055;
+}
+.type-badge.tb-fallback,
+.type-badge.tb-load-balance {
+  color: var(--reg);
+  border-color: #1f6feb55;
+}
+.muted-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.section-hint {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.link-button {
+  background: transparent;
+  border: none;
+  color: var(--reg);
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.link-button:hover {
+  text-decoration: underline;
+}
+.inbound-rules {
+  display: grid;
+  gap: 4px;
+}
+.inbound-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg2);
+}
+.inbound-rule code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--tx);
+}
+.inbound-rule.disabled code {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.inbound-jump {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: var(--reg);
+  font-size: 12px;
+}
+.inbound-remove {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+}
+.inbound-remove:hover {
+  color: var(--red);
+}

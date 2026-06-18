@@ -64,4 +64,27 @@ describe("CustomProxyGroupEditor", () => {
     renderEditor({ groups: cyclic, group: cyclic[0] });
     expect(screen.getByText(/引用环/)).toBeTruthy();
   });
+
+  it("lists inbound ruleSets and supports jump / remove / add", () => {
+    const onJumpToRuleSet = vi.fn();
+    const onDeleteRuleSet = vi.fn();
+    const onAddInboundRule = vi.fn();
+    renderEditor({
+      inboundRuleSets: [
+        { id: "ai-openai", enabled: true, source: "[]GEOSITE,openai" },
+        { id: "ai-anthropic", enabled: false, source: "[]GEOSITE,anthropic" },
+      ],
+      onJumpToRuleSet,
+      onDeleteRuleSet,
+      onAddInboundRule,
+    });
+    expect(screen.getByText("[]GEOSITE,openai")).toBeTruthy();
+    expect(screen.getByText("[]GEOSITE,anthropic")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("在路由中查看 ai-openai"));
+    expect(onJumpToRuleSet).toHaveBeenCalledWith("ai-openai");
+    fireEvent.click(screen.getByLabelText("移除规则 ai-anthropic"));
+    expect(onDeleteRuleSet).toHaveBeenCalledWith("ai-anthropic");
+    fireEvent.click(screen.getByText("+ 添加规则"));
+    expect(onAddInboundRule).toHaveBeenCalled();
+  });
 });

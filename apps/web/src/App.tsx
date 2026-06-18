@@ -210,6 +210,10 @@ export default function App() {
         onCreateCustomProxyGroup={draftActions.createCustomProxyGroup}
         onCreateProvider={draftActions.createProvider}
         onDeleteRuleSet={draftActions.deleteRuleSet}
+        onJumpToRuleSet={(id) =>
+          setProject((current) => setProjectSelection(current, { selectedView: "ruleSets", selectedRuleSetId: id }))
+        }
+        onAddInboundRule={(groupName) => draftActions.addGeositeRoute("", groupName)}
         onDeleteCustomProxyGroup={draftActions.deleteCustomProxyGroup}
         onDeleteProvider={draftActions.deleteProvider}
         onCustomProxyGroupFilterChange={setCustomProxyGroupFilter}

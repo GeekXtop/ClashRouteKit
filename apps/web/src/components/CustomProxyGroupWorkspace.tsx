@@ -1,5 +1,5 @@
 import type { CustomProxyGroup, RouteKitProjectConfig } from "@clash-route-kit/core";
-import type { CustomProxyGroupStat } from "../routeSummary.js";
+import { selectInboundRuleSets, type CustomProxyGroupStat } from "../routeSummary.js";
 import { CustomProxyGroupEditor } from "./CustomProxyGroupEditor.js";
 import { CustomProxyGroupList } from "./CustomProxyGroupList.js";
 
@@ -11,6 +11,9 @@ export function CustomProxyGroupWorkspace({
   onSelectGroup,
   onSetGroupListField,
   onUpdateGroup,
+  onJumpToRuleSet,
+  onDeleteRuleSet,
+  onAddInboundRule,
   selectedGroup,
   stats,
 }: {
@@ -21,6 +24,9 @@ export function CustomProxyGroupWorkspace({
   onSelectGroup: (groupName: string) => void;
   onSetGroupListField: (groupName: string, field: "options" | "nodeFilters", values: string[]) => void;
   onUpdateGroup: (groupName: string, patch: Partial<CustomProxyGroup>) => void;
+  onJumpToRuleSet: (ruleSetId: string) => void;
+  onDeleteRuleSet: (ruleSetId: string) => void;
+  onAddInboundRule: (groupName: string) => void;
   selectedGroup: CustomProxyGroup | undefined;
   stats: CustomProxyGroupStat[];
 }) {
@@ -36,10 +42,14 @@ export function CustomProxyGroupWorkspace({
       <CustomProxyGroupEditor
         group={selectedGroup}
         groups={config.customProxyGroups}
+        inboundRuleSets={selectedGroup ? selectInboundRuleSets(config, selectedGroup.name) : []}
         onDeleteGroup={onDeleteGroup}
         onRenameGroup={onRenameGroup}
         onSetGroupListField={onSetGroupListField}
         onUpdateGroup={onUpdateGroup}
+        onJumpToRuleSet={onJumpToRuleSet}
+        onDeleteRuleSet={onDeleteRuleSet}
+        onAddInboundRule={selectedGroup ? () => onAddInboundRule(selectedGroup.name) : undefined}
       />
     </div>
   );

@@ -31,6 +31,8 @@ export function WorkspaceRouter({
   onDeleteCustomProxyGroup,
   onDeleteProvider,
   onDeleteRuleSet,
+  onJumpToRuleSet,
+  onAddInboundRule,
   onLoadRuleFile,
   onPreviewModeChange,
   onRefreshRuleFiles,
@@ -77,6 +79,8 @@ export function WorkspaceRouter({
   onDeleteCustomProxyGroup: (groupName: string) => void;
   onDeleteProvider: (providerName: string) => void;
   onDeleteRuleSet: (ruleSetId: string) => void;
+  onJumpToRuleSet: (ruleSetId: string) => void;
+  onAddInboundRule: (groupName: string) => void;
   onLoadRuleFile: (file: string) => void;
   onPreviewModeChange: (mode: PreviewMode) => void;
   onRefreshRuleFiles: () => void;
@@ -134,6 +138,9 @@ export function WorkspaceRouter({
         onSelectGroup={onSelectCustomProxyGroup}
         onSetGroupListField={onSetCustomProxyGroupListField}
         onUpdateGroup={onUpdateCustomProxyGroup}
+        onJumpToRuleSet={onJumpToRuleSet}
+        onDeleteRuleSet={onDeleteRuleSet}
+        onAddInboundRule={onAddInboundRule}
       />
     );
   }

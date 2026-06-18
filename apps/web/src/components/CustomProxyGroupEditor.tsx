@@ -8,6 +8,7 @@ import {
   type NodeFilterScopeType,
   type ProxyGroupTreeNode,
 } from "../proxyGroups.js";
+import type { InboundRuleSetRow } from "../routeSummary.js";
 
 const groupTypes: CustomProxyGroup["type"][] = ["select", "url-test", "fallback", "load-balance"];
 
@@ -47,6 +48,10 @@ export function CustomProxyGroupEditor({
   onRenameGroup,
   onSetGroupListField,
   onUpdateGroup,
+  inboundRuleSets = [],
+  onJumpToRuleSet,
+  onDeleteRuleSet,
+  onAddInboundRule,
 }: {
   group: CustomProxyGroup | undefined;
   groups: CustomProxyGroup[];
@@ -54,6 +59,10 @@ export function CustomProxyGroupEditor({
   onRenameGroup: (groupName: string, nextGroupName: string) => void;
   onSetGroupListField: (groupName: string, field: "options" | "nodeFilters", values: string[]) => void;
   onUpdateGroup: (groupName: string, patch: Partial<CustomProxyGroup>) => void;
+  inboundRuleSets?: InboundRuleSetRow[];
+  onJumpToRuleSet?: (ruleSetId: string) => void;
+  onDeleteRuleSet?: (ruleSetId: string) => void;
+  onAddInboundRule?: () => void;
 }) {
   const [nameDraft, setNameDraft] = useState(group?.name ?? "");
   const [scopeType, setScopeType] = useState<NodeFilterScopeType>("all");
@@ -203,6 +212,42 @@ export function CustomProxyGroupEditor({
             }
           />
         </label>
+      </div>
+
+      <div className="group-section">
+        <div className="entity-list-header">
+          <h3>
+            指向本组的规则 <span className="muted-count">{inboundRuleSets.length}</span>
+          </h3>
+          <button type="button" className="link-button" onClick={() => onAddInboundRule?.()}>
+            + 添加规则
+          </button>
+        </div>
+        <p className="section-hint">命中这些规则的流量进入本组（在路由页按顺序匹配）。</p>
+        <div className="inbound-rules">
+          {inboundRuleSets.map((row) => (
+            <div key={row.id} className={`inbound-rule ${row.enabled ? "" : "disabled"}`}>
+              <code>{row.source}</code>
+              <button
+                type="button"
+                className="inbound-jump"
+                aria-label={`在路由中查看 ${row.id}`}
+                onClick={() => onJumpToRuleSet?.(row.id)}
+              >
+                ↗ 路由
+              </button>
+              <button
+                type="button"
+                className="inbound-remove"
+                aria-label={`移除规则 ${row.id}`}
+                onClick={() => onDeleteRuleSet?.(row.id)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {inboundRuleSets.length === 0 ? <span className="empty-line">暂无规则指向本组</span> : null}
+        </div>
       </div>
 
       <div className="group-section">
