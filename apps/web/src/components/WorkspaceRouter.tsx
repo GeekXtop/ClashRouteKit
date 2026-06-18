@@ -15,6 +15,7 @@ import { CustomProxyGroupWorkspace } from "./CustomProxyGroupWorkspace.js";
 import { type PreviewMode } from "./PreviewWorkspace.js";
 import { ProviderWorkspace } from "./ProviderWorkspace.js";
 import { PublishPanel } from "./PublishPanel.js";
+import { SubscribeAssembler } from "./SubscribeAssembler.js";
 import { type RuleFileState } from "./RuleFileWorkspace.js";
 import { RouteWorkspace } from "./RouteWorkspace.js";
 
@@ -161,19 +162,26 @@ export function WorkspaceRouter({
   }
   if (project.selectedView === "publish") {
     return (
-      <PublishPanel
-        actionStates={actionStates}
-        dirty={project.dirty}
-        draftYamlLength={project.draftYaml.length}
-        projectMessage={project.message}
-        projectStatus={project.status}
-        publishBaseUrl={config.publishBaseUrl}
-        saveReadiness={saveReadiness}
-        template={config.template}
-        onRun={onRunAction}
-        onSave={onSave}
-        onSetTemplateField={onSetTemplateField}
-      />
+      <>
+        <PublishPanel
+          actionStates={actionStates}
+          dirty={project.dirty}
+          draftYamlLength={project.draftYaml.length}
+          projectMessage={project.message}
+          projectStatus={project.status}
+          publishBaseUrl={config.publishBaseUrl}
+          saveReadiness={saveReadiness}
+          template={config.template}
+          onRun={onRunAction}
+          onSave={onSave}
+          onSetTemplateField={onSetTemplateField}
+        />
+        <SubscribeAssembler
+          publishBaseUrl={config.publishBaseUrl}
+          templateOutput={config.template.output}
+          subconverterUrl={config.subconverterUrl ?? "http://10.0.0.3:25500/sub"}
+        />
+      </>
     );
   }
 
