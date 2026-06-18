@@ -18,12 +18,14 @@ const navItems: NavItem[] = [
 
 export function AppShell({
   children,
+  onImportTemplate,
   onSelectView,
   selectedView,
 }: {
   children: ReactNode;
   dirty: boolean;
   enabledCount: number;
+  onImportTemplate?: () => void;
   onSelectView: (view: ProjectView) => void;
   selectedView: ProjectView;
   status: ProjectStatus;
@@ -50,6 +52,11 @@ export function AppShell({
             </button>
           ))}
         </nav>
+        {onImportTemplate ? (
+          <button type="button" className="import-template-btn" onClick={onImportTemplate}>
+            导入模板
+          </button>
+        ) : null}
       </header>
 
       <main className="page">{children}</main>

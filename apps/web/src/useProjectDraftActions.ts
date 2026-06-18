@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
   CustomProxyGroup,
+  ImportedConfig,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -21,6 +22,7 @@ import {
   mergeImportedConfig,
   renameCustomProxyGroup,
   reorderRuleSets,
+  replaceImportedConfig,
   setCustomProxyGroupListField,
   setGlobalRemove,
   setRuleProviderListField,
@@ -185,6 +187,21 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
             ...dirtyMessage(next),
             message: warned ? `已导入 INI（${warned} 条警告）` : "已导入 INI",
             selectedView: "ruleSets",
+          };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
+    },
+    importTemplate(imported: ImportedConfig) {
+      setProject((current) => {
+        try {
+          const next = applyDraftConfig(current, replaceImportedConfig(current.draftConfig, imported));
+          const warned = imported.warnings.length;
+          return {
+            ...dirtyMessage(next),
+            message: warned ? `已覆盖导入模板（${warned} 条警告）` : "已覆盖导入模板",
+            selectedView: "customProxyGroups",
           };
         } catch (error: unknown) {
           return mutationError(current, error);

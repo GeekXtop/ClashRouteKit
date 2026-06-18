@@ -2935,3 +2935,46 @@ button.state {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ── 模板导入向导（#8） ── */
+.import-template-btn {
+  margin-left: auto;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 7px 13px;
+}
+.import-template-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.command-button.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.command-button.danger:disabled {
+  opacity: 0.5;
+}
+.wizard-source {
+  display: grid;
+  gap: 8px;
+}
+.wizard-source .picker-entries {
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+}
+.wizard-source .rule-file-editor {
+  min-height: 180px;
+}
+.wizard-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}

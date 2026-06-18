@@ -5,6 +5,7 @@ import { AppShell } from "./components/AppShell.js";
 import type { PreviewMode } from "./components/PreviewWorkspace.js";
 import type { RuleFileState } from "./components/RuleFileWorkspace.js";
 import { WorkspaceRouter } from "./components/WorkspaceRouter.js";
+import { TemplateImportWizard } from "./components/TemplateImportWizard.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
 import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
 import {
@@ -28,6 +29,7 @@ export default function App() {
   const [customProxyGroupFilter, setCustomProxyGroupFilter] = useState("全部");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("rules");
   const [actionStates, setActionStates] = useState(createInitialActionStates);
+  const [templateImportOpen, setTemplateImportOpen] = useState(false);
   const [ruleFileState, setRuleFileState] = useState<RuleFileState>({
     files: [],
     selectedFile: "",
@@ -185,6 +187,7 @@ export default function App() {
       enabledCount={enabledCount}
       selectedView={project.selectedView}
       status={project.status}
+      onImportTemplate={() => setTemplateImportOpen(true)}
       onSelectView={(selectedView) => setProject((current) => setProjectSelection(current, { selectedView }))}
     >
       <WorkspaceRouter
@@ -242,6 +245,15 @@ export default function App() {
         onUpdateCustomProxyGroup={draftActions.updateCustomProxyGroup}
         onUpdateProvider={draftActions.updateProvider}
       />
+      {templateImportOpen ? (
+        <TemplateImportWizard
+          onApply={(imported) => {
+            draftActions.importTemplate(imported);
+            setTemplateImportOpen(false);
+          }}
+          onClose={() => setTemplateImportOpen(false)}
+        />
+      ) : null}
     </AppShell>
   );
 }

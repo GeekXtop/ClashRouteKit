@@ -451,6 +451,7 @@ export function CatalogWorkspace({
                 <option value="domain-list">domain-list（含 include）</option>
                 <option value="list-dir">list-dir（一堆 .list）</option>
                 <option value="provider-yaml">provider-yaml（payload）</option>
+                <option value="ini-template">ini-template（模板 .ini）</option>
               </select>
               <button type="button" className="command-button primary" onClick={() => void submitAddRepo()}>
                 添加
