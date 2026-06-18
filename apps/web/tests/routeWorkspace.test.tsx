@@ -97,4 +97,12 @@ describe("RouteWorkspace", () => {
     fireEvent.click(screen.getByText("添加规则"));
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
+
+  it("docks the live INI preview and collapses it", () => {
+    renderWorkspace({ previewMode: "ini", iniPreview: "[custom]\nruleset=Proxy,[]FINAL\n" });
+    expect(screen.getByText(/ruleset=Proxy,\[\]FINAL/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/收起预览/));
+    expect(screen.queryByText(/ruleset=Proxy,\[\]FINAL/)).toBeNull();
+    expect(screen.getByText(/展开 INI 预览/)).toBeTruthy();
+  });
 });

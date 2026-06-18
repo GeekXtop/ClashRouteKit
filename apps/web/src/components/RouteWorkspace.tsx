@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Search, Upload } from "lucide-react";
 import type { RouteKitProjectConfig, RuleSet } from "@clash-route-kit/core";
 import { policyTone } from "../proxyGroups.js";
@@ -68,8 +68,20 @@ export function RouteWorkspace({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [rightTab, setRightTab] = useState<"edit" | "preview">("edit");
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const dragIdRef = useRef<string | null>(null);
+  const selectedRowRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const node = selectedRowRef.current;
+    if (node && typeof node.scrollIntoView === "function") {
+      try {
+        node.scrollIntoView({ block: "nearest" });
+      } catch {
+        /* jsdom: scrollIntoView 未实现，忽略 */
+      }
+    }
+  }, [selectedRuleSet?.id]);
 
   const policyNames = config.customProxyGroups.map((group) => group.name);
   const statByName = new Map(stats.map((stat) => [stat.name, stat]));
@@ -188,6 +200,7 @@ export function RouteWorkspace({
                 return (
                   <div
                     key={ruleSet.id}
+                    ref={selectedRuleSet?.id === ruleSet.id ? selectedRowRef : undefined}
                     data-testid={`route-row-${ruleSet.id}`}
                     className={`route-row tone-${tone} ${selectedRuleSet?.id === ruleSet.id ? "sel" : ""}`}
                     role="button"
@@ -242,40 +255,38 @@ export function RouteWorkspace({
         </section>
 
         <section className="route-detail">
-          <div className="segmented" aria-label="route detail mode">
-            <button className={rightTab === "edit" ? "active" : ""} type="button" onClick={() => setRightTab("edit")}>
-              编辑
-            </button>
-            <button
-              className={rightTab === "preview" ? "active" : ""}
-              type="button"
-              onClick={() => setRightTab("preview")}
-            >
-              预览
-            </button>
-          </div>
-          {rightTab === "edit" ? (
-            <RuleSetEditor
-              customProxyGroups={policyNames}
-              fetcher={fetcher}
-              publishBaseUrl={config.publishBaseUrl}
-              ruleSet={selectedRuleSet}
-              onDeleteRuleSet={onDeleteRuleSet}
-              onToggleRuleSet={onToggleRuleSet}
-              onUpdateRuleSet={onUpdateRuleSet}
-            />
-          ) : (
-            <PreviewWorkspace
-              customProxyGroupFilter={customProxyGroupFilter}
-              customProxyGroups={policyNames}
-              iniPreview={iniPreview}
-              mode={previewMode}
-              rows={routeRows}
-              onCustomProxyGroupFilterChange={onCustomProxyGroupFilterChange}
-              onModeChange={onPreviewModeChange}
-            />
-          )}
+          <RuleSetEditor
+            customProxyGroups={policyNames}
+            fetcher={fetcher}
+            publishBaseUrl={config.publishBaseUrl}
+            ruleSet={selectedRuleSet}
+            onDeleteRuleSet={onDeleteRuleSet}
+            onToggleRuleSet={onToggleRuleSet}
+            onUpdateRuleSet={onUpdateRuleSet}
+          />
         </section>
+      </div>
+
+      <div className={`route-preview-dock ${previewCollapsed ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="dock-toggle"
+          aria-expanded={previewCollapsed ? "false" : "true"}
+          onClick={() => setPreviewCollapsed((value) => !value)}
+        >
+          {previewCollapsed ? "▴ 展开 INI 预览" : "▾ 收起预览"}
+        </button>
+        {previewCollapsed ? null : (
+          <PreviewWorkspace
+            customProxyGroupFilter={customProxyGroupFilter}
+            customProxyGroups={policyNames}
+            iniPreview={iniPreview}
+            mode={previewMode}
+            rows={routeRows}
+            onCustomProxyGroupFilterChange={onCustomProxyGroupFilterChange}
+            onModeChange={onPreviewModeChange}
+          />
+        )}
       </div>
 
       {pickerOpen ? (

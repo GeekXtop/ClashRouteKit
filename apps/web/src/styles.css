@@ -2795,3 +2795,24 @@ button.state {
 .inbound-remove:hover {
   color: var(--red);
 }
+
+/* ── 路由页：底部常驻 INI 预览 dock（#2，可折叠） ── */
+.route-preview-dock {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.dock-toggle {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 2px 8px;
+}
+.dock-toggle:hover {
+  color: var(--ink);
+}
+.route-preview-dock .preview-panel {
+  max-height: 320px;
+  overflow: auto;
+}
