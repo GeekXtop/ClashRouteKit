@@ -3,7 +3,7 @@ export {
   serializeRouteKitConfig,
 } from "./configDocument.js";
 export { renderIni } from "./ini.js";
-export { addVendorRepo } from "./configMutations.js";
+export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 export { parseIniToConfig } from "./import.js";
 export {
   collectDomainProviderRules,
