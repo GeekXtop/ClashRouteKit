@@ -49,4 +49,31 @@ provider:lxy,https://example.com/lxy?token=abc
       "https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish/templates/Custom_Clash.ini",
     );
   });
+
+  it("uses subconverterUrl and appends ?v to config", () => {
+    const url = buildSubconverterUrl({
+      providers: [{ id: "a", name: "Air", url: "https://air/sub", enabled: true }],
+      publishBaseUrl: "http://10.0.0.3:8787",
+      templateOutput: "Custom_Clash.ini",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+      configVersion: 1718000000000,
+    });
+    const parsed = new URL(url);
+    expect(`${parsed.origin}${parsed.pathname}`).toBe("http://10.0.0.3:25500/sub");
+    expect(parsed.searchParams.get("config")).toBe(
+      "http://10.0.0.3:8787/templates/Custom_Clash.ini?v=1718000000000",
+    );
+  });
+
+  it("omits ?v when configVersion is absent", () => {
+    const url = buildSubconverterUrl({
+      providers: [{ id: "a", name: "Air", url: "https://air/sub", enabled: true }],
+      publishBaseUrl: "http://10.0.0.3:8787",
+      templateOutput: "Custom_Clash.ini",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+    });
+    expect(new URL(url).searchParams.get("config")).toBe(
+      "http://10.0.0.3:8787/templates/Custom_Clash.ini",
+    );
+  });
 });

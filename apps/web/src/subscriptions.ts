@@ -9,8 +9,10 @@ export interface BuildSubconverterUrlInput {
   providers: ProviderSubscription[];
   publishBaseUrl: string;
   templateOutput: string;
+  subconverterUrl?: string;
   endpoint?: string;
   target?: string;
+  configVersion?: string | number;
 }
 
 function stableProviderId(name: string, index: number): string {
@@ -28,8 +30,9 @@ function normalizeEndpoint(endpoint?: string): URL {
   return url;
 }
 
-function templateUrl(publishBaseUrl: string, templateOutput: string): string {
-  return `${publishBaseUrl.replace(/\/+$/, "")}/templates/${templateOutput}`;
+function templateUrl(publishBaseUrl: string, templateOutput: string, configVersion?: string | number): string {
+  const base = `${publishBaseUrl.replace(/\/+$/, "")}/templates/${templateOutput}`;
+  return configVersion === undefined || configVersion === "" ? base : `${base}?v=${configVersion}`;
 }
 
 export function parseProviderLines(input: string): ProviderSubscription[] {
@@ -57,9 +60,9 @@ export function serializeProviderSubscriptions(providers: ProviderSubscription[]
 
 export function buildSubconverterUrl(input: BuildSubconverterUrlInput): string {
   const subscriptionUrl = serializeProviderSubscriptions(input.providers);
-  const endpoint = normalizeEndpoint(input.endpoint);
+  const endpoint = normalizeEndpoint(input.subconverterUrl ?? input.endpoint);
   endpoint.searchParams.set("target", input.target ?? "clash");
   endpoint.searchParams.set("url", subscriptionUrl);
-  endpoint.searchParams.set("config", templateUrl(input.publishBaseUrl, input.templateOutput));
+  endpoint.searchParams.set("config", templateUrl(input.publishBaseUrl, input.templateOutput, input.configVersion));
   return endpoint.toString();
 }
