@@ -15,7 +15,7 @@ import {
   runRouteKitAction,
   writeProjectConfigFile,
   writeProjectRuleFile,
-} from "../dev/routeKitApi.js";
+} from "../src/serveApi.js";
 
 function projectConfig(overrides: Partial<RouteKitProjectConfig> = {}): RouteKitProjectConfig {
   return {
