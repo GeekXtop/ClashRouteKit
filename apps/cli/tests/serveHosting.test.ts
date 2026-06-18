@@ -70,4 +70,16 @@ describe("createHostingHandler", () => {
     const res = await run(handler, "/api/project/config");
     expect(res.body).toBe("next");
   });
+
+  it("passes /api/* through to next even when webRoot is set (no SPA fallback)", async () => {
+    const withWeb = createHostingHandler({
+      root: "/proj",
+      configFile: "config/routes.yaml",
+      publicBase: "http://10.0.0.3:8787",
+      webRoot: "/web/dist",
+      readText: async () => sampleConfig,
+    });
+    const res = await run(withWeb, "/api/project/config");
+    expect(res.body).toBe("next");
+  });
 });

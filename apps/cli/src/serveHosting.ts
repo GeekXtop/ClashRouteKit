@@ -61,6 +61,11 @@ export function createHostingHandler(options: HostingOptions) {
       return;
     }
 
+    if (pathname.startsWith("/api/")) {
+      next();
+      return;
+    }
+
     if (!options.webRoot) {
       next();
       return;
