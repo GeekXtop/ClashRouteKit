@@ -11,6 +11,7 @@ vendorRepos:
   - name: dler-io
     url: https://github.com/dler-io/Rules.git
     path: vendor/Rules
+    branch: main
   - name: Aethersailor
     url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
     path: vendor/Custom_OpenClash_Rules

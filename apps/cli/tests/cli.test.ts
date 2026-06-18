@@ -456,6 +456,34 @@ vendorRepos:
     expect(calls.some((args) => args.endsWith("checkout -B main FETCH_HEAD"))).toBe(true);
   });
 
+  it("syncs only the named repo when 'only' is given", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      `
+vendorRepos:
+  - name: alpha
+    url: https://example.com/alpha.git
+    path: vendor/alpha
+  - name: beta
+    url: https://example.com/beta.git
+    path: vendor/beta
+`,
+      "utf8",
+    );
+    await mkdir(path.join(root, "vendor/alpha/.git"), { recursive: true });
+    await mkdir(path.join(root, "vendor/beta/.git"), { recursive: true });
+
+    const result = await syncVendor({
+      root,
+      configFile: "routes.yaml",
+      only: "beta",
+      runGit: async () => {},
+    });
+
+    expect(result).toEqual([{ name: "beta", action: "pull", path: path.join(root, "vendor/beta") }]);
+  });
+
   it("requires vendor repositories to be declared in the project config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");

@@ -75,6 +75,7 @@ export interface VendorSyncResult {
 
 export interface SyncVendorOptions extends ProgramOptions {
   runGit?: (args: string[], cwd: string) => Promise<void>;
+  only?: string;
 }
 
 export interface SubconverterUrlOptions extends ProgramOptions {
@@ -125,10 +126,11 @@ export async function syncVendor(options: SyncVendorOptions): Promise<VendorSync
   const runGit = options.runGit ?? defaultRunGit;
   const config = await readConfig(options);
   const repos = readVendorRepos(config, options.configFile);
+  const selected = options.only ? repos.filter((repo) => repo.name === options.only) : repos;
   const results: VendorSyncResult[] = [];
   await mkdir(path.join(options.root, "vendor"), { recursive: true });
 
-  for (const repo of repos) {
+  for (const repo of selected) {
     const repoPath = path.join(options.root, repo.path);
     const gitDir = path.join(repoPath, ".git");
     if (existsSync(gitDir)) {

@@ -33,6 +33,7 @@ interface RouteKitActionDependencies {
   checkConfig?: typeof checkConfig;
   generateOutputs?: typeof generateOutputs;
   runCommand?: RunCommand;
+  only?: string;
 }
 
 type RouteKitActionOptions = ProgramOptions & RouteKitActionDependencies;
@@ -608,7 +609,8 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       return;
     }
 
-    void runRouteKitAction(action, options)
+    const only = url.searchParams.get("name") ?? undefined;
+    void runRouteKitAction(action, only ? { ...options, only } : options)
       .then((result) => writeJson(response, result.ok ? 200 : 422, result))
       .catch((error: unknown) => {
         writeJson(response, 500, {
