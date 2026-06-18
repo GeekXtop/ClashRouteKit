@@ -194,7 +194,7 @@ export function resolveProjectRoot(start: string, configFile: string): string {
   }
 }
 
-async function readConfig(options: ProgramOptions): Promise<RouteKitProjectConfig> {
+export async function readConfig(options: ProgramOptions): Promise<RouteKitProjectConfig> {
   const text = await readFile(path.join(options.root, options.configFile), "utf8");
   const config = YAML.parse(text) as RouteKitProjectConfig;
   const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;

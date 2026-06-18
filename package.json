@@ -7,7 +7,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter @clash-route-kit/web dev",
-    "serve:output": "vite --host 127.0.0.1 --port 8787 output",
+    "serve": "pnpm --filter @clash-route-kit/cli start serve",
     "test": "vitest run",
     "typecheck": "pnpm -r typecheck",
     "generate": "pnpm --filter @clash-route-kit/cli start generate",

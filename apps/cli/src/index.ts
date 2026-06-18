@@ -1,9 +1,11 @@
+import path from "node:path";
 import {
   buildSubconverterUrl,
   checkConfig,
   generateOutputs,
   importIni,
   previewRules,
+  readConfig,
   resolveProjectRoot,
   syncVendor,
 } from "./program.js";
@@ -71,6 +73,26 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "serve") {
+    const args = process.argv.slice(3);
+    const flag = (name: string): string | undefined => {
+      const index = args.indexOf(name);
+      return index >= 0 ? args[index + 1] : undefined;
+    };
+    const config = await readConfig({ root, configFile });
+    const { startServe } = await import("./serve.js");
+    await startServe({
+      root,
+      configFile,
+      host: flag("--host") ?? process.env.CLASH_ROUTE_KIT_HOST ?? "0.0.0.0",
+      port: Number(flag("--port") ?? process.env.CLASH_ROUTE_KIT_PORT ?? 8787),
+      publicBase:
+        flag("--public-base") ?? process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? config.publishBaseUrl,
+      webRoot: flag("--web-root") ?? path.resolve(root, "apps/web/dist"),
+    });
+    return;
+  }
+
   if (command === "import") {
     const iniFile = process.argv[3];
     if (!iniFile) {
@@ -90,7 +112,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    "Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url|import>",
+    "Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url|import|serve>",
   );
 }
 
