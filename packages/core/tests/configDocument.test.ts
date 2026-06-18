@@ -119,4 +119,21 @@ describe("config document utilities", () => {
     expect(serialized).toContain("clashRuleBase: https://example.com/Base.yml");
     expect(serialized).toContain("- DOMAIN-SUFFIX,example.com");
   });
+
+  it("preserves subconverterUrl across parse + serialize", () => {
+    const config = parseRouteKitConfig(
+      [
+        "publishBaseUrl: http://10.0.0.3:8787",
+        "subconverterUrl: http://10.0.0.3:25500/sub",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "vendorRepos: []",
+        "customProxyGroups: []",
+        "ruleSets: []",
+        "",
+      ].join("\n"),
+    );
+    expect(config.subconverterUrl).toBe("http://10.0.0.3:25500/sub");
+    expect(serializeRouteKitConfig(config)).toContain("subconverterUrl: http://10.0.0.3:25500/sub");
+  });
 });

@@ -45,16 +45,19 @@ type WriteText = (filePath: string, text: string) => Promise<void>;
 
 export interface ProjectConfigFileOptions extends ProgramOptions {
   readText?: ReadText;
+  statMtime?: (filePath: string) => Promise<number>;
 }
 
 export interface WriteProjectConfigFileOptions extends ProgramOptions {
   config: RouteKitProjectConfig;
   writeText?: WriteText;
+  statMtime?: (filePath: string) => Promise<number>;
 }
 
 export interface ProjectConfigFileResult {
   yaml: string;
   config: RouteKitProjectConfig;
+  mtime: number;
 }
 
 export interface ProjectRuleFilesOptions extends ProgramOptions {
@@ -102,10 +105,14 @@ export async function readProjectConfigFile(
   options: ProjectConfigFileOptions,
 ): Promise<ProjectConfigFileResult> {
   const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
-  const yaml = await readText(projectConfigPath(options));
+  const statMtime =
+    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
+  const configPath = projectConfigPath(options);
+  const yaml = await readText(configPath);
   return {
     yaml,
     config: parseRouteKitConfig(yaml),
+    mtime: await statMtime(configPath),
   };
 }
 
@@ -113,11 +120,15 @@ export async function writeProjectConfigFile(
   options: WriteProjectConfigFileOptions,
 ): Promise<ProjectConfigFileResult> {
   const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
+  const statMtime =
+    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
   const yaml = serializeRouteKitConfig(options.config);
-  await writeText(projectConfigPath(options), yaml);
+  const configPath = projectConfigPath(options);
+  await writeText(configPath, yaml);
   return {
     yaml,
     config: options.config,
+    mtime: await statMtime(configPath),
   };
 }
 

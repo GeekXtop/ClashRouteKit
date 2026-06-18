@@ -48,6 +48,7 @@ export interface CustomProxyGroup {
 
 export interface RouteKitConfig {
   publishBaseUrl: string;
+  subconverterUrl?: string;
   customProxyGroups: CustomProxyGroup[];
   ruleSets: RuleSet[];
 }

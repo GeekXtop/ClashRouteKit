@@ -255,6 +255,7 @@ describe("project config file helpers", () => {
 
     expect(result.yaml).toBe(configYaml);
     expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
+    expect(typeof result.mtime).toBe("number");
   });
 
   it("serializes and writes config/routes.yaml", async () => {
