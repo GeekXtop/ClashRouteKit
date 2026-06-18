@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CatalogWorkspace } from "../src/components/CatalogWorkspace.js";
 import type { RuleFileState } from "../src/components/RuleFileWorkspace.js";
 
@@ -50,10 +50,11 @@ function renderWorkspace(overrides: Partial<Parameters<typeof CatalogWorkspace>[
 }
 
 describe("CatalogWorkspace", () => {
-  it("renders sources and a categories-only top level", async () => {
+  it("renders upstream/local segments and a categories-only top level", async () => {
     renderWorkspace();
+    expect(screen.getByText("上游")).toBeTruthy();
+    expect(screen.getByText("本地")).toBeTruthy();
     expect(screen.getByText("domain-list-community")).toBeTruthy();
-    expect(screen.getByText("本地 .list")).toBeTruthy();
     expect(await screen.findByText("category-ai-!cn")).toBeTruthy();
     expect(screen.queryByText("openai")).toBeNull();
   });
@@ -73,10 +74,10 @@ describe("CatalogWorkspace", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it("shows the local rule-file editor with a save control", () => {
+  it("flattens local .list files and shows an inline editor with save", () => {
     const onLoadRuleFile = vi.fn();
     renderWorkspace({ onLoadRuleFile });
-    fireEvent.click(screen.getByText("本地 .list"));
+    fireEvent.click(screen.getByText("本地"));
     fireEvent.click(screen.getByText("AI.list"));
     expect(onLoadRuleFile).toHaveBeenCalledWith("AI.list");
     expect(screen.getByRole("textbox")).toBeTruthy();
@@ -90,5 +91,19 @@ describe("CatalogWorkspace", () => {
     expect(screen.getByText("youtube")).toBeTruthy();
     expect(screen.queryByText("category-ai-!cn")).toBeNull();
     expect(screen.queryByText("openai")).toBeNull();
+  });
+
+  it("treats an include-less category as a leaf without the misleading '无 include' message (#4)", async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/catalog/entries")) return jsonResponse({ entries: ["category-leaf"] });
+      if (url.includes("/api/catalog/entry")) return jsonResponse({ name: "category-leaf", includes: [], ruleCount: 3 });
+      if (url.includes("/api/catalog/domains")) return jsonResponse({ domains: ["DOMAIN,x.com"] });
+      return jsonResponse({ ok: false });
+    });
+    renderWorkspace({ fetcher });
+    fireEvent.click(await screen.findByLabelText("展开 category-leaf"));
+    await waitFor(() => expect(screen.queryByLabelText("展开 category-leaf")).toBeNull());
+    expect(screen.queryByText(/无 include/)).toBeNull();
   });
 });

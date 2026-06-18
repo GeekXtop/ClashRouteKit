@@ -2816,3 +2816,122 @@ button.state {
   max-height: 320px;
   overflow: auto;
 }
+
+/* ── 数据源页：分段栏 + 平铺源行 + 单源同步 + 添加表单（#4 #5 #6 #7） ── */
+.seg {
+  display: flex;
+  background: var(--bg0);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  margin-bottom: 10px;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+}
+.seg-item.seg-on {
+  background: var(--teal);
+  color: #fff;
+  font-weight: 600;
+}
+.src-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  margin: 2px 0;
+  color: var(--tx);
+}
+.src-row.on {
+  background: #1f6feb1f;
+}
+.src-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+}
+.src-nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.src-c {
+  font-size: 11px;
+  color: var(--muted);
+}
+.src-sync-at {
+  font-size: 11px;
+  color: var(--muted);
+}
+.src-sync {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 8px;
+  border-radius: 8px;
+}
+.src-sync:hover {
+  color: var(--teal);
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.src-add-row {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--teal);
+  font-size: 13px;
+  text-align: center;
+}
+.add-repo-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg2);
+}
+.add-repo-form input,
+.add-repo-form select {
+  background: var(--bg0);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.src-action-msg {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: var(--muted);
+}

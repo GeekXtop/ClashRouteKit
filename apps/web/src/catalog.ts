@@ -95,11 +95,47 @@ export function formatSyncedAt(ms: number | null, nowMs: number): string {
   return `${days}天前同步`;
 }
 
-export async function syncCatalogVendor(fetcher: Fetcher = globalThis.fetch): Promise<string> {
-  const response = await fetcher("/api/actions/sync-vendor", { method: "POST" });
+export async function syncCatalogVendor(fetcher: Fetcher = globalThis.fetch, only?: string): Promise<string> {
+  const url = only ? `/api/actions/sync-vendor?name=${encodeURIComponent(only)}` : "/api/actions/sync-vendor";
+  const response = await fetcher(url, { method: "POST" });
   const payload = (await response.json()) as { ok?: boolean; output?: string };
   if (!response.ok || payload.ok === false) {
     throw new Error(payload.output ?? "同步失败");
   }
   return payload.output ?? "";
+}
+
+export interface NewVendorRepoInput {
+  name: string;
+  url: string;
+  path: string;
+  branch?: string;
+  catalog?: { dir: string; kind: "domain-list" | "list-dir" | "provider-yaml" };
+}
+
+export async function addVendorRepoRequest(
+  repo: NewVendorRepoInput,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<void> {
+  const response = await fetcher("/api/vendor/add", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ repo }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { output?: string };
+    throw new Error(payload.output ?? "添加上游仓库失败");
+  }
+}
+
+export async function createRuleFileRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+  const response = await fetcher(`/api/project/rules/${encodeURIComponent(name)}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: "" }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { output?: string };
+    throw new Error(payload.output ?? "新建 .list 失败");
+  }
 }
