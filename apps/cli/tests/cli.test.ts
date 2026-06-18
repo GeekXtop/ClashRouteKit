@@ -484,6 +484,37 @@ vendorRepos:
     expect(result).toEqual([{ name: "beta", action: "pull", path: path.join(root, "vendor/beta") }]);
   });
 
+  it("keeps syncing the remaining repos when one repo fails", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      `
+vendorRepos:
+  - name: gone
+    url: https://example.com/gone.git
+    path: vendor/gone
+  - name: beta
+    url: https://example.com/beta.git
+    path: vendor/beta
+`,
+      "utf8",
+    );
+    await mkdir(path.join(root, "vendor/gone/.git"), { recursive: true });
+    await mkdir(path.join(root, "vendor/beta/.git"), { recursive: true });
+
+    const result = await syncVendor({
+      root,
+      configFile: "routes.yaml",
+      runGit: async (args) => {
+        if (args.join(" ").includes("gone")) throw new Error("Repository not found");
+      },
+    });
+
+    expect(result.find((item) => item.name === "gone")?.action).toBe("error");
+    expect(result.find((item) => item.name === "gone")?.error).toContain("Repository not found");
+    expect(result.find((item) => item.name === "beta")?.action).toBe("pull");
+  });
+
   it("requires vendor repositories to be declared in the project config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");

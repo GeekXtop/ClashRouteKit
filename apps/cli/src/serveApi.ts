@@ -251,7 +251,13 @@ function parseProviderPayload(text: string): string[] {
 export async function listCatalogEntries(options: CatalogEntriesOptions): Promise<string[]> {
   const def = catalogOrigin(options.origin, options.origins);
   const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
-  const entries = await readDirectory(catalogDataDir(options, options.origin));
+  let entries: string[];
+  try {
+    entries = await readDirectory(catalogDataDir(options, options.origin));
+  } catch {
+    // 数据目录不存在（未同步 / 同步失败）→ 返回空而非抛错，避免前端 "Invalid catalog entries response"
+    return [];
+  }
   if (def.kind === "list-dir") {
     return entries
       .filter((name) => name.endsWith(".list"))
@@ -419,7 +425,11 @@ export async function runRouteKitAction(
 
   if (action === "sync-vendor") {
     const results = await syncVendor(options);
-    const lines = results.map((result) => `[sync-vendor] ${result.action}: ${result.name} -> ${result.path}`);
+    const lines = results.map((result) =>
+      result.action === "error"
+        ? `[sync-vendor] error: ${result.name} -> ${result.error ?? "unknown error"}`
+        : `[sync-vendor] ${result.action}: ${result.name} -> ${result.path}`,
+    );
     return { action, ok: true, output: lines.length > 0 ? lines.join("\n") : "[sync-vendor] 无 vendorRepos" };
   }
 

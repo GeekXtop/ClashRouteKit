@@ -69,8 +69,9 @@ export interface GenerateResult {
 
 export interface VendorSyncResult {
   name: string;
-  action: "clone" | "pull";
+  action: "clone" | "pull" | "error";
   path: string;
+  error?: string;
 }
 
 export interface SyncVendorOptions extends ProgramOptions {
@@ -132,27 +133,36 @@ export async function syncVendor(options: SyncVendorOptions): Promise<VendorSync
 
   for (const repo of selected) {
     const repoPath = path.join(options.root, repo.path);
-    const gitDir = path.join(repoPath, ".git");
-    if (existsSync(gitDir)) {
-      if (repo.branch) {
-        await runGit(["-C", repoPath, "fetch", "--depth", "1", "origin", repo.branch], options.root);
-        await runGit(["-C", repoPath, "checkout", "-B", repo.branch, "FETCH_HEAD"], options.root);
-      } else {
-        await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
+    try {
+      const gitDir = path.join(repoPath, ".git");
+      if (existsSync(gitDir)) {
+        if (repo.branch) {
+          await runGit(["-C", repoPath, "fetch", "--depth", "1", "origin", repo.branch], options.root);
+          await runGit(["-C", repoPath, "checkout", "-B", repo.branch, "FETCH_HEAD"], options.root);
+        } else {
+          await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
+        }
+        results.push({ name: repo.name, action: "pull", path: repoPath });
+        continue;
       }
-      results.push({ name: repo.name, action: "pull", path: repoPath });
-      continue;
-    }
 
-    if (existsSync(repoPath)) {
-      throw new Error(`Vendor path exists but is not a git repository: ${repoPath}`);
-    }
+      if (existsSync(repoPath)) {
+        throw new Error(`Vendor path exists but is not a git repository: ${repoPath}`);
+      }
 
-    const cloneArgs = ["clone", "--depth", "1"];
-    if (repo.branch) cloneArgs.push("--branch", repo.branch);
-    cloneArgs.push(repo.url, repoPath);
-    await runGit(cloneArgs, options.root);
-    results.push({ name: repo.name, action: "clone", path: repoPath });
+      const cloneArgs = ["clone", "--depth", "1"];
+      if (repo.branch) cloneArgs.push("--branch", repo.branch);
+      cloneArgs.push(repo.url, repoPath);
+      await runGit(cloneArgs, options.root);
+      results.push({ name: repo.name, action: "clone", path: repoPath });
+    } catch (error: unknown) {
+      results.push({
+        name: repo.name,
+        action: "error",
+        path: repoPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   return results;
