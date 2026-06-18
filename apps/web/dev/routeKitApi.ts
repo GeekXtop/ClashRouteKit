@@ -151,7 +151,7 @@ export async function writeProjectRuleFile(
 interface CatalogOriginDef {
   id: string;
   label: string;
-  kind: "domain-list" | "list-dir" | "provider-yaml";
+  kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template";
   dir: string;
 }
 
@@ -253,6 +253,12 @@ export async function listCatalogEntries(options: CatalogEntriesOptions): Promis
       .map((name) => name.slice(0, -".yaml".length))
       .sort();
   }
+  if (def.kind === "ini-template") {
+    return entries
+      .filter((name) => name.endsWith(".ini"))
+      .map((name) => name.slice(0, -".ini".length))
+      .sort();
+  }
   return entries.filter((name) => !name.includes(".")).sort();
 }
 
@@ -300,6 +306,16 @@ export async function readCatalogEntryDomains(options: CatalogEntryOptions): Pro
   };
   const content = await readText(path.join(dir, options.name));
   return convertDomainListCommunity(content, { sourceUrl: `${base}${options.name}`, fetchText });
+}
+
+export async function readCatalogTemplate(options: CatalogEntryOptions): Promise<{ name: string; ini: string }> {
+  if (!isValidEntryName(options.name)) {
+    throw new Error(`Invalid entry: ${options.name}`);
+  }
+  const dir = catalogDataDir(options, options.origin);
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  const ini = await readText(path.join(dir, `${options.name}.ini`));
+  return { name: options.name, ini };
 }
 
 export async function listCatalogSources(options: CatalogSourcesOptions): Promise<CatalogSourceInfo[]> {
@@ -595,6 +611,20 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
           readCatalogEntryDomains({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
         )
         .then((domains) => writeJson(response, 200, { domains }))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
+    if (url.pathname === "/api/catalog/template") {
+      const origin = url.searchParams.get("origin") ?? "";
+      const name = url.searchParams.get("name") ?? "";
+      void readProjectConfigFile(options)
+        .then(({ config }) =>
+          readCatalogTemplate({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
+        )
+        .then((template) => writeJson(response, 200, template))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );

@@ -59,7 +59,7 @@ export interface VendorRepoConfig {
   branch?: string;
   catalog?: {
     dir: string;
-    kind: "domain-list" | "list-dir" | "provider-yaml";
+    kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template";
   };
 }
 

@@ -8,6 +8,7 @@ import {
   listProjectRuleFiles,
   readCatalogEntry,
   readCatalogEntryDomains,
+  readCatalogTemplate,
   readGitRemote,
   readProjectConfigFile,
   readProjectRuleFile,
@@ -143,6 +144,27 @@ describe("routeKitApi", () => {
     expect(byId["ACL4SSR"]!.count).toBe(2);
     expect(byId["local"]!.kind).toBe("local");
     expect(byId["local"]!.count).toBe(1);
+  });
+
+  it("lists and reads ini-template entries", async () => {
+    const origins = [{ id: "tpl", label: "tpl", kind: "ini-template" as const, dir: "vendor/tpl" }];
+    const entries = await listCatalogEntries({
+      ...baseOptions,
+      origin: "tpl",
+      origins,
+      readDirectory: async () => ["ACL4SSR_Online.ini", "README.md"],
+    });
+    expect(entries).toEqual(["ACL4SSR_Online"]);
+
+    const template = await readCatalogTemplate({
+      ...baseOptions,
+      origin: "tpl",
+      name: "ACL4SSR_Online",
+      origins,
+      readText: async () => "[custom]\nruleset=DIRECT,[]GEOSITE,private\n",
+    });
+    expect(template.name).toBe("ACL4SSR_Online");
+    expect(template.ini).toContain("[custom]");
   });
 
   it("returns diagnostics for a failed check action", async () => {
