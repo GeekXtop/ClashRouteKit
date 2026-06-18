@@ -20,6 +20,7 @@ import {
   mergeImportedConfig,
   renameCustomProxyGroup,
   reorderRuleSets,
+  replaceImportedConfig,
   setCustomProxyGroupListField,
   setGlobalRemove,
   setRuleProviderListField,
@@ -308,5 +309,21 @@ describe("config mutation helpers", () => {
   it("rejects a vendor repo with a duplicate path", () => {
     const config = { ...createConfig(), vendorRepos: [{ name: "a", url: "u", path: "vendor/x" }] };
     expect(() => addVendorRepo(config, { name: "b", url: "u2", path: "vendor/x" })).toThrow(/path already exists/);
+  });
+
+  it("replaces groups and ruleSets but keeps infra fields", () => {
+    const config = { ...createConfig(), publishBaseUrl: "http://keep", globalRemove: ["x"] };
+    const imported: ImportedConfig = {
+      customProxyGroups: [{ name: "New", type: "select", options: ["DIRECT"] }],
+      ruleSets: [{ id: "n1", policy: "New", source: { type: "final" } }],
+      warnings: [],
+    };
+    const next = replaceImportedConfig(config, imported);
+    expect(next.customProxyGroups.map((group) => group.name)).toEqual(["New"]);
+    expect(next.ruleSets.map((ruleSet) => ruleSet.id)).toEqual(["n1"]);
+    expect(next.publishBaseUrl).toBe("http://keep");
+    expect(next.vendorRepos).toBe(config.vendorRepos);
+    expect(next.template).toEqual(config.template);
+    expect(next.globalRemove).toEqual(["x"]);
   });
 });

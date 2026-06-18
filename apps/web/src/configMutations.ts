@@ -381,3 +381,18 @@ export function mergeImportedConfig(
 
   return { ...config, customProxyGroups, ruleSets };
 }
+
+export function replaceImportedConfig(
+  config: RouteKitProjectConfig,
+  imported: ImportedConfig,
+): RouteKitProjectConfig {
+  return {
+    ...config,
+    customProxyGroups: imported.customProxyGroups.map((group) => ({
+      ...group,
+      options: [...group.options],
+      nodeFilters: group.nodeFilters ? [...group.nodeFilters] : undefined,
+    })),
+    ruleSets: imported.ruleSets.map((ruleSet) => ({ ...ruleSet, source: { ...ruleSet.source } })),
+  };
+}
