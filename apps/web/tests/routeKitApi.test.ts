@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
+import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import {
+  catalogOriginsFromConfig,
   listCatalogEntries,
   listCatalogSources,
   listProjectRuleFiles,
@@ -13,6 +15,37 @@ import {
   writeProjectConfigFile,
   writeProjectRuleFile,
 } from "../dev/routeKitApi.js";
+
+function projectConfig(overrides: Partial<RouteKitProjectConfig> = {}): RouteKitProjectConfig {
+  return {
+    publishBaseUrl: "http://127.0.0.1:8787",
+    template: { output: "Custom_Clash.ini" },
+    vendorRepos: [],
+    customProxyGroups: [],
+    ruleSets: [],
+    ...overrides,
+  };
+}
+
+describe("catalogOriginsFromConfig", () => {
+  it("derives catalog origins from vendorRepos catalog meta", () => {
+    const origins = catalogOriginsFromConfig(
+      projectConfig({
+        vendorRepos: [
+          { name: "dlc", url: "u", path: "p", catalog: { dir: "vendor/dlc/data", kind: "domain-list" } },
+          { name: "Custom", url: "u2", path: "p2", catalog: { dir: "vendor/c/rules", kind: "list-dir" } },
+          { name: "NoBrowse", url: "u3", path: "p3" },
+        ],
+      }),
+    );
+    expect(origins.map((origin) => origin.id)).toEqual(["dlc", "Custom"]);
+    expect(origins[1]).toEqual({ id: "Custom", label: "Custom", kind: "list-dir", dir: "vendor/c/rules" });
+  });
+
+  it("falls back to builtin origins when no vendorRepo declares catalog meta", () => {
+    expect(catalogOriginsFromConfig(projectConfig()).map((origin) => origin.id)).toContain("dler-io");
+  });
+});
 
 describe("routeKitApi", () => {
   const baseOptions = {

@@ -18,6 +18,7 @@ import {
   type GenerateResult,
   type ProgramOptions,
 } from "../../cli/src/program.js";
+import { addVendorRepo } from "../src/configMutations.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -169,12 +170,14 @@ const CATALOG_ORIGINS: CatalogOriginDef[] = [
 export interface CatalogEntriesOptions extends ProgramOptions {
   origin: string;
   readDirectory?: ReadDirectory;
+  origins?: CatalogOriginDef[];
 }
 
 export interface CatalogEntryOptions extends ProgramOptions {
   origin: string;
   name: string;
   readText?: ReadText;
+  origins?: CatalogOriginDef[];
 }
 
 export interface CatalogSourceInfo {
@@ -190,18 +193,26 @@ export interface CatalogSourceInfo {
 export interface CatalogSourcesOptions extends ProgramOptions {
   readDirectory?: ReadDirectory;
   statMtime?: (dirPath: string) => Promise<number>;
+  origins?: CatalogOriginDef[];
 }
 
-function catalogOrigin(origin: string): CatalogOriginDef {
-  const def = CATALOG_ORIGINS.find((item) => item.id === origin);
+export function catalogOriginsFromConfig(config: RouteKitProjectConfig): CatalogOriginDef[] {
+  const fromConfig = config.vendorRepos
+    .filter((repo) => repo.catalog)
+    .map((repo) => ({ id: repo.name, label: repo.name, kind: repo.catalog!.kind, dir: repo.catalog!.dir }));
+  return fromConfig.length > 0 ? fromConfig : CATALOG_ORIGINS;
+}
+
+function catalogOrigin(origin: string, origins: CatalogOriginDef[] = CATALOG_ORIGINS): CatalogOriginDef {
+  const def = origins.find((item) => item.id === origin);
   if (!def) {
     throw new Error(`Unknown catalog origin: ${origin}`);
   }
   return def;
 }
 
-function catalogDataDir(options: ProgramOptions, origin: string): string {
-  return path.resolve(options.root, catalogOrigin(origin).dir);
+function catalogDataDir(options: ProgramOptions & { origins?: CatalogOriginDef[] }, origin: string): string {
+  return path.resolve(options.root, catalogOrigin(origin, options.origins).dir);
 }
 
 function listRules(text: string): string[] {
@@ -227,7 +238,7 @@ function parseProviderPayload(text: string): string[] {
 }
 
 export async function listCatalogEntries(options: CatalogEntriesOptions): Promise<string[]> {
-  const def = catalogOrigin(options.origin);
+  const def = catalogOrigin(options.origin, options.origins);
   const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
   const entries = await readDirectory(catalogDataDir(options, options.origin));
   if (def.kind === "list-dir") {
@@ -251,7 +262,7 @@ export async function readCatalogEntry(
   if (!isValidEntryName(options.name)) {
     throw new Error(`Invalid entry: ${options.name}`);
   }
-  const def = catalogOrigin(options.origin);
+  const def = catalogOrigin(options.origin, options.origins);
   const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
   const dir = catalogDataDir(options, options.origin);
   if (def.kind === "list-dir") {
@@ -270,7 +281,7 @@ export async function readCatalogEntryDomains(options: CatalogEntryOptions): Pro
   if (!isValidEntryName(options.name)) {
     throw new Error(`Invalid entry: ${options.name}`);
   }
-  const def = catalogOrigin(options.origin);
+  const def = catalogOrigin(options.origin, options.origins);
   const dir = catalogDataDir(options, options.origin);
   const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
   if (def.kind === "list-dir") {
@@ -295,7 +306,7 @@ export async function listCatalogSources(options: CatalogSourcesOptions): Promis
   const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
   const statMtime = options.statMtime ?? (async (dirPath: string) => (await stat(dirPath)).mtimeMs);
   const sources: CatalogSourceInfo[] = [];
-  for (const def of CATALOG_ORIGINS) {
+  for (const def of options.origins ?? CATALOG_ORIGINS) {
     let count = 0;
     let syncedAt: number | null = null;
     try {
@@ -544,7 +555,8 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
     }
 
     if (url.pathname === "/api/catalog/sources") {
-      void listCatalogSources(options)
+      void readProjectConfigFile(options)
+        .then(({ config }) => listCatalogSources({ ...options, origins: catalogOriginsFromConfig(config) }))
         .then((sources) => writeJson(response, 200, { sources }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -554,7 +566,8 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
 
     if (url.pathname === "/api/catalog/entries") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
-      void listCatalogEntries({ ...options, origin })
+      void readProjectConfigFile(options)
+        .then(({ config }) => listCatalogEntries({ ...options, origin, origins: catalogOriginsFromConfig(config) }))
         .then((entries) => writeJson(response, 200, { entries }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -565,7 +578,8 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
     if (url.pathname === "/api/catalog/entry") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
       const name = url.searchParams.get("name") ?? "";
-      void readCatalogEntry({ ...options, origin, name })
+      void readProjectConfigFile(options)
+        .then(({ config }) => readCatalogEntry({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }))
         .then((detail) => writeJson(response, 200, detail))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -576,11 +590,42 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
     if (url.pathname === "/api/catalog/domains") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
       const name = url.searchParams.get("name") ?? "";
-      void readCatalogEntryDomains({ ...options, origin, name })
+      void readProjectConfigFile(options)
+        .then(({ config }) =>
+          readCatalogEntryDomains({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
+        )
         .then((domains) => writeJson(response, 200, { domains }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );
+      return;
+    }
+
+    if (url.pathname === "/api/vendor/add") {
+      if (request.method !== "POST") {
+        writeJson(response, 405, { ok: false, output: "Method not allowed" });
+        return;
+      }
+      let body = "";
+      request.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+      });
+      request.on("end", () => {
+        void Promise.resolve()
+          .then(() => JSON.parse(body) as { repo?: RouteKitProjectConfig["vendorRepos"][number] })
+          .then((payload) => {
+            if (!payload.repo) {
+              throw new Error("Missing repo");
+            }
+            return readProjectConfigFile(options).then(({ config }) =>
+              writeProjectConfigFile({ ...options, config: addVendorRepo(config, payload.repo!) }),
+            );
+          })
+          .then((result) => writeJson(response, 200, result))
+          .catch((error: unknown) => {
+            writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) });
+          });
+      });
       return;
     }
 

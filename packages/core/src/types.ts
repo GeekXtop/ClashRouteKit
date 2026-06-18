@@ -57,6 +57,10 @@ export interface VendorRepoConfig {
   url: string;
   path: string;
   branch?: string;
+  catalog?: {
+    dir: string;
+    kind: "domain-list" | "list-dir" | "provider-yaml";
+  };
 }
 
 export interface SourceBase {

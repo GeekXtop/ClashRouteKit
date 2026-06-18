@@ -10,6 +10,7 @@ import {
   addCustomProxyGroup,
   addRuleProvider,
   addRuleSet,
+  addVendorRepo,
   createCustomProxyGroup,
   createRuleProvider,
   createRuleSet,
@@ -284,5 +285,28 @@ describe("config mutation helpers", () => {
     const config = createConfig();
     const next = setTemplateField(config, { clashRuleBase: "https://x/Base.yml" });
     expect(next.template).toEqual({ output: "Custom_Clash.ini", clashRuleBase: "https://x/Base.yml" });
+  });
+
+  it("appends a vendor repo with catalog meta", () => {
+    const config = createConfig();
+    const next = addVendorRepo(config, {
+      name: "MyRules",
+      url: "https://example.com/my.git",
+      path: "vendor/my",
+      branch: "main",
+      catalog: { dir: "vendor/my/rules", kind: "list-dir" },
+    });
+    expect(next.vendorRepos.at(-1)).toEqual({
+      name: "MyRules",
+      url: "https://example.com/my.git",
+      path: "vendor/my",
+      branch: "main",
+      catalog: { dir: "vendor/my/rules", kind: "list-dir" },
+    });
+  });
+
+  it("rejects a vendor repo with a duplicate path", () => {
+    const config = { ...createConfig(), vendorRepos: [{ name: "a", url: "u", path: "vendor/x" }] };
+    expect(() => addVendorRepo(config, { name: "b", url: "u2", path: "vendor/x" })).toThrow(/path already exists/);
   });
 });

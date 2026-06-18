@@ -5,17 +5,29 @@ vendorRepos:
   - name: domain-list-community
     url: https://github.com/v2fly/domain-list-community.git
     path: vendor/domain-list-community
+    catalog:
+      dir: vendor/domain-list-community/data
+      kind: domain-list
   - name: ACL4SSR
     url: https://github.com/ACL4SSR/ACL4SSR.git
     path: vendor/ACL4SSR
+    catalog:
+      dir: vendor/ACL4SSR/Clash
+      kind: list-dir
   - name: dler-io
     url: https://github.com/dler-io/Rules.git
     path: vendor/Rules
     branch: main
+    catalog:
+      dir: vendor/Rules/Clash/Provider
+      kind: provider-yaml
   - name: Aethersailor
     url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
     path: vendor/Custom_OpenClash_Rules
     branch: main
+    catalog:
+      dir: vendor/Custom_OpenClash_Rules/rule
+      kind: list-dir
 customProxyGroups:
   - name: Proxy
     type: select
