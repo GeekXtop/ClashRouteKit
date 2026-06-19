@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  addVendorRepoRequest,
   fetchCatalogDomains,
   fetchCatalogEntries,
   fetchCatalogEntry,
   fetchCatalogSources,
   formatDomainRule,
   formatSyncedAt,
+  removeVendorRepoRequest,
+  updateVendorRepoRequest,
 } from "../src/catalog.js";
 
 describe("catalog client", () => {
@@ -97,5 +100,25 @@ describe("catalog client", () => {
     expect(formatSyncedAt(now, now)).toBe("今天同步");
     expect(formatSyncedAt(7 * 86_400_000, now)).toBe("3天前同步");
     expect(formatSyncedAt(null, now)).toBe("");
+  });
+});
+
+describe("vendor repo client", () => {
+  it("posts vendor add with input envelope", async () => {
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({ ok: true, json: async () => ({}) }) as unknown as Response);
+    await addVendorRepoRequest({ name: "G", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } }, fetcher);
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(String(url)).toContain("/api/vendor/add");
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({
+      input: { name: "G", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } },
+    });
+  });
+
+  it("posts vendor update and remove", async () => {
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({ ok: true, json: async () => ({}) }) as unknown as Response);
+    await updateVendorRepoRequest("G", { name: "G", url: "https://y.git" }, fetcher);
+    expect(String(fetcher.mock.calls[0]![0])).toContain("/api/vendor/update");
+    await removeVendorRepoRequest("G", fetcher);
+    expect(String(fetcher.mock.calls[1]![0])).toContain("/api/vendor/remove");
   });
 });

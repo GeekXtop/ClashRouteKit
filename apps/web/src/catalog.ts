@@ -116,27 +116,39 @@ export async function syncCatalogVendor(fetcher: Fetcher = globalThis.fetch, onl
   return payload.output ?? "";
 }
 
-export interface NewVendorRepoInput {
+export interface VendorRepoInput {
   name: string;
   url: string;
-  path: string;
   branch?: string;
-  catalog?: { dir: string; kind: "domain-list" | "list-dir" | "provider-yaml" };
+  catalog?: { reldir: string; kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template" };
 }
 
-export async function addVendorRepoRequest(
-  repo: NewVendorRepoInput,
-  fetcher: Fetcher = globalThis.fetch,
-): Promise<void> {
-  const response = await fetcher("/api/vendor/add", {
+async function postJson(url: string, body: unknown, fetcher: Fetcher, failMsg: string): Promise<void> {
+  const response = await fetcher(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ repo }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { output?: string };
-    throw new Error(payload.output ?? "添加上游仓库失败");
+    throw new Error(payload.output ?? failMsg);
   }
+}
+
+export function addVendorRepoRequest(input: VendorRepoInput, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+  return postJson("/api/vendor/add", { input }, fetcher, "添加上游仓库失败");
+}
+
+export function updateVendorRepoRequest(
+  name: string,
+  input: VendorRepoInput,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<void> {
+  return postJson("/api/vendor/update", { name, input }, fetcher, "更新上游仓库失败");
+}
+
+export function removeVendorRepoRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+  return postJson("/api/vendor/remove", { name }, fetcher, "移除上游仓库失败");
 }
 
 export async function createRuleFileRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
