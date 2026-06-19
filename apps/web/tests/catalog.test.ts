@@ -9,14 +9,17 @@ import {
 } from "../src/catalog.js";
 
 describe("catalog client", () => {
-  it("fetches catalog entries for an origin", async () => {
+  it("fetches catalog entries with hasChildren for an origin", async () => {
     const fetcher = vi.fn(async () =>
-      new Response(JSON.stringify({ entries: ["anthropic", "openai"] }), { status: 200 }),
+      new Response(
+        JSON.stringify({ entries: [{ name: "category-acg", hasChildren: true }, { name: "openai", hasChildren: false }] }),
+        { status: 200 },
+      ),
     );
 
     await expect(fetchCatalogEntries("domain-list-community", fetcher)).resolves.toEqual([
-      "anthropic",
-      "openai",
+      { name: "category-acg", hasChildren: true },
+      { name: "openai", hasChildren: false },
     ]);
     expect(fetcher).toHaveBeenCalledWith("/api/catalog/entries?origin=domain-list-community");
   });

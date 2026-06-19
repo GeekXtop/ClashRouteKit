@@ -1,5 +1,10 @@
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+export interface CatalogEntry {
+  name: string;
+  hasChildren: boolean;
+}
+
 export interface CatalogEntryDetail {
   name: string;
   includes: string[];
@@ -9,17 +14,23 @@ export interface CatalogEntryDetail {
 export async function fetchCatalogEntries(
   origin: string,
   fetcher: Fetcher = globalThis.fetch,
-): Promise<string[]> {
+): Promise<CatalogEntry[]> {
   const response = await fetcher(`/api/catalog/entries?origin=${encodeURIComponent(origin)}`);
   const payload = (await response.json()) as { entries?: unknown };
   if (
     !response.ok ||
     !Array.isArray(payload.entries) ||
-    !payload.entries.every((entry) => typeof entry === "string")
+    !payload.entries.every(
+      (entry) =>
+        typeof entry === "object" && entry !== null && typeof (entry as CatalogEntry).name === "string",
+    )
   ) {
     throw new Error("Invalid catalog entries response");
   }
-  return payload.entries;
+  return (payload.entries as CatalogEntry[]).map((entry) => ({
+    name: entry.name,
+    hasChildren: Boolean(entry.hasChildren),
+  }));
 }
 
 export async function fetchCatalogEntry(
