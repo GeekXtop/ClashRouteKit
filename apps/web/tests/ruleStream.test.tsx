@@ -22,7 +22,6 @@ function setup(over: Partial<Parameters<typeof RuleStream>[0]> = {}) {
     onPolicyChange: vi.fn(),
     onToggle: vi.fn(),
     onDelete: vi.fn(),
-    onEditSource: vi.fn(),
     onReorder: vi.fn(),
     allOrderedIds: ["a", "b"],
     onAddRule: vi.fn(),

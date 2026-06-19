@@ -15,7 +15,6 @@ export function RuleStream(props: {
   onPolicyChange: (id: string, policy: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onEditSource: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   allOrderedIds: string[];
   onAddRule: () => void;
@@ -67,7 +66,6 @@ export function RuleStream(props: {
                 onPolicyChange={(policy) => props.onPolicyChange(ruleSet.id, policy)}
                 onToggle={() => props.onToggle(ruleSet.id)}
                 onDelete={() => props.onDelete(ruleSet.id)}
-                onEditSource={() => props.onEditSource(ruleSet.id)}
                 dragHandlers={{
                   draggable: true,
                   onDragStart: () => (dragId.current = ruleSet.id),

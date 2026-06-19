@@ -25,7 +25,6 @@ it("invokes onToggle and onDelete", () => {
         onPolicyChange={() => {}}
         onToggle={onToggle}
         onDelete={onDelete}
-        onEditSource={() => {}}
         dragHandlers={noop}
       />
     </AppProviders>,
@@ -49,7 +48,6 @@ it("hides toggle and delete for FINAL rows", () => {
         onPolicyChange={() => {}}
         onToggle={() => {}}
         onDelete={() => {}}
-        onEditSource={() => {}}
         dragHandlers={noop}
       />
     </AppProviders>,

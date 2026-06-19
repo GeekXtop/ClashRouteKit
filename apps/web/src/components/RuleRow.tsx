@@ -1,6 +1,6 @@
 import type { DragEvent } from "react";
 import { Select, Switch } from "antd";
-import { GripVertical, Pencil, X } from "lucide-react";
+import { GripVertical, X } from "lucide-react";
 import type { RuleSet } from "@clash-route-kit/core";
 import type { PolicyTone } from "../proxyGroups.js";
 
@@ -14,7 +14,6 @@ export function RuleRow({
   onPolicyChange,
   onToggle,
   onDelete,
-  onEditSource,
   dragHandlers,
 }: {
   ruleSet: RuleSet;
@@ -26,7 +25,6 @@ export function RuleRow({
   onPolicyChange: (policy: string) => void;
   onToggle: () => void;
   onDelete: () => void;
-  onEditSource: () => void;
   dragHandlers: {
     draggable: boolean;
     onDragStart: () => void;
@@ -47,19 +45,6 @@ export function RuleRow({
     >
       <GripVertical size={14} className="rk-grip" />
       <span className="rk-src">{sourceText}</span>
-      {!isFinal ? (
-        <button
-          type="button"
-          aria-label={`编辑来源 ${ruleSet.id}`}
-          className="rk-iconbtn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditSource();
-          }}
-        >
-          <Pencil size={12} />
-        </button>
-      ) : null}
       <Select
         size="small"
         value={ruleSet.policy}

@@ -6,6 +6,7 @@ import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSumm
 import { GroupNav } from "./GroupNav.js";
 import { GroupDrawer } from "./GroupDrawer.js";
 import { PreviewDock } from "./PreviewDock.js";
+import { RuleDrawer } from "./RuleDrawer.js";
 import { RuleStream } from "./RuleStream.js";
 import { SourcePickerModal } from "./SourcePickerModal.js";
 
@@ -27,7 +28,7 @@ export function RoutingPage({
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [drawerGroup, setDrawerGroup] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [editRuleId, setEditRuleId] = useState<string | null>(null);
 
   const stats = useMemo(() => createCustomProxyGroupStats(config), [config]);
   const iniPreview = useMemo(() => renderIni(config), [config]);
@@ -75,19 +76,15 @@ export function RoutingPage({
             policies={policies}
             selectedRuleSetId={selectedRuleSetId}
             allOrderedIds={allOrderedIds}
-            onSelectRuleSet={draftActions.selectRuleSet}
+            onSelectRuleSet={(id) => {
+              draftActions.selectRuleSet(id);
+              setEditRuleId(id);
+            }}
             onPolicyChange={(id, policy) => draftActions.updateRuleSet(id, { policy })}
             onToggle={draftActions.toggleRuleSet}
             onDelete={draftActions.deleteRuleSet}
-            onEditSource={(id) => {
-              setEditingRuleId(id);
-              setPickerOpen(true);
-            }}
             onReorder={draftActions.reorderRuleSets}
-            onAddRule={() => {
-              setEditingRuleId(null);
-              setPickerOpen(true);
-            }}
+            onAddRule={() => setPickerOpen(true)}
           />
         </div>
       </div>
@@ -119,29 +116,31 @@ export function RoutingPage({
         }}
       />
 
+      <RuleDrawer
+        open={editRuleId !== null}
+        ruleSet={config.ruleSets.find((r) => r.id === editRuleId)}
+        policies={policies}
+        onClose={() => setEditRuleId(null)}
+        onUpdate={(patch) => {
+          if (!editRuleId) return;
+          draftActions.updateRuleSet(editRuleId, patch);
+          if (patch.id) setEditRuleId(patch.id);
+        }}
+        onDelete={() => {
+          if (editRuleId) draftActions.deleteRuleSet(editRuleId);
+          setEditRuleId(null);
+        }}
+      />
+
       {pickerOpen ? (
         <SourcePickerModal
           open
           policies={policies}
-          defaultPolicy={
-            (editingRuleId && config.ruleSets.find((r) => r.id === editingRuleId)?.policy) ||
-            selectedGroup ||
-            policies[0] ||
-            "DIRECT"
-          }
+          defaultPolicy={selectedGroup || policies[0] || "DIRECT"}
           sections={sections}
           fetcher={fetcher}
-          onAdd={(source, policy, section) => {
-            if (editingRuleId) {
-              draftActions.updateRuleSet(editingRuleId, { source });
-            } else {
-              draftActions.addRoute(source, policy, section);
-            }
-          }}
-          onClose={() => {
-            setPickerOpen(false);
-            setEditingRuleId(null);
-          }}
+          onAdd={(source, policy, section) => draftActions.addRoute(source, policy, section)}
+          onClose={() => setPickerOpen(false)}
         />
       ) : null}
     </div>
