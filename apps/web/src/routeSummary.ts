@@ -24,7 +24,7 @@ function publishRulesUrl(baseUrl: string, file: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/rules/${file}`;
 }
 
-function ruleSetSourceText(ruleSet: RuleSet): string {
+export function ruleSetSourceText(ruleSet: RuleSet): string {
   const source = ruleSet.source;
   if (source.type === "rule-provider") {
     return `${providerKind(source.behavior)}:${source.file}`;
