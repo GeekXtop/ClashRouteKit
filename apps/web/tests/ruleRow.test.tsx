@@ -19,10 +19,8 @@ it("invokes onToggle and onDelete", () => {
         ruleSet={ruleSet}
         sourceText="[]GEOSITE,openai"
         tone="reg"
-        policies={["Proxy", "Direct"]}
         selected={false}
         onSelect={() => {}}
-        onPolicyChange={() => {}}
         onToggle={onToggle}
         onDelete={onDelete}
         dragHandlers={noop}
@@ -42,10 +40,8 @@ it("hides toggle and delete for FINAL rows", () => {
         ruleSet={{ id: "final", policy: "Fish", source: { type: "final" } }}
         sourceText="[]FINAL"
         tone="fin"
-        policies={["Fish"]}
         selected={false}
         onSelect={() => {}}
-        onPolicyChange={() => {}}
         onToggle={() => {}}
         onDelete={() => {}}
         dragHandlers={noop}

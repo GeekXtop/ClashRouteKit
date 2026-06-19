@@ -1,5 +1,5 @@
 import type { DragEvent } from "react";
-import { Select, Switch } from "antd";
+import { Switch, Tag } from "antd";
 import { GripVertical, X } from "lucide-react";
 import type { RuleSet } from "@clash-route-kit/core";
 import type { PolicyTone } from "../proxyGroups.js";
@@ -8,10 +8,8 @@ export function RuleRow({
   ruleSet,
   sourceText,
   tone,
-  policies,
   selected,
   onSelect,
-  onPolicyChange,
   onToggle,
   onDelete,
   dragHandlers,
@@ -19,10 +17,8 @@ export function RuleRow({
   ruleSet: RuleSet;
   sourceText: string;
   tone: PolicyTone;
-  policies: string[];
   selected: boolean;
   onSelect: () => void;
-  onPolicyChange: (policy: string) => void;
   onToggle: () => void;
   onDelete: () => void;
   dragHandlers: {
@@ -45,14 +41,7 @@ export function RuleRow({
     >
       <GripVertical size={14} className="rk-grip" />
       <span className="rk-src">{sourceText}</span>
-      <Select
-        size="small"
-        value={ruleSet.policy}
-        options={policies.map((name) => ({ value: name, label: name }))}
-        onClick={(e) => e.stopPropagation()}
-        onChange={onPolicyChange}
-        style={{ marginLeft: "auto", minWidth: 120 }}
-      />
+      <Tag style={{ marginLeft: "auto" }}>{ruleSet.policy}</Tag>
       {!isFinal ? (
         <Switch
           size="small"

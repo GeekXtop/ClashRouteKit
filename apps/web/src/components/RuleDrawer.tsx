@@ -103,6 +103,16 @@ export function RuleDrawer(props: {
           </>
         ) : null}
         <div>
+          <div className="rk-field-label">归属策略组</div>
+          <Select
+            aria-label="归属策略组"
+            style={{ width: "100%" }}
+            value={ruleSet.policy}
+            options={props.policies.map((p) => ({ value: p, label: p }))}
+            onChange={(policy) => props.onUpdate({ policy })}
+          />
+        </div>
+        <div>
           <div className="rk-field-label">分节（可空）</div>
           <Input
             value={ruleSet.section ?? ""}

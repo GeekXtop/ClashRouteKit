@@ -16,10 +16,8 @@ function setup(over: Partial<Parameters<typeof RuleStream>[0]> = {}) {
   const props = {
     ruleSets,
     selectedGroup: null,
-    policies: ["Direct", "Proxy"],
     selectedRuleSetId: "a",
     onSelectRuleSet: vi.fn(),
-    onPolicyChange: vi.fn(),
     onToggle: vi.fn(),
     onDelete: vi.fn(),
     onReorder: vi.fn(),

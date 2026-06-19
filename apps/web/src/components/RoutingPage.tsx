@@ -73,14 +73,12 @@ export function RoutingPage({
           <RuleStream
             ruleSets={visibleRuleSets}
             selectedGroup={selectedGroup}
-            policies={policies}
             selectedRuleSetId={selectedRuleSetId}
             allOrderedIds={allOrderedIds}
             onSelectRuleSet={(id) => {
               draftActions.selectRuleSet(id);
               setEditRuleId(id);
             }}
-            onPolicyChange={(id, policy) => draftActions.updateRuleSet(id, { policy })}
             onToggle={draftActions.toggleRuleSet}
             onDelete={draftActions.deleteRuleSet}
             onReorder={draftActions.reorderRuleSets}

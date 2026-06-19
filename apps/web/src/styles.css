@@ -178,28 +178,6 @@ body {
   letter-spacing: 0.05em;
   padding: 8px 10px 4px;
 }
-.rk-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  background: #6b7280;
-}
-.rk-dot.tone-dir {
-  background: #34d399;
-}
-.rk-dot.tone-rej {
-  background: #f87171;
-}
-.rk-dot.tone-fin {
-  background: #fbbf24;
-}
-.rk-dot.tone-cat {
-  background: #c4a6f0;
-}
-.rk-dot.tone-reg {
-  background: #60a5fa;
-}
 
 /* ---- pane headers ---- */
 .rk-stream,
@@ -302,4 +280,17 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* group nav: "全部规则" header row with a divider, scrollable body */
+.rk-groupnav {
+  overflow: auto;
+  padding-top: 6px;
+}
+.rk-nav-all {
+  border-radius: 0;
+  border-bottom: 1px solid var(--rk-border);
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  font-weight: 600;
 }

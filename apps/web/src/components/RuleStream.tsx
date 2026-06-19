@@ -9,10 +9,8 @@ import { RuleRow } from "./RuleRow.js";
 export function RuleStream(props: {
   ruleSets: RuleSet[];
   selectedGroup: string | null;
-  policies: string[];
   selectedRuleSetId: string;
   onSelectRuleSet: (id: string) => void;
-  onPolicyChange: (id: string, policy: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
@@ -60,10 +58,8 @@ export function RuleStream(props: {
                 ruleSet={ruleSet}
                 sourceText={ruleSetSourceText(ruleSet)}
                 tone={ruleSet.source.type === "final" ? "fin" : policyTone(ruleSet.policy)}
-                policies={props.policies}
                 selected={ruleSet.id === props.selectedRuleSetId}
                 onSelect={() => props.onSelectRuleSet(ruleSet.id)}
-                onPolicyChange={(policy) => props.onPolicyChange(ruleSet.id, policy)}
                 onToggle={() => props.onToggle(ruleSet.id)}
                 onDelete={() => props.onDelete(ruleSet.id)}
                 dragHandlers={{
