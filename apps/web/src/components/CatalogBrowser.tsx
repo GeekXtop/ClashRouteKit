@@ -79,6 +79,8 @@ export function CatalogBrowser({
           {showTree ? (
             <Tree
               treeData={treeData}
+              height={520}
+              virtual
               loadData={loadChildren}
               selectedKeys={selected ? [selected] : []}
               onSelect={(keys) => keys[0] && setSelected(String(keys[0]))}
@@ -86,7 +88,7 @@ export function CatalogBrowser({
           ) : (
             <List
               size="small"
-              dataSource={filtered}
+              dataSource={filtered.slice(0, 300)}
               renderItem={(entry) => (
                 <List.Item
                   className={selected === entry.name ? "rk-lib-row on" : "rk-lib-row"}
