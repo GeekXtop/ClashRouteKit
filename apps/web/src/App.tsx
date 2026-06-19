@@ -3,6 +3,7 @@ import { AppShell } from "./components/AppShell.js";
 import { LibraryPage } from "./components/LibraryPage.js";
 import { PublishPage } from "./components/PublishPage.js";
 import { RoutingPage } from "./components/RoutingPage.js";
+import { requestLocalAction } from "./actions.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
 import { loadLocalProjectConfig } from "./localProject.js";
 import { notifyError } from "./notify.js";
@@ -10,6 +11,7 @@ import {
   createProjectController,
   setProjectSelection,
   setProjectStatus,
+  updateProjectValidation,
 } from "./projectController.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
 
@@ -24,6 +26,20 @@ export default function App() {
     void loadLocalProjectConfig()
       .then((result) => setProject(createProjectController(result)))
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
+  }
+
+  function runCheck() {
+    void requestLocalAction("check")
+      .then((result) =>
+        setProject((current) =>
+          updateProjectValidation(current, { status: result.ok ? "success" : "error", output: result.output }),
+        ),
+      )
+      .catch((error: unknown) =>
+        setProject((current) =>
+          updateProjectValidation(current, { status: "error", output: error instanceof Error ? error.message : String(error) }),
+        ),
+      );
   }
 
   useEffect(() => {
@@ -57,7 +73,7 @@ export default function App() {
       ) : project.selectedView === "library" ? (
         <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
       ) : (
-        <PublishPage />
+        <PublishPage config={config} validation={project.validation} onRunCheck={runCheck} />
       )}
     </AppShell>
   );
