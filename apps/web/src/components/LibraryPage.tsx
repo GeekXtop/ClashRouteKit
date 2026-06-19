@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Button, Empty, Input, Modal, Space } from "antd";
+import { Empty, Input, Modal } from "antd";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import {
   addVendorRepoRequest,
   createRuleFileRequest,
   fetchCatalogSources,
-  formatSyncedAt,
   removeVendorRepoRequest,
   syncCatalogVendor,
   updateVendorRepoRequest,
@@ -15,6 +14,7 @@ import {
 } from "../catalog.js";
 import { listRuleFiles } from "../ruleFiles.js";
 import { notifyError, notifySuccess } from "../notify.js";
+import { CatalogBrowser } from "./CatalogBrowser.js";
 import { LibrarySidebar, type LibrarySelection } from "./LibrarySidebar.js";
 import { ListFileEditor } from "./ListFileEditor.js";
 import { ProviderRecipeEditor } from "./ProviderRecipeEditor.js";
@@ -144,27 +144,8 @@ export function LibraryPage({
       );
     }
     if (selection?.kind === "repo") {
-      const repo = config.vendorRepos.find((r) => r.name === selection.name);
       const source = sources.find((s) => s.id === selection.name);
-      return (
-        <div style={{ padding: 16 }}>
-          <h3>{selection.name}</h3>
-          <p className="rk-lib-meta">{repo?.url}</p>
-          <p className="rk-lib-meta">
-            {source?.count ?? 0} 条 · {formatSyncedAt(source?.syncedAt ?? null, Date.now()) || "未同步"}
-            {repo?.branch ? ` · 钉 ${repo.branch}` : ""}
-          </p>
-          <Space>
-            <Button onClick={() => void syncRepo(selection.name)} loading={syncingRepo === selection.name}>
-              同步
-            </Button>
-            <Button onClick={() => openEditRepo(selection.name)}>编辑</Button>
-            <Button danger onClick={() => void removeRepo(selection.name)}>
-              移除
-            </Button>
-          </Space>
-        </div>
-      );
+      return <CatalogBrowser origin={selection.name} originKind={source?.originKind} fetcher={fetch} />;
     }
     return <Empty description="选择左侧的仓库 / 本地 .list / 规则源" style={{ paddingTop: 80 }} />;
   }
@@ -195,6 +176,7 @@ export function LibraryPage({
         initial={repoModal.initial}
         onSubmit={submitRepo}
         onClose={() => setRepoModal((s) => ({ ...s, open: false }))}
+        onRemove={repoModal.initial ? () => void removeRepo(repoModal.initial!.name) : undefined}
       />
       <Modal open={newListOpen} title="新建 .list" onCancel={() => setNewListOpen(false)} onOk={() => void createList()} okText="新建" cancelText="取消">
         <Input

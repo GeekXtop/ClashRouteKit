@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Input, Modal, Select, Space, Switch } from "antd";
+import { Button, Input, Modal, Popconfirm, Select, Space, Switch } from "antd";
 import type { VendorRepoInput } from "../catalog.js";
 import { notifyError } from "../notify.js";
 
@@ -12,6 +12,7 @@ export function RepoModal(props: {
   initial?: { name: string; url: string; branch?: string; reldir?: string; kind?: Kind };
   onSubmit: (input: VendorRepoInput) => Promise<void>;
   onClose: () => void;
+  onRemove?: () => void;
 }) {
   const [name, setName] = useState(props.initial?.name ?? "");
   const [url, setUrl] = useState(props.initial?.url ?? "");
@@ -88,6 +89,19 @@ export function RepoModal(props: {
           <div className="rk-field-label">数据目录（仓库内相对路径，如 data / Clash / rule）</div>
           <Input aria-label="数据目录" value={reldir} onChange={(e) => setReldir(e.target.value)} placeholder="留空＝不浏览此仓库" />
         </div>
+        {props.mode === "edit" && props.onRemove ? (
+          <Popconfirm
+            title={`移除上游仓库 ${name}？`}
+            okText="移除"
+            cancelText="取消"
+            onConfirm={() => {
+              props.onRemove?.();
+              props.onClose();
+            }}
+          >
+            <Button danger>移除仓库</Button>
+          </Popconfirm>
+        ) : null}
       </Space>
     </Modal>
   );
