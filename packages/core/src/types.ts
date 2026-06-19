@@ -149,3 +149,10 @@ export interface ImportedConfig {
   ruleSets: RuleSet[];
   warnings: string[];
 }
+
+export interface LocalSubscription {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+}

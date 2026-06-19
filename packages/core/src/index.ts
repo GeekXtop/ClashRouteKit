@@ -20,6 +20,7 @@ export type {
   DomainListCommunitySource,
   DomainListEntryInfo,
   ImportedConfig,
+  LocalSubscription,
   ClashListSource,
   ClashProviderSource,
   CustomProxyGroup,
