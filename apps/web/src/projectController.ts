@@ -86,7 +86,7 @@ export function createProjectController(snapshot: ProjectConfigSnapshot): Projec
       status: "idle",
       output: "尚未运行检查",
     },
-    selectedView: "routing",
+    selectedView: "library",
     selectedRuleSetId: firstRuleSetId(snapshot.config),
     selectedCustomProxyGroupName: firstCustomProxyGroupName(snapshot.config),
     selectedProviderName: firstProviderName(snapshot.config),

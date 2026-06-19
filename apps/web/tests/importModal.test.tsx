@@ -6,7 +6,7 @@ import { ImportModal } from "../src/components/ImportModal.js";
 
 afterEach(cleanup);
 
-it("imports pasted ini with merge mode", () => {
+it("imports pasted ini (overwrite)", () => {
   const onImport = vi.fn();
   render(
     <AppProviders>
@@ -15,6 +15,6 @@ it("imports pasted ini with merge mode", () => {
   );
   fireEvent.click(screen.getByText("粘贴 INI"));
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "[custom]\nruleset=Proxy,[]FINAL" } });
-  fireEvent.click(screen.getByText("合并进现有配置"));
-  expect(onImport).toHaveBeenCalledWith("[custom]\nruleset=Proxy,[]FINAL", "merge");
+  fireEvent.click(screen.getByText("覆盖导入"));
+  expect(onImport).toHaveBeenCalledWith("[custom]\nruleset=Proxy,[]FINAL");
 });

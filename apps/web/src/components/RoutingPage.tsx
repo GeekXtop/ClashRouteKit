@@ -27,6 +27,7 @@ export function RoutingPage({
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [drawerGroup, setDrawerGroup] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   const stats = useMemo(() => createCustomProxyGroupStats(config), [config]);
   const iniPreview = useMemo(() => renderIni(config), [config]);
@@ -78,9 +79,15 @@ export function RoutingPage({
             onPolicyChange={(id, policy) => draftActions.updateRuleSet(id, { policy })}
             onToggle={draftActions.toggleRuleSet}
             onDelete={draftActions.deleteRuleSet}
-            onEditSource={draftActions.selectRuleSet}
+            onEditSource={(id) => {
+              setEditingRuleId(id);
+              setPickerOpen(true);
+            }}
             onReorder={draftActions.reorderRuleSets}
-            onAddRule={() => setPickerOpen(true)}
+            onAddRule={() => {
+              setEditingRuleId(null);
+              setPickerOpen(true);
+            }}
           />
         </div>
       </div>
@@ -116,11 +123,25 @@ export function RoutingPage({
         <SourcePickerModal
           open
           policies={policies}
-          defaultPolicy={selectedGroup ?? policies[0] ?? "DIRECT"}
+          defaultPolicy={
+            (editingRuleId && config.ruleSets.find((r) => r.id === editingRuleId)?.policy) ||
+            selectedGroup ||
+            policies[0] ||
+            "DIRECT"
+          }
           sections={sections}
           fetcher={fetcher}
-          onAdd={(source, policy, section) => draftActions.addRoute(source, policy, section)}
-          onClose={() => setPickerOpen(false)}
+          onAdd={(source, policy, section) => {
+            if (editingRuleId) {
+              draftActions.updateRuleSet(editingRuleId, { source });
+            } else {
+              draftActions.addRoute(source, policy, section);
+            }
+          }}
+          onClose={() => {
+            setPickerOpen(false);
+            setEditingRuleId(null);
+          }}
         />
       ) : null}
     </div>

@@ -46,7 +46,7 @@ export function RuleStream(props: {
   return (
     <div className="rk-stream">
       <div className="rk-stream-head">
-        <strong>有序流 · {props.selectedGroup ?? "全部规则"}</strong>
+        <strong>路由规则 · {props.selectedGroup ?? "全部"}</strong>
         <Button type="primary" size="small" icon={<Plus size={14} />} onClick={props.onAddRule}>
           {props.selectedGroup ? `给「${props.selectedGroup}」添加规则` : "添加规则"}
         </Button>
@@ -54,7 +54,7 @@ export function RuleStream(props: {
       <div className="rk-stream-body">
         {sections.map((section) => (
           <div key={section.label}>
-            <div className="rk-section">; {section.label}</div>
+            {section.label === "默认" ? null : <div className="rk-section">; {section.label}</div>}
             {section.rows.map((ruleSet) => (
               <RuleRow
                 key={ruleSet.id}

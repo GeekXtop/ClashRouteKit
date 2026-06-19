@@ -1,28 +1,24 @@
 import type { ReactNode } from "react";
-import { Badge, Button, Layout, Menu, Space } from "antd";
-import { Download, Route, Upload } from "lucide-react";
+import { Layout, Menu, Space, Tag } from "antd";
+import { Route } from "lucide-react";
 import type { ProjectView } from "../projectController.js";
 
 const navItems: { key: ProjectView; label: string }[] = [
-  { key: "routing", label: "路由" },
   { key: "library", label: "规则库" },
+  { key: "routing", label: "路由" },
   { key: "publish", label: "发布" },
 ];
 
 export function AppShell({
   children,
   selectedView,
-  dirty,
+  saveLabel,
   onSelectView,
-  onImport,
-  onExport,
 }: {
   children: ReactNode;
   selectedView: ProjectView;
-  dirty: boolean;
+  saveLabel?: string;
   onSelectView: (view: ProjectView) => void;
-  onImport: () => void;
-  onExport: () => void;
 }) {
   return (
     <Layout style={{ height: "100vh" }}>
@@ -38,15 +34,11 @@ export function AppShell({
           items={navItems.map((item) => ({ key: item.key, label: item.label }))}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <Space>
-          {dirty ? <Badge status="warning" text="未保存" /> : null}
-          <Button size="small" icon={<Upload size={14} />} onClick={onImport}>
-            导入
-          </Button>
-          <Button size="small" icon={<Download size={14} />} onClick={onExport}>
-            导出
-          </Button>
-        </Space>
+        {saveLabel ? (
+          <Tag color={saveLabel === "保存失败" ? "error" : saveLabel === "保存中…" ? "processing" : "success"}>
+            {saveLabel}
+          </Tag>
+        ) : null}
       </Layout.Header>
       <Layout.Content style={{ overflow: "hidden" }}>{children}</Layout.Content>
     </Layout>
