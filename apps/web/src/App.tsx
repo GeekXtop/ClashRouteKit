@@ -107,6 +107,7 @@ export default function App() {
         selectedView={project.selectedView}
         saveLabel={saveLabel}
         onSelectView={(view) => setProject((current) => setProjectSelection(current, { selectedView: view }))}
+        onImport={openImport}
       >
         {project.selectedView === "routing" ? (
           <RoutingPage

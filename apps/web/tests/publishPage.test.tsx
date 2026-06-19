@@ -28,7 +28,7 @@ it("renders the three publish sections", async () => {
       />
     </AppProviders>,
   );
-  await waitFor(() => expect(screen.getByText("模板：Custom_Clash.ini")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText(/模板与发布/)).toBeTruthy());
   expect(screen.getByText(/构建并推送/)).toBeTruthy();
   expect(screen.getByText("生成 config.yaml")).toBeTruthy();
 });

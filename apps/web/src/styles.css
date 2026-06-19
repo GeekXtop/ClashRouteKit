@@ -294,3 +294,6 @@ body {
   padding: 8px 12px;
   font-weight: 600;
 }
+
+.rk-oc-hint { margin: 12px 0 0; padding-left: 18px; color: var(--rk-muted); font-size: 12px; }
+.rk-oc-hint li { margin: 2px 0; }
