@@ -13,13 +13,11 @@ import {
   readCatalogEntryDomains,
   readCatalogTemplate,
   readGitRemote,
-  readLocalSubscriptions,
   readProjectConfigFile,
   readProjectRuleFile,
   removeProjectVendorRepo,
   runRouteKitAction,
   updateProjectVendorRepo,
-  writeLocalSubscriptions,
   writeProjectConfigFile,
   writeProjectRuleFile,
 } from "../src/serveApi.js";
@@ -551,48 +549,5 @@ describe("catalog entries with hasChildren", () => {
       { name: "Apple", hasChildren: false },
       { name: "BanAD", hasChildren: false },
     ]);
-  });
-});
-
-describe("local subscriptions store", () => {
-  const root = path.resolve("fixture-repo");
-  const configFile = "config/routes.yaml";
-
-  it("returns [] when the file is absent", async () => {
-    const subs = await readLocalSubscriptions({
-      root,
-      configFile,
-      readText: async () => {
-        throw new Error("ENOENT");
-      },
-    });
-    expect(subs).toEqual([]);
-  });
-
-  it("parses subscriptions from yaml", async () => {
-    const subs = await readLocalSubscriptions({
-      root,
-      configFile,
-      readText: async () =>
-        ["subscriptions:", "  - id: a", "    name: AirA", "    url: https://a/sub", "    enabled: true", ""].join("\n"),
-    });
-    expect(subs).toEqual([{ id: "a", name: "AirA", url: "https://a/sub", enabled: true }]);
-  });
-
-  it("serializes subscriptions to yaml under config/subscriptions.local.yaml", async () => {
-    let writtenPath = "";
-    let writtenText = "";
-    await writeLocalSubscriptions({
-      root,
-      configFile,
-      subscriptions: [{ id: "a", name: "AirA", url: "https://a/sub", enabled: true }],
-      writeText: async (filePath, text) => {
-        writtenPath = filePath;
-        writtenText = text;
-      },
-    });
-    expect(writtenPath).toBe(path.resolve(root, "config/subscriptions.local.yaml"));
-    expect(writtenText).toContain("AirA");
-    expect(writtenText).toContain("subscriptions:");
   });
 });

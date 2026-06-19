@@ -34,23 +34,24 @@ export function PublishPage(props: {
   }, []);
 
   return (
-    <div className="rk-publish">
-      <PublishTemplateSection
-        templateOutput={props.config.template.output}
-        publishBaseUrl={props.config.publishBaseUrl}
-        validation={props.validation}
-        onRunCheck={props.onRunCheck}
-        fetcher={fetcher}
-      />
-      <div className="rk-publish-arrow">↓</div>
-      <GitPublishSection rawTemplateUrl={rawTemplateUrl} fetcher={fetcher} />
-      <div className="rk-publish-arrow">↓ 同一模板</div>
-      <ConfigYamlSection
-        publishBaseUrl={props.config.publishBaseUrl}
-        templateOutput={props.config.template.output}
-        subconverterUrl={subconverterUrl}
-        fetcher={fetcher}
-      />
+    <div className="rk-publish-split">
+      <div className="rk-pane rk-publish-col">
+        <PublishTemplateSection
+          templateOutput={props.config.template.output}
+          publishBaseUrl={props.config.publishBaseUrl}
+          validation={props.validation}
+          onRunCheck={props.onRunCheck}
+          fetcher={fetcher}
+        />
+        <GitPublishSection rawTemplateUrl={rawTemplateUrl} fetcher={fetcher} />
+      </div>
+      <div className="rk-pane rk-publish-col">
+        <ConfigYamlSection
+          publishBaseUrl={props.config.publishBaseUrl}
+          templateOutput={props.config.template.output}
+          subconverterUrl={subconverterUrl}
+        />
+      </div>
     </div>
   );
 }

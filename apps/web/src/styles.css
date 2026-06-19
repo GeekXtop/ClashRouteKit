@@ -3055,3 +3055,7 @@ button.state {
 .rk-url-row code { flex: 1; color: #7fb0e6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 
 .rk-field-label { color: #7b8494; font-size: 11px; margin: 0 0 4px 2px; }
+
+.rk-publish-split { display: grid; grid-template-columns: 1fr 1fr; height: 100%; min-height: 0; }
+.rk-publish-col { overflow: auto; min-height: 0; }
+.rk-publish-col + .rk-publish-col { border-left: 1px solid #2a2f3a; }

@@ -5,6 +5,15 @@ export interface ProviderSubscription {
   enabled: boolean;
 }
 
+export interface SubconverterConvertOptions {
+  emoji?: boolean;
+  udp?: boolean;
+  skipCertVerify?: boolean;
+  sort?: boolean;
+  appendType?: boolean;
+  ruleProvider?: boolean;
+}
+
 export interface BuildSubconverterUrlInput {
   providers: ProviderSubscription[];
   publishBaseUrl: string;
@@ -13,6 +22,7 @@ export interface BuildSubconverterUrlInput {
   endpoint?: string;
   target?: string;
   configVersion?: string | number;
+  convert?: SubconverterConvertOptions;
 }
 
 function stableProviderId(name: string, index: number): string {
@@ -64,5 +74,17 @@ export function buildSubconverterUrl(input: BuildSubconverterUrlInput): string {
   endpoint.searchParams.set("target", input.target ?? "clash");
   endpoint.searchParams.set("url", subscriptionUrl);
   endpoint.searchParams.set("config", templateUrl(input.publishBaseUrl, input.templateOutput, input.configVersion));
+  const convert = input.convert;
+  if (convert) {
+    if (convert.emoji !== undefined) endpoint.searchParams.set("emoji", String(convert.emoji));
+    if (convert.sort !== undefined) endpoint.searchParams.set("sort", String(convert.sort));
+    if (convert.udp) endpoint.searchParams.set("udp", "true");
+    if (convert.skipCertVerify !== undefined) endpoint.searchParams.set("scv", String(convert.skipCertVerify));
+    if (convert.appendType !== undefined) endpoint.searchParams.set("append_type", String(convert.appendType));
+    if (convert.ruleProvider) {
+      endpoint.searchParams.set("expand", "false");
+      endpoint.searchParams.set("classic", "true");
+    }
+  }
   return endpoint.toString();
 }

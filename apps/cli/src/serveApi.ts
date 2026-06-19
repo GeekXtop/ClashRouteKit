@@ -19,8 +19,7 @@ import {
   type ProgramOptions,
 } from "./program.js";
 import { addVendorRepo, removeVendorRepo, updateVendorRepo } from "@clash-route-kit/core";
-import type { LocalSubscription, VendorRepoConfig } from "@clash-route-kit/core";
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import type { VendorRepoConfig } from "@clash-route-kit/core";
 
 const execFileAsync = promisify(execFile);
 
@@ -472,39 +471,6 @@ export async function removeProjectVendorRepo(
   return writeProjectConfigFile({ ...options, config: removeVendorRepo(config, options.name) });
 }
 
-function subscriptionsPath(options: ProgramOptions): string {
-  return path.resolve(options.root, "config/subscriptions.local.yaml");
-}
-
-export interface LocalSubscriptionsOptions extends ProgramOptions {
-  readText?: ReadText;
-}
-
-export async function readLocalSubscriptions(options: LocalSubscriptionsOptions): Promise<LocalSubscription[]> {
-  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
-  let text: string;
-  try {
-    text = await readText(subscriptionsPath(options));
-  } catch {
-    return [];
-  }
-  const parsed = parseYaml(text) as { subscriptions?: LocalSubscription[] } | null;
-  return Array.isArray(parsed?.subscriptions) ? parsed.subscriptions : [];
-}
-
-export interface WriteLocalSubscriptionsOptions extends ProgramOptions {
-  subscriptions: LocalSubscription[];
-  writeText?: WriteText;
-}
-
-export async function writeLocalSubscriptions(
-  options: WriteLocalSubscriptionsOptions,
-): Promise<LocalSubscription[]> {
-  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
-  await writeText(subscriptionsPath(options), stringifyYaml({ subscriptions: options.subscriptions }));
-  return options.subscriptions;
-}
-
 function formatGenerateOutput(result: GenerateResult): string {
   const lines = [`[generate] template: ${result.templatePath}`];
   for (const provider of result.providers) {
@@ -834,40 +800,6 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );
-      return;
-    }
-
-    if (url.pathname === "/api/subscriptions") {
-      if (request.method === "GET") {
-        void readLocalSubscriptions(options)
-          .then((subscriptions) => writeJson(response, 200, { subscriptions }))
-          .catch((error: unknown) =>
-            writeJson(response, 500, { ok: false, output: error instanceof Error ? error.message : String(error) }),
-          );
-        return;
-      }
-      if (request.method === "PUT") {
-        let body = "";
-        request.on("data", (chunk: Buffer) => {
-          body += chunk.toString("utf8");
-        });
-        request.on("end", () => {
-          void Promise.resolve()
-            .then(() => JSON.parse(body) as { subscriptions?: LocalSubscription[] })
-            .then((payload) => {
-              if (!Array.isArray(payload.subscriptions)) {
-                throw new Error("Missing subscriptions");
-              }
-              return writeLocalSubscriptions({ ...options, subscriptions: payload.subscriptions });
-            })
-            .then((subscriptions) => writeJson(response, 200, { subscriptions }))
-            .catch((error: unknown) =>
-              writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
-            );
-        });
-        return;
-      }
-      writeJson(response, 405, { ok: false, output: "Method not allowed" });
       return;
     }
 
