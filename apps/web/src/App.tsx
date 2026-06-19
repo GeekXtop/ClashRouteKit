@@ -20,6 +20,12 @@ export default function App() {
   const draftActions = useProjectDraftActions(setProject);
   const config = project.draftConfig;
 
+  function refreshConfig() {
+    void loadLocalProjectConfig()
+      .then((result) => setProject(createProjectController(result)))
+      .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
+  }
+
   useEffect(() => {
     let alive = true;
     setProject((current) => setProjectStatus(current, "loading", "正在读取本地 config/routes.yaml"));
@@ -49,7 +55,7 @@ export default function App() {
       {project.selectedView === "routing" ? (
         <RoutingPage config={config} selectedRuleSetId={project.selectedRuleSetId} draftActions={draftActions} />
       ) : project.selectedView === "library" ? (
-        <LibraryPage />
+        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
       ) : (
         <PublishPage />
       )}
