@@ -11,6 +11,7 @@ import type {
 import { parseIniToConfig } from "@clash-route-kit/core";
 import {
   addCustomProxyGroup,
+  addRoute,
   addRuleProvider,
   addRuleSet,
   createCustomProxyGroup,
@@ -154,6 +155,17 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     },
     reorderRuleSets(orderedIds: string[]) {
       mutate((current) => reorderRuleSets(current, orderedIds));
+    },
+    addRoute(source: RuleSetSource, policy: string, section?: string) {
+      setProject((current) => {
+        try {
+          const next = applyDraftConfig(current, addRoute(current.draftConfig, { source, policy, section }));
+          const added = next.draftConfig.ruleSets.at(-1);
+          return { ...dirtyMessage(next), selectedRuleSetId: added?.id ?? next.selectedRuleSetId, selectedView: "routing" };
+        } catch (error: unknown) {
+          return mutationError(current, error);
+        }
+      });
     },
     addGeositeRoute(value: string, policy: string, section?: string) {
       setProject((current) => {

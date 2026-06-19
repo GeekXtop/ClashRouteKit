@@ -84,6 +84,30 @@ export function addRuleSet(config: RouteKitProjectConfig, ruleSet: RuleSet): Rou
   };
 }
 
+export function addRoute(
+  config: RouteKitProjectConfig,
+  params: { source: RuleSetSource; policy: string; section?: string },
+): RouteKitProjectConfig {
+  const existing = new Set(config.ruleSets.map((ruleSet) => ruleSet.id));
+  const hint =
+    params.source.type === "geosite" || params.source.type === "geoip"
+      ? params.source.value
+      : params.source.type === "rule-provider"
+        ? params.source.file
+        : "final";
+  const base = `${params.source.type}-${hint || "entry"}`.replace(/[^A-Za-z0-9_-]+/g, "-");
+  let id = base;
+  let suffix = 2;
+  while (existing.has(id)) id = `${base}-${suffix++}`;
+  const ruleSet: RuleSet = {
+    id,
+    policy: params.policy,
+    source: params.source,
+    ...(params.section ? { section: params.section } : {}),
+  };
+  return addRuleSet(config, ruleSet);
+}
+
 export function updateRuleSet(
   config: RouteKitProjectConfig,
   ruleSetId: string,

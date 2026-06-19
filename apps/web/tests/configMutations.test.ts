@@ -327,3 +327,28 @@ describe("config mutation helpers", () => {
     expect(next.globalRemove).toEqual(["x"]);
   });
 });
+
+import { addRoute } from "../src/configMutations.js";
+
+describe("addRoute", () => {
+  const cfg = {
+    publishBaseUrl: "x",
+    template: { output: "o.ini" },
+    vendorRepos: [],
+    customProxyGroups: [{ name: "Proxy", type: "select", options: [] }],
+    ruleSets: [],
+  } as unknown as RouteKitProjectConfig;
+
+  it("appends a ruleSet with a unique id and given policy/section", () => {
+    const next = addRoute(cfg, { source: { type: "geosite", value: "openai" }, policy: "Proxy", section: "代理" });
+    expect(next.ruleSets).toHaveLength(1);
+    expect(next.ruleSets[0]).toMatchObject({ policy: "Proxy", section: "代理", source: { type: "geosite", value: "openai" } });
+    expect(next.ruleSets[0]!.id).toMatch(/openai/);
+  });
+
+  it("dedupes id on collision", () => {
+    const once = addRoute(cfg, { source: { type: "geosite", value: "ai" }, policy: "Proxy" });
+    const twice = addRoute(once, { source: { type: "geosite", value: "ai" }, policy: "Proxy" });
+    expect(twice.ruleSets[1]!.id).not.toBe(twice.ruleSets[0]!.id);
+  });
+});
