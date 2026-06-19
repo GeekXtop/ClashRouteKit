@@ -280,6 +280,33 @@ export async function listCatalogEntries(options: CatalogEntriesOptions): Promis
   return entries.filter((name) => !name.includes(".")).sort();
 }
 
+export interface CatalogEntryMeta {
+  name: string;
+  hasChildren: boolean;
+}
+
+export async function listCatalogEntriesWithMeta(
+  options: CatalogEntriesOptions & { readText?: ReadText },
+): Promise<CatalogEntryMeta[]> {
+  const def = catalogOrigin(options.origin, options.origins);
+  const names = await listCatalogEntries(options);
+  if (def.kind !== "domain-list") {
+    return names.map((name) => ({ name, hasChildren: false }));
+  }
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  const dir = catalogDataDir(options, options.origin);
+  return Promise.all(
+    names.map(async (name) => {
+      try {
+        const info = parseDomainListEntry(await readText(path.join(dir, name)));
+        return { name, hasChildren: info.includes.length > 0 };
+      } catch {
+        return { name, hasChildren: false };
+      }
+    }),
+  );
+}
+
 export async function readCatalogEntry(
   options: CatalogEntryOptions,
 ): Promise<DomainListEntryInfo & { name: string }> {
@@ -658,7 +685,9 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
     if (url.pathname === "/api/catalog/entries") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
       void readProjectConfigFile(options)
-        .then(({ config }) => listCatalogEntries({ ...options, origin, origins: catalogOriginsFromConfig(config) }))
+        .then(({ config }) =>
+          listCatalogEntriesWithMeta({ ...options, origin, origins: catalogOriginsFromConfig(config) }),
+        )
         .then((entries) => writeJson(response, 200, { entries }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),

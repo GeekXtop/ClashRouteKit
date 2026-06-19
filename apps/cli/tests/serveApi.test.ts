@@ -5,6 +5,7 @@ import {
   addProjectVendorRepo,
   catalogOriginsFromConfig,
   listCatalogEntries,
+  listCatalogEntriesWithMeta,
   listCatalogSources,
   listProjectRuleFiles,
   normalizeVendorRepoInput,
@@ -508,5 +509,45 @@ describe("vendor repo mutations over project config", () => {
       writeText: async () => {},
     });
     expect(result.config.vendorRepos).toHaveLength(0);
+  });
+});
+
+describe("catalog entries with hasChildren", () => {
+  const root = path.resolve("fixture-repo");
+
+  it("computes hasChildren for domain-list entries from include lines", async () => {
+    const files: Record<string, string> = {
+      "category-acg": "include:acg-cn\nnicovideo.jp\n",
+      "acg-cn": "bilibili.com\n",
+      openai: "openai.com\n",
+    };
+    const entries = await listCatalogEntriesWithMeta({
+      root,
+      configFile: "config/routes.yaml",
+      origin: "domain-list-community",
+      readDirectory: async () => ["category-acg", "acg-cn", "openai", "README.md"],
+      readText: async (filePath: string) => files[path.basename(filePath)] ?? "",
+    });
+    const byName = Object.fromEntries(entries.map((e) => [e.name, e.hasChildren]));
+    expect(byName["category-acg"]).toBe(true);
+    expect(byName["acg-cn"]).toBe(false);
+    expect(byName["openai"]).toBe(false);
+    expect(byName["README.md"]).toBeUndefined();
+  });
+
+  it("marks list-dir entries hasChildren=false without reading files", async () => {
+    const entries = await listCatalogEntriesWithMeta({
+      root,
+      configFile: "config/routes.yaml",
+      origin: "ACL4SSR",
+      readDirectory: async () => ["BanAD.list", "Apple.list"],
+      readText: async () => {
+        throw new Error("should not read list-dir files");
+      },
+    });
+    expect(entries).toEqual([
+      { name: "Apple", hasChildren: false },
+      { name: "BanAD", hasChildren: false },
+    ]);
   });
 });
