@@ -12,6 +12,10 @@ export interface SubconverterConvertOptions {
   sort?: boolean;
   appendType?: boolean;
   ruleProvider?: boolean;
+  ua?: string;
+  include?: string[];
+  exclude?: string[];
+  customParams?: string[];
 }
 
 export interface BuildSubconverterUrlInput {
@@ -84,6 +88,13 @@ export function buildSubconverterUrl(input: BuildSubconverterUrlInput): string {
     if (convert.ruleProvider) {
       endpoint.searchParams.set("expand", "false");
       endpoint.searchParams.set("classic", "true");
+    }
+    if (convert.ua?.trim()) endpoint.searchParams.set("ua", convert.ua.trim());
+    if (convert.include?.length) endpoint.searchParams.set("include", `(?i)${convert.include.join("|")}`);
+    if (convert.exclude?.length) endpoint.searchParams.set("exclude", `(?i)${convert.exclude.join("|")}`);
+    for (const param of convert.customParams ?? []) {
+      const eq = param.indexOf("=");
+      if (eq > 0) endpoint.searchParams.set(param.slice(0, eq).trim(), param.slice(eq + 1));
     }
   }
   return endpoint.toString();

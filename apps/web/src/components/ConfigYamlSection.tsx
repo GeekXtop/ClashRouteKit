@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Switch } from "antd";
+import { Button, Collapse, Input, Select, Switch } from "antd";
 import { Plus, X } from "lucide-react";
 import QRCode from "qrcode";
 import type { LocalSubscription } from "@clash-route-kit/core";
@@ -7,6 +7,7 @@ import { buildSubconverterUrl, type SubconverterConvertOptions } from "../subscr
 
 let idSeed = 0;
 
+const UA_PRESETS = ["clash-verge/v2.4.5", "clash.meta/1.19.20", "Clash"];
 const CONVERT_TOGGLES: { key: keyof SubconverterConvertOptions; label: string }[] = [
   { key: "emoji", label: "Emoji" },
   { key: "udp", label: "UDP" },
@@ -30,6 +31,9 @@ export function ConfigYamlSection(props: {
   function patch(id: string, change: Partial<LocalSubscription>) {
     setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, ...change } : s)));
   }
+  function patchConvert(change: Partial<SubconverterConvertOptions>) {
+    setConvert((c) => ({ ...c, ...change }));
+  }
 
   function generate() {
     const enabled = subs.filter((s) => s.enabled && s.url.trim());
@@ -48,16 +52,12 @@ export function ConfigYamlSection(props: {
 
   return (
     <div className="rk-page-col" style={{ height: "100%", overflow: "auto", padding: 16 }}>
-      <h3>导出 config.yaml（导入设备）</h3>
+      <h3 style={{ marginTop: 0 }}>导出 config.yaml（导入设备）</h3>
+
       <div className="rk-field-label">我的订阅（仅本次会话，不落盘）</div>
       {subs.map((sub) => (
         <div key={sub.id} className="rk-url-row" style={{ gap: 6 }}>
-          <Input
-            placeholder="名称"
-            value={sub.name}
-            style={{ width: 110 }}
-            onChange={(e) => patch(sub.id, { name: e.target.value })}
-          />
+          <Input placeholder="名称" value={sub.name} style={{ width: 110 }} onChange={(e) => patch(sub.id, { name: e.target.value })} />
           <Input placeholder="订阅 URL" value={sub.url} onChange={(e) => patch(sub.id, { url: e.target.value })} />
           <Switch size="small" checked={sub.enabled} onChange={(checked) => patch(sub.id, { enabled: checked })} />
           <button
@@ -78,27 +78,51 @@ export function ConfigYamlSection(props: {
         添加订阅
       </Button>
 
-      <div className="rk-field-label" style={{ marginTop: 12 }}>
-        SubConverter 端点
-      </div>
+      <div className="rk-field-label" style={{ marginTop: 12 }}>SubConverter 端点</div>
       <Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
 
-      <div className="rk-field-label" style={{ marginTop: 12 }}>
-        转换选项
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-        {CONVERT_TOGGLES.map((t) => (
-          <label key={t.key} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Switch size="small" checked={Boolean(convert[t.key])} onChange={(checked) => setConvert((c) => ({ ...c, [t.key]: checked }))} />
-            <span className="rk-lib-meta">{t.label}</span>
-          </label>
-        ))}
-      </div>
+      <Collapse
+        ghost
+        style={{ marginTop: 8 }}
+        items={[
+          {
+            key: "adv",
+            label: "高级选项（转换参数）",
+            children: (
+              <>
+                <div className="rk-field-label">User-Agent</div>
+                <Select
+                  style={{ width: "100%" }}
+                  allowClear
+                  showSearch
+                  placeholder="默认（不指定）"
+                  value={convert.ua || undefined}
+                  options={UA_PRESETS.map((u) => ({ value: u, label: u }))}
+                  onChange={(value) => patchConvert({ ua: value })}
+                />
+                <div className="rk-field-label" style={{ marginTop: 10 }}>开关</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                  {CONVERT_TOGGLES.map((t) => (
+                    <label key={t.key} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Switch size="small" checked={Boolean(convert[t.key])} onChange={(checked) => patchConvert({ [t.key]: checked })} />
+                      <span className="rk-lib-meta">{t.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="rk-field-label" style={{ marginTop: 10 }}>包含关键字（include）</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="如 hk、tw" value={convert.include ?? []} onChange={(v) => patchConvert({ include: v })} />
+                <div className="rk-field-label" style={{ marginTop: 10 }}>排除关键字（exclude）</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="如 过期、官网" value={convert.exclude ?? []} onChange={(v) => patchConvert({ exclude: v })} />
+                <div className="rk-field-label" style={{ marginTop: 10 }}>自定义参数（key=value）</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="如 rename=match@replace" value={convert.customParams ?? []} onChange={(v) => patchConvert({ customParams: v })} />
+              </>
+            ),
+          },
+        ]}
+      />
 
       <div style={{ marginTop: 14 }}>
-        <Button type="primary" onClick={generate}>
-          生成 config.yaml
-        </Button>
+        <Button type="primary" onClick={generate}>生成 config.yaml</Button>
       </div>
       {generatedUrl ? (
         <div style={{ marginTop: 12, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
