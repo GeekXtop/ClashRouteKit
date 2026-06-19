@@ -2978,3 +2978,78 @@ button.state {
   flex-wrap: wrap;
   margin: 10px 0;
 }
+
+/* ===== Redesign: routing/library/publish (.rk-*) ===== */
+.rk-rule-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #1e2531;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.rk-rule-row.sel { outline: 1px solid #3b82f6; background: #222b3a; }
+.rk-grip { color: #566; cursor: grab; flex: 0 0 auto; }
+.rk-src { color: #8aa0c0; font-family: ui-monospace, monospace; font-size: 12px; }
+.rk-iconbtn {
+  background: transparent; border: 0; color: #7b8494; cursor: pointer;
+  display: inline-flex; align-items: center; padding: 2px; border-radius: 4px;
+}
+.rk-iconbtn:hover { color: #cdd3df; background: #2a3340; }
+.rk-iconbtn.rk-del:hover { color: #ff6b81; }
+
+.rk-stream, .rk-groupnav { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.rk-stream-head, .rk-nav-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-bottom: 1px solid #2a2f3a; gap: 8px;
+}
+.rk-stream-body { flex: 1; min-height: 0; overflow: auto; padding: 8px; }
+.rk-section { color: #7b8494; font-size: 11px; padding: 8px 4px 3px; font-family: ui-monospace, monospace; }
+.rk-empty { color: #7b8494; text-align: center; padding: 24px; }
+
+.rk-nav-row {
+  display: flex; gap: 8px; align-items: center; padding: 6px 8px;
+  border-radius: 6px; margin: 0 6px 3px; cursor: pointer;
+}
+.rk-nav-row.on { background: #222b3a; outline: 1px solid #3b82f6; }
+.rk-nav-row:hover .rk-nav-edit { opacity: 1; }
+.rk-nav-name { color: #cdd3df; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-nav-count { color: #7b8494; font-size: 11px; }
+.rk-nav-edit {
+  opacity: 0; background: transparent; border: 0; color: #9fb4d6; cursor: pointer;
+  display: inline-flex; align-items: center; padding: 1px 4px; border-radius: 4px;
+}
+.rk-nav-edit:hover { background: #0f1722; }
+.rk-nav-sec { color: #7b8494; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px 3px; }
+.rk-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: #6b7280; }
+.rk-dot.tone-dir { background: #34d399; }
+.rk-dot.tone-rej { background: #f87171; }
+.rk-dot.tone-fin { background: #fbbf24; }
+.rk-dot.tone-cat { background: #c4a6f0; }
+.rk-dot.tone-reg { background: #60a5fa; }
+
+.rk-routing { display: grid; grid-template-columns: 280px 1fr; height: 100%; min-height: 0; }
+.rk-routing > .rk-pane { border-right: 1px solid #2a2f3a; min-height: 0; overflow: hidden; }
+.rk-routing > .rk-pane:last-child { border-right: 0; }
+.rk-page-col { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.rk-ini { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre; overflow: auto; margin: 0; color: #8aa0c0; }
+
+.rk-library { display: grid; grid-template-columns: 360px 1fr; height: 100%; min-height: 0; }
+.rk-library > .rk-pane { border-right: 1px solid #2a2f3a; min-height: 0; overflow: auto; }
+.rk-library > .rk-pane:last-child { border-right: 0; }
+.rk-lib-sec { color: #7b8494; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 10px 10px 4px; }
+.rk-lib-row {
+  display: flex; gap: 8px; align-items: center; padding: 6px 10px; margin: 0 6px 3px;
+  border-radius: 6px; cursor: pointer;
+}
+.rk-lib-row.on { background: #222b3a; outline: 1px solid #3b82f6; }
+.rk-lib-row .rk-lib-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-lib-meta { color: #7b8494; font-size: 11px; }
+
+.rk-publish { max-width: 720px; margin: 0 auto; padding: 16px; }
+.rk-publish-block { background: #171c25; border: 1px solid #2a2f3a; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+.rk-publish-arrow { text-align: center; color: #5b6b86; }
+.rk-url-row { display: flex; gap: 6px; align-items: center; background: #0f1722; border: 1px solid #2a2f3a; border-radius: 6px; padding: 4px 9px; margin-bottom: 4px; }
+.rk-url-row code { flex: 1; color: #7fb0e6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
