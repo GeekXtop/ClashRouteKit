@@ -3059,3 +3059,42 @@ button.state {
 .rk-publish-split { display: grid; grid-template-columns: 1fr 1fr; height: 100%; min-height: 0; }
 .rk-publish-col { overflow: auto; min-height: 0; }
 .rk-publish-col + .rk-publish-col { border-left: 1px solid #2a2f3a; }
+
+/* ===== Theme v2 — cohesive slate-dark refresh (overrides earlier rk-*) ===== */
+:root {
+  --rk-bg: #0b0e14;
+  --rk-surface: #131720;
+  --rk-surface-2: #1a1f2b;
+  --rk-border: #232a36;
+  --rk-text: #e6e9ef;
+  --rk-muted: #9aa3b8;
+  --rk-accent: #93a4c4;
+  --rk-primary: #6366f1;
+}
+body { background: var(--rk-bg); color: var(--rk-text); }
+* { scrollbar-width: thin; scrollbar-color: #2a3340 transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: #2a3340; border-radius: 6px; }
+*::-webkit-scrollbar-thumb:hover { background: #36414f; }
+
+.rk-routing, .rk-library { background: var(--rk-bg); }
+.rk-routing > .rk-pane, .rk-library > .rk-pane { border-right-color: var(--rk-border); }
+.rk-publish-col + .rk-publish-col { border-left-color: var(--rk-border); }
+
+.rk-rule-row, .rk-nav-row, .rk-lib-row { background: transparent; border: 1px solid transparent; transition: background .12s, border-color .12s; }
+.rk-rule-row { background: var(--rk-surface); border-color: var(--rk-border); }
+.rk-rule-row:hover { border-color: #2f3a4b; }
+.rk-rule-row.sel { outline: none; border-color: var(--rk-primary); background: var(--rk-surface-2); }
+.rk-nav-row:hover, .rk-lib-row:hover { background: var(--rk-surface); }
+.rk-nav-row.on, .rk-lib-row.on { background: var(--rk-surface-2); outline: none; border-color: var(--rk-primary); }
+.rk-src { color: var(--rk-accent); }
+.rk-section { color: var(--rk-muted); }
+.rk-nav-name, .rk-lib-name { color: var(--rk-text); }
+.rk-nav-count, .rk-lib-meta, .rk-field-label { color: var(--rk-muted); }
+
+.rk-stream-head, .rk-nav-head { border-bottom-color: var(--rk-border); }
+
+.rk-publish { max-width: none; }
+.rk-publish-block { background: var(--rk-surface); border-color: var(--rk-border); border-radius: 10px; }
+.rk-url-row { background: var(--rk-bg); border-color: var(--rk-border); }
+.rk-ini { background: var(--rk-bg); border: 1px solid var(--rk-border); border-radius: 8px; padding: 8px; }
