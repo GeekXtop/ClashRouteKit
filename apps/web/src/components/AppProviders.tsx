@@ -7,6 +7,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ConfigProvider
       locale={zhCN}
+      button={{ autoInsertSpace: false }}
       theme={{
         algorithm: theme.darkAlgorithm,
         token: { colorPrimary: "#3b82f6", borderRadius: 6 },
