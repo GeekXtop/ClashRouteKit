@@ -171,7 +171,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
             ...(section ? { section } : {}),
           };
           const next = applyDraftConfig(current, addRuleSet(current.draftConfig, ruleSet));
-          return { ...dirtyMessage(next), selectedRuleSetId: id, selectedView: "ruleSets" };
+          return { ...dirtyMessage(next), selectedRuleSetId: id, selectedView: "routing" };
         } catch (error: unknown) {
           return mutationError(current, error);
         }
