@@ -139,6 +139,7 @@ export function LibraryPage({
             draftActions.deleteProvider(provider.name);
             setSelection(null);
           }}
+          fetcher={fetch}
         />
       );
     }

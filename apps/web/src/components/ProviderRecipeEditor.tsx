@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Popconfirm, Select, Space } from "antd";
+import { Button, Input, Popconfirm, Select, Space, Tooltip } from "antd";
 import { Plus, X } from "lucide-react";
 import type { RuleProviderConfig, RuleProviderSource } from "@clash-route-kit/core";
+import { fetchCatalogEntries } from "../catalog.js";
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 const SOURCE_TYPES: RuleProviderSource["type"][] = ["clash-list", "clash-provider", "domain-list-community"];
 
@@ -25,9 +28,20 @@ export function ProviderRecipeEditor(props: {
   onSetSources: (sources: RuleProviderSource[]) => void;
   onSetListField: (field: "exclude" | "remove", values: string[]) => void;
   onDelete: () => void;
+  fetcher?: Fetcher;
 }) {
   const [output, setOutput] = useState(props.provider.output);
+  const [dlcEntries, setDlcEntries] = useState<string[]>([]);
   useEffect(() => setOutput(props.provider.output), [props.provider.output]);
+  useEffect(() => {
+    let alive = true;
+    void fetchCatalogEntries("domain-list-community", props.fetcher ?? globalThis.fetch)
+      .then((entries) => alive && setDlcEntries(entries.map((e) => e.name)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [props.fetcher]);
 
   return (
     <div className="rk-page-col" style={{ height: "100%", padding: 12, overflow: "auto" }}>
@@ -61,14 +75,27 @@ export function ProviderRecipeEditor(props: {
                   props.onSetSources(props.provider.sources.map((s, i) => (i === index ? makeSource(type) : s)))
                 }
               />
-              <Input
-                value={sourceValue(source)}
-                placeholder={source.type === "domain-list-community" ? "entry 名" : "相对路径"}
-                style={{ width: 260 }}
-                onChange={(e) =>
-                  props.onSetSources(props.provider.sources.map((s, i) => (i === index ? withValue(s, e.target.value) : s)))
-                }
-              />
+              {source.type === "domain-list-community" ? (
+                <Select
+                  showSearch
+                  value={sourceValue(source) || undefined}
+                  placeholder="搜索/选择 GEOSITE 条目"
+                  style={{ width: 260 }}
+                  options={dlcEntries.map((name) => ({ value: name, label: name }))}
+                  onChange={(value) =>
+                    props.onSetSources(props.provider.sources.map((s, i) => (i === index ? withValue(s, value) : s)))
+                  }
+                />
+              ) : (
+                <Input
+                  value={sourceValue(source)}
+                  placeholder="仓库内相对路径"
+                  style={{ width: 260 }}
+                  onChange={(e) =>
+                    props.onSetSources(props.provider.sources.map((s, i) => (i === index ? withValue(s, e.target.value) : s)))
+                  }
+                />
+              )}
               <button
                 type="button"
                 aria-label={`删除来源 ${index}`}
@@ -88,7 +115,9 @@ export function ProviderRecipeEditor(props: {
           </Button>
         </div>
         <div>
-          <div className="rk-field-label">排除（exclude）</div>
+          <Tooltip title="生成时，结果里凡匹配这些正则的域名会被排除（不写入产物）">
+            <div className="rk-field-label">排除（exclude）· 按正则剔除域名 ⓘ</div>
+          </Tooltip>
           <Select
             mode="tags"
             style={{ width: "100%" }}
@@ -97,7 +126,9 @@ export function ProviderRecipeEditor(props: {
           />
         </div>
         <div>
-          <div className="rk-field-label">移除（remove）</div>
+          <Tooltip title="生成时，从上游列表中先删除匹配这些正则的原始行，再合并">
+            <div className="rk-field-label">移除（remove）· 按正则删除上游原始行 ⓘ</div>
+          </Tooltip>
           <Select
             mode="tags"
             style={{ width: "100%" }}
