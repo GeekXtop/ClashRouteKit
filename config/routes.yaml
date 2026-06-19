@@ -22,7 +22,7 @@ vendorRepos:
       dir: vendor/Rules/Clash/Provider
       kind: provider-yaml
   - name: Aethersailor
-    url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
+    url: https://github.com/GeekXtop/Custom_OpenClash_Rules.git
     path: vendor/Custom_OpenClash_Rules
     branch: main
     catalog:
