@@ -75,7 +75,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           return {
             ...dirtyMessage(next),
             selectedRuleSetId: ruleSet.id,
-            selectedView: "ruleSets",
+            selectedView: "routing",
           };
         } catch (error: unknown) {
           return mutationError(current, error);
@@ -90,7 +90,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           return {
             ...dirtyMessage(next),
             selectedCustomProxyGroupName: group.name,
-            selectedView: "customProxyGroups",
+            selectedView: "routing",
           };
         } catch (error: unknown) {
           return mutationError(current, error);
@@ -105,7 +105,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           return {
             ...dirtyMessage(next),
             selectedProviderName: provider.name,
-            selectedView: "providers",
+            selectedView: "library",
           };
         } catch (error: unknown) {
           return mutationError(current, error);
@@ -186,7 +186,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           return {
             ...dirtyMessage(next),
             message: warned ? `已导入 INI（${warned} 条警告）` : "已导入 INI",
-            selectedView: "ruleSets",
+            selectedView: "routing",
           };
         } catch (error: unknown) {
           return mutationError(current, error);
@@ -201,7 +201,7 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           return {
             ...dirtyMessage(next),
             message: warned ? `已覆盖导入模板（${warned} 条警告）` : "已覆盖导入模板",
-            selectedView: "customProxyGroups",
+            selectedView: "routing",
           };
         } catch (error: unknown) {
           return mutationError(current, error);
