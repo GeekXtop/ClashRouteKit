@@ -1,65 +1,54 @@
-import { FileCode2, FileText, Layers3, Route, Send } from "lucide-react";
 import type { ReactNode } from "react";
-import type { ProjectStatus, ProjectView } from "../projectController.js";
+import { Badge, Button, Layout, Menu, Space } from "antd";
+import { Download, Route, Upload } from "lucide-react";
+import type { ProjectView } from "../projectController.js";
 
-interface NavItem {
-  view: ProjectView;
-  label: string;
-  icon: ReactNode;
-}
-
-const navItems: NavItem[] = [
-  { view: "catalog", label: "规则目录", icon: <FileText size={15} /> },
-  { view: "providers", label: "规则源", icon: <FileCode2 size={15} /> },
-  { view: "customProxyGroups", label: "策略组", icon: <Layers3 size={15} /> },
-  { view: "ruleSets", label: "路由", icon: <Route size={15} /> },
-  { view: "publish", label: "发布", icon: <Send size={15} /> },
+const navItems: { key: ProjectView; label: string }[] = [
+  { key: "routing", label: "路由" },
+  { key: "library", label: "规则库" },
+  { key: "publish", label: "发布" },
 ];
 
 export function AppShell({
   children,
-  onImportTemplate,
-  onSelectView,
   selectedView,
+  dirty,
+  onSelectView,
+  onImport,
+  onExport,
 }: {
   children: ReactNode;
-  dirty: boolean;
-  enabledCount: number;
-  onImportTemplate?: () => void;
-  onSelectView: (view: ProjectView) => void;
   selectedView: ProjectView;
-  status: ProjectStatus;
+  dirty: boolean;
+  onSelectView: (view: ProjectView) => void;
+  onImport: () => void;
+  onExport: () => void;
 }) {
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">
-            <Route size={16} />
-          </div>
-          <strong className="brand-name">ClashRouteKit</strong>
-        </div>
-        <nav className="tabnav" aria-label="导航">
-          {navItems.map((item) => (
-            <button
-              className={`tab ${selectedView === item.view ? "on" : ""} ${item.view === "publish" ? "tab-end" : ""}`}
-              key={item.view}
-              type="button"
-              onClick={() => onSelectView(item.view)}
-            >
-              <span className="tab-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        {onImportTemplate ? (
-          <button type="button" className="import-template-btn" onClick={onImportTemplate}>
-            导入模板
-          </button>
-        ) : null}
-      </header>
-
-      <main className="page">{children}</main>
-    </div>
+    <Layout style={{ height: "100vh" }}>
+      <Layout.Header style={{ display: "flex", alignItems: "center", gap: 16, paddingInline: 16 }}>
+        <Space style={{ color: "#fff", fontWeight: 600 }}>
+          <Route size={16} /> ClashRouteKit
+        </Space>
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          selectedKeys={[selectedView]}
+          onClick={(info) => onSelectView(info.key as ProjectView)}
+          items={navItems.map((item) => ({ key: item.key, label: item.label }))}
+          style={{ flex: 1, minWidth: 0 }}
+        />
+        <Space>
+          {dirty ? <Badge status="warning" text="未保存" /> : null}
+          <Button size="small" icon={<Upload size={14} />} onClick={onImport}>
+            导入
+          </Button>
+          <Button size="small" icon={<Download size={14} />} onClick={onExport}>
+            导出
+          </Button>
+        </Space>
+      </Layout.Header>
+      <Layout.Content style={{ overflow: "hidden" }}>{children}</Layout.Content>
+    </Layout>
   );
 }
