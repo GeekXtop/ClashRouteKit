@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import type { RouteKitProjectConfig, VendorRepoConfig } from "@clash-route-kit/core";
 import {
+  addProjectVendorRepo,
   catalogOriginsFromConfig,
   listCatalogEntries,
   listCatalogSources,
   listProjectRuleFiles,
+  normalizeVendorRepoInput,
   readCatalogEntry,
   readCatalogEntryDomains,
   readCatalogTemplate,
   readGitRemote,
   readProjectConfigFile,
   readProjectRuleFile,
+  removeProjectVendorRepo,
   runRouteKitAction,
+  updateProjectVendorRepo,
   writeProjectConfigFile,
   writeProjectRuleFile,
 } from "../src/serveApi.js";
@@ -424,5 +428,85 @@ describe("catalog browse helpers", () => {
     expect(detail.name).toBe("category-ai-!cn");
     expect(detail.includes).toEqual(["openai", "anthropic"]);
     expect(detail.ruleCount).toBe(1);
+  });
+});
+
+describe("vendor repo mutations over project config", () => {
+  const root = path.resolve("fixture-repo");
+  const configFile = "config/routes.yaml";
+  const yamlWith = (repos: string) =>
+    [
+      "publishBaseUrl: http://127.0.0.1:8787",
+      "template:",
+      "  output: Custom_Clash.ini",
+      repos,
+      "customProxyGroups: []",
+      "ruleSets: []",
+      "",
+    ].join("\n");
+
+  it("normalizes input into a full repo with derived path and catalog dir", () => {
+    const repo = normalizeVendorRepoInput({
+      name: "GeekX",
+      url: "https://x.git",
+      branch: "main",
+      catalog: { reldir: "rule", kind: "list-dir" },
+    });
+    expect(repo).toEqual<VendorRepoConfig>({
+      name: "GeekX",
+      url: "https://x.git",
+      path: "vendor/GeekX",
+      branch: "main",
+      catalog: { dir: "vendor/GeekX/rule", kind: "list-dir" },
+    });
+  });
+
+  it("omits branch and catalog when not provided", () => {
+    const repo = normalizeVendorRepoInput({ name: "Bare", url: "https://x.git" });
+    expect(repo).toEqual<VendorRepoConfig>({ name: "Bare", url: "https://x.git", path: "vendor/Bare" });
+  });
+
+  it("adds a repo by writing the serialized config", async () => {
+    let written = "";
+    const result = await addProjectVendorRepo({
+      root,
+      configFile,
+      input: { name: "GeekX", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } },
+      readText: async () => yamlWith("vendorRepos: []"),
+      writeText: async (_p, text) => {
+        written = text;
+      },
+    });
+    expect(result.config.vendorRepos.at(-1)?.name).toBe("GeekX");
+    expect(result.config.vendorRepos.at(-1)?.catalog?.dir).toBe("vendor/GeekX/rule");
+    expect(written).toContain("GeekX");
+  });
+
+  it("updates an existing repo url", async () => {
+    const result = await updateProjectVendorRepo({
+      root,
+      configFile,
+      name: "Custom",
+      input: { name: "Custom", url: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git", branch: "main", catalog: { reldir: "rule", kind: "list-dir" } },
+      readText: async () =>
+        yamlWith(
+          ["vendorRepos:", "  - name: Custom", "    url: https://old.git", "    path: vendor/Custom"].join("\n"),
+        ),
+      writeText: async () => {},
+    });
+    expect(result.config.vendorRepos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
+    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
+  });
+
+  it("removes a repo by name", async () => {
+    const result = await removeProjectVendorRepo({
+      root,
+      configFile,
+      name: "Custom",
+      readText: async () =>
+        yamlWith(["vendorRepos:", "  - name: Custom", "    url: x", "    path: vendor/Custom"].join("\n")),
+      writeText: async () => {},
+    });
+    expect(result.config.vendorRepos).toHaveLength(0);
   });
 });

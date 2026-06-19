@@ -18,7 +18,8 @@ import {
   type GenerateResult,
   type ProgramOptions,
 } from "./program.js";
-import { addVendorRepo } from "@clash-route-kit/core";
+import { addVendorRepo, removeVendorRepo, updateVendorRepo } from "@clash-route-kit/core";
+import type { VendorRepoConfig } from "@clash-route-kit/core";
 
 const execFileAsync = promisify(execFile);
 
@@ -390,6 +391,59 @@ export async function readGitRemote(options: GitRemoteOptions): Promise<string> 
   return output.trim();
 }
 
+export interface VendorRepoInput {
+  name: string;
+  url: string;
+  branch?: string;
+  catalog?: { reldir: string; kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template" };
+}
+
+export function normalizeVendorRepoInput(input: VendorRepoInput): VendorRepoConfig {
+  const name = input.name.trim();
+  if (!name) {
+    throw new Error("vendor repo name is required");
+  }
+  const repo: VendorRepoConfig = { name, url: input.url.trim(), path: `vendor/${name}` };
+  if (input.branch?.trim()) {
+    repo.branch = input.branch.trim();
+  }
+  const reldir = input.catalog?.reldir.trim().replace(/^\/+|\/+$/g, "");
+  if (input.catalog && reldir) {
+    repo.catalog = { dir: `vendor/${name}/${reldir}`, kind: input.catalog.kind };
+  }
+  return repo;
+}
+
+export interface VendorRepoMutationOptions extends ProgramOptions {
+  readText?: ReadText;
+  writeText?: WriteText;
+  statMtime?: (filePath: string) => Promise<number>;
+}
+
+export async function addProjectVendorRepo(
+  options: VendorRepoMutationOptions & { input: VendorRepoInput },
+): Promise<ProjectConfigFileResult> {
+  const { config } = await readProjectConfigFile(options);
+  return writeProjectConfigFile({ ...options, config: addVendorRepo(config, normalizeVendorRepoInput(options.input)) });
+}
+
+export async function updateProjectVendorRepo(
+  options: VendorRepoMutationOptions & { name: string; input: VendorRepoInput },
+): Promise<ProjectConfigFileResult> {
+  const { config } = await readProjectConfigFile(options);
+  return writeProjectConfigFile({
+    ...options,
+    config: updateVendorRepo(config, options.name, normalizeVendorRepoInput(options.input)),
+  });
+}
+
+export async function removeProjectVendorRepo(
+  options: VendorRepoMutationOptions & { name: string },
+): Promise<ProjectConfigFileResult> {
+  const { config } = await readProjectConfigFile(options);
+  return writeProjectConfigFile({ ...options, config: removeVendorRepo(config, options.name) });
+}
+
 function formatGenerateOutput(result: GenerateResult): string {
   const lines = [`[generate] template: ${result.templatePath}`];
   for (const provider of result.providers) {
@@ -652,7 +706,40 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       return;
     }
 
-    if (url.pathname === "/api/vendor/add") {
+    if (url.pathname === "/api/vendor/add" || url.pathname === "/api/vendor/update") {
+      if (request.method !== "POST") {
+        writeJson(response, 405, { ok: false, output: "Method not allowed" });
+        return;
+      }
+      const isUpdate = url.pathname === "/api/vendor/update";
+      let body = "";
+      request.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+      });
+      request.on("end", () => {
+        void Promise.resolve()
+          .then(() => JSON.parse(body) as { name?: string; input?: VendorRepoInput })
+          .then((payload) => {
+            if (!payload.input) {
+              throw new Error("Missing input");
+            }
+            if (isUpdate) {
+              if (!payload.name) {
+                throw new Error("Missing name");
+              }
+              return updateProjectVendorRepo({ ...options, name: payload.name, input: payload.input });
+            }
+            return addProjectVendorRepo({ ...options, input: payload.input });
+          })
+          .then((result) => writeJson(response, 200, result))
+          .catch((error: unknown) => {
+            writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) });
+          });
+      });
+      return;
+    }
+
+    if (url.pathname === "/api/vendor/remove") {
       if (request.method !== "POST") {
         writeJson(response, 405, { ok: false, output: "Method not allowed" });
         return;
@@ -663,14 +750,12 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       });
       request.on("end", () => {
         void Promise.resolve()
-          .then(() => JSON.parse(body) as { repo?: RouteKitProjectConfig["vendorRepos"][number] })
+          .then(() => JSON.parse(body) as { name?: string })
           .then((payload) => {
-            if (!payload.repo) {
-              throw new Error("Missing repo");
+            if (!payload.name) {
+              throw new Error("Missing name");
             }
-            return readProjectConfigFile(options).then(({ config }) =>
-              writeProjectConfigFile({ ...options, config: addVendorRepo(config, payload.repo!) }),
-            );
+            return removeProjectVendorRepo({ ...options, name: payload.name });
           })
           .then((result) => writeJson(response, 200, result))
           .catch((error: unknown) => {
