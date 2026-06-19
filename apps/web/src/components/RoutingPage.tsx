@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Button, Empty, Space } from "antd";
 import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
@@ -15,11 +16,13 @@ export function RoutingPage({
   selectedRuleSetId,
   draftActions,
   fetcher,
+  onOpenImport,
 }: {
   config: RouteKitProjectConfig;
   selectedRuleSetId: string;
   draftActions: ReturnType<typeof useProjectDraftActions>;
   fetcher?: Fetcher;
+  onOpenImport?: () => void;
 }) {
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [drawerGroup, setDrawerGroup] = useState<string | null>(null);
@@ -36,6 +39,19 @@ export function RoutingPage({
     ? config.ruleSets.filter((ruleSet) => ruleSet.policy === selectedGroup)
     : config.ruleSets;
   const editingGroup = config.customProxyGroups.find((group) => group.name === drawerGroup);
+
+  if (config.ruleSets.length === 0 && config.customProxyGroups.length === 0) {
+    return (
+      <Empty description="还没有路由规则与策略组" style={{ paddingTop: 100 }}>
+        <Space>
+          <Button type="primary" onClick={onOpenImport}>
+            从模板导入开始
+          </Button>
+          <Button onClick={draftActions.createCustomProxyGroup}>手动新建策略组</Button>
+        </Space>
+      </Empty>
+    );
+  }
 
   return (
     <div className="rk-page-col" style={{ height: "100%" }}>

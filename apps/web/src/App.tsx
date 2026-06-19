@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { parseIniToConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
+import { ImportModal } from "./components/ImportModal.js";
 import { LibraryPage } from "./components/LibraryPage.js";
 import { PublishPage } from "./components/PublishPage.js";
 import { RoutingPage } from "./components/RoutingPage.js";
 import { requestLocalAction } from "./actions.js";
+import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
 import { loadLocalProjectConfig } from "./localProject.js";
 import { notifyError } from "./notify.js";
@@ -21,6 +24,24 @@ export default function App() {
   );
   const draftActions = useProjectDraftActions(setProject);
   const config = project.draftConfig;
+  const [importOpen, setImportOpen] = useState(false);
+  const [importSources, setImportSources] = useState<CatalogSourceInfo[]>([]);
+
+  function openImport() {
+    setImportOpen(true);
+    void fetchCatalogSources()
+      .then(setImportSources)
+      .catch(() => {});
+  }
+
+  function handleImport(text: string, mode: "replace" | "merge") {
+    if (mode === "replace") {
+      draftActions.importTemplate(parseIniToConfig(text));
+    } else {
+      draftActions.importIni(text);
+    }
+    setImportOpen(false);
+  }
 
   function refreshConfig() {
     void loadLocalProjectConfig()
@@ -61,20 +82,33 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell
-      dirty={project.dirty}
-      selectedView={project.selectedView}
-      onSelectView={(view) => setProject((current) => setProjectSelection(current, { selectedView: view }))}
-      onImport={() => notifyError("导入：计划 5 接入")}
-      onExport={() => notifyError("导出：计划 5 接入")}
-    >
-      {project.selectedView === "routing" ? (
-        <RoutingPage config={config} selectedRuleSetId={project.selectedRuleSetId} draftActions={draftActions} />
-      ) : project.selectedView === "library" ? (
-        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
-      ) : (
-        <PublishPage config={config} validation={project.validation} onRunCheck={runCheck} />
-      )}
-    </AppShell>
+    <>
+      <AppShell
+        dirty={project.dirty}
+        selectedView={project.selectedView}
+        onSelectView={(view) => setProject((current) => setProjectSelection(current, { selectedView: view }))}
+        onImport={openImport}
+        onExport={() => notifyError("导出：后续接入")}
+      >
+        {project.selectedView === "routing" ? (
+          <RoutingPage
+            config={config}
+            selectedRuleSetId={project.selectedRuleSetId}
+            draftActions={draftActions}
+            onOpenImport={openImport}
+          />
+        ) : project.selectedView === "library" ? (
+          <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
+        ) : (
+          <PublishPage config={config} validation={project.validation} onRunCheck={runCheck} />
+        )}
+      </AppShell>
+      <ImportModal
+        open={importOpen}
+        sources={importSources}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImport}
+      />
+    </>
   );
 }

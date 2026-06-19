@@ -151,6 +151,21 @@ export function removeVendorRepoRequest(name: string, fetcher: Fetcher = globalT
   return postJson("/api/vendor/remove", { name }, fetcher, "移除上游仓库失败");
 }
 
+export async function fetchCatalogTemplate(
+  origin: string,
+  name: string,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<string> {
+  const response = await fetcher(
+    `/api/catalog/template?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
+  );
+  const payload = (await response.json()) as { ini?: unknown };
+  if (!response.ok || typeof payload.ini !== "string") {
+    throw new Error("Invalid catalog template response");
+  }
+  return payload.ini;
+}
+
 export async function createRuleFileRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
   const response = await fetcher(`/api/project/rules/${encodeURIComponent(name)}`, {
     method: "PUT",

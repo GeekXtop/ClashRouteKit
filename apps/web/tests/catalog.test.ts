@@ -122,3 +122,12 @@ describe("vendor repo client", () => {
     expect(String(fetcher.mock.calls[1]![0])).toContain("/api/vendor/remove");
   });
 });
+
+import { fetchCatalogTemplate } from "../src/catalog.js";
+
+describe("fetchCatalogTemplate", () => {
+  it("returns the ini string", async () => {
+    const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ name: "T", ini: "[custom]\n" }) }) as unknown as Response);
+    expect(await fetchCatalogTemplate("tpl", "T", fetcher)).toBe("[custom]\n");
+  });
+});
