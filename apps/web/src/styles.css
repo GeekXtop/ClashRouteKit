@@ -3053,3 +3053,5 @@ button.state {
 .rk-publish-arrow { text-align: center; color: #5b6b86; }
 .rk-url-row { display: flex; gap: 6px; align-items: center; background: #0f1722; border: 1px solid #2a2f3a; border-radius: 6px; padding: 4px 9px; margin-bottom: 4px; }
 .rk-url-row code { flex: 1; color: #7fb0e6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+
+.rk-field-label { color: #7b8494; font-size: 11px; margin: 0 0 4px 2px; }
