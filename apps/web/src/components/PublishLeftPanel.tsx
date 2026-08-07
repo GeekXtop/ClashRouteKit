@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Button } from "antd";
 import { Copy } from "lucide-react";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { ProjectValidationState } from "../projectController.js";
 import { requestLocalAction, type LocalRouteKitAction } from "../actions.js";
 import { createRawUrlTemplates, fetchGitRemote, parseGitHubRemote } from "../publishWorkflow.js";
 import { notifyError, notifySuccess } from "../notify.js";
+import { createLineDiff } from "../yamlDiff.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -28,6 +29,7 @@ function UrlRow({ label, url }: { label: string; url: string }) {
 
 export function PublishLeftPanel(props: {
   config: RouteKitProjectConfig;
+  originalConfig?: RouteKitProjectConfig;
   validation: ProjectValidationState;
   onRunCheck: () => void;
   fetcher?: Fetcher;
@@ -52,6 +54,20 @@ export function PublishLeftPanel(props: {
   }, []);
 
   const localUrl = `${props.config.publishBaseUrl.replace(/\/+$/, "")}/templates/${props.config.template.output}`;
+  const iniDiff = useMemo(() => {
+    const before = renderIni(props.originalConfig ?? props.config);
+    const after = renderIni(props.config);
+    return createLineDiff(before, after);
+  }, [props.config, props.originalConfig]);
+  const diffCounts = {
+    added: iniDiff.filter((entry) => entry.type === "added").length,
+    removed: iniDiff.filter((entry) => entry.type === "removed").length,
+  };
+  const diffLines = iniDiff.map((entry) => {
+    if (entry.type === "added") return `+${entry.text}`;
+    if (entry.type === "removed") return `-${entry.text}`;
+    return ` ${entry.text}`;
+  });
   const v = props.validation.status;
   const badge =
     v === "error" ? <Badge status="error" text="校验未通过" /> : v === "success" ? <Badge status="success" text="引用完整" /> : <Badge status="default" text="未校验" />;
@@ -75,30 +91,52 @@ export function PublishLeftPanel(props: {
   }
 
   return (
-    <div className="rk-publish-block">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <strong>模板与发布 · {props.config.template.output}</strong>
-        {badge}
+    <>
+      <div className="rk-publish-block">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <strong>本机 · 实时</strong>
+          <span className="rk-lib-meta">编辑即生效，无需构建推送</span>
+        </div>
+        <div className="rk-field-label">模板 URL（填进 subconverter / OpenClash 的「自定义模板 URL」）</div>
+        <UrlRow label="本机 LAN" url={localUrl} />
+        <ul className="rk-oc-hint">
+          <li>OpenClash：勾选「在线订阅转换」</li>
+          <li>模板 → 自定义模板 → 自定义模板 URL = 本机 LAN 模板 URL</li>
+          <li>「使用规则集」（rule-provider）由 subconverter 端决定，OpenClash 自身无此勾选项</li>
+        </ul>
       </div>
 
-      <div className="rk-field-label">模板 URL（填进 subconverter / OpenClash 的「自定义模板 URL」）</div>
-      <UrlRow label="本机 LAN" url={localUrl} />
-      {rawUrl ? <UrlRow label="发布 raw" url={rawUrl} /> : null}
-
-      <div style={{ marginTop: 12 }}>
-        <Button type="primary" loading={busy} onClick={() => void buildAndPush()}>
-          构建并推送 publish 分支
-        </Button>
-        <span className="rk-lib-meta" style={{ marginLeft: 10 }}>
-          构建产物 → 提交 → 推送，让发布 raw URL 生效
-        </span>
+      <div className="rk-publish-block">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <strong>发布到 GitHub · {props.config.template.output}</strong>
+          {badge}
+        </div>
+        {rawUrl ? (
+          <>
+            <div className="rk-field-label">发布 raw 模板 URL（推送后生效）</div>
+            <UrlRow label="发布 raw" url={rawUrl} />
+          </>
+        ) : (
+          <p className="rk-lib-meta">未检测到 GitHub origin，当前仅本机 LAN 可用</p>
+        )}
+        <div style={{ marginTop: 12 }}>
+          <Button type="primary" loading={busy} onClick={() => void buildAndPush()}>
+            构建并推送 publish 分支
+          </Button>
+          <span className="rk-lib-meta" style={{ marginLeft: 10 }}>
+            构建产物 → 提交 → 推送，让发布 raw URL 生效
+          </span>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <div className="rk-field-label">INI 变更预览</div>
+          <div className="rk-lib-meta" style={{ marginBottom: 6 }}>
+            +{diffCounts.added} / -{diffCounts.removed}
+          </div>
+          <pre data-testid="publish-ini-preview" className="rk-ini rk-ini-scroll rk-ini-diff">
+            {diffCounts.added + diffCounts.removed > 0 ? diffLines.join("\n") : renderIni(props.config)}
+          </pre>
+        </div>
       </div>
-
-      <ul className="rk-oc-hint">
-        <li>OpenClash：勾选「在线订阅转换」</li>
-        <li>模板 → 自定义模板 → 自定义模板 URL = 上面任一模板 URL</li>
-        <li>规则用到 provider 且核心支持时，勾选「Use Rule Provider」</li>
-      </ul>
-    </div>
+    </>
   );
 }

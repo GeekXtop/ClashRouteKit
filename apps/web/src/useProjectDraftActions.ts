@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   CustomProxyGroup,
   ImportedConfig,
+  RouteKitDefaults,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -21,19 +22,19 @@ import {
   deleteRuleProvider,
   deleteRuleSet,
   mergeImportedConfig,
-  renameCustomProxyGroup,
   reorderRuleSets,
+  replaceCustomProxyGroup,
   replaceImportedConfig,
-  setCustomProxyGroupListField,
+  replaceRuleSet,
   setGlobalRemove,
+  setProjectDefaults,
   setRuleProviderListField,
   setRuleProviderSources,
   setTemplateField,
   toggleRuleSet,
-  updateCustomProxyGroup,
   updateRuleProvider,
-  updateRuleSet,
 } from "./configMutations.js";
+import { validateDraftConfig } from "./draftValidation.js";
 import {
   applyDraftConfig,
   setProjectSelection,
@@ -83,10 +84,10 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
         }
       });
     },
-    createCustomProxyGroup() {
+    createCustomProxyGroup(type: CustomProxyGroup["type"] = "select") {
       setProject((current) => {
         try {
-          const group = createCustomProxyGroup(current.draftConfig);
+          const group = createCustomProxyGroup(current.draftConfig, type);
           const next = applyDraftConfig(current, addCustomProxyGroup(current.draftConfig, group));
           return {
             ...dirtyMessage(next),
@@ -122,13 +123,19 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     deleteProvider(providerName: string) {
       mutate((current) => deleteRuleProvider(current, providerName));
     },
-    renameCustomProxyGroup(groupName: string, nextGroupName: string) {
+    saveCustomProxyGroup(originalName: string, nextGroup: CustomProxyGroup) {
       setProject((current) => {
         try {
-          const next = applyDraftConfig(current, renameCustomProxyGroup(current.draftConfig, groupName, nextGroupName));
+          const next = applyDraftConfig(
+            current,
+            replaceCustomProxyGroup(current.draftConfig, originalName, nextGroup),
+          );
           return dirtyMessage({
             ...next,
-            selectedCustomProxyGroupName: nextGroupName.trim() || next.selectedCustomProxyGroupName,
+            selectedCustomProxyGroupName:
+              current.selectedCustomProxyGroupName === originalName
+                ? nextGroup.name
+                : next.selectedCustomProxyGroupName,
           });
         } catch (error: unknown) {
           return mutationError(current, error);
@@ -138,11 +145,11 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     selectRuleSet(selectedRuleSetId: string) {
       setProject((current) => setProjectSelection(current, { selectedRuleSetId }));
     },
-    setCustomProxyGroupListField(groupName: string, field: "options" | "nodeFilters", values: string[]) {
-      mutate((current) => setCustomProxyGroupListField(current, groupName, field, values));
-    },
     setGlobalRemove(values: string[]) {
       mutate((current) => setGlobalRemove(current, values));
+    },
+    setProjectDefaults(defaults: RouteKitDefaults | undefined) {
+      mutate((current) => setProjectDefaults(current, defaults));
     },
     setTemplateField(patch: Partial<RouteKitProjectConfig["template"]>) {
       mutate((current) => setTemplateField(current, patch));
@@ -209,10 +216,14 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
       setProject((current) => {
         try {
           const next = applyDraftConfig(current, replaceImportedConfig(current.draftConfig, imported));
-          const warned = imported.warnings.length;
+          const importWarnings = imported.warnings.length;
+          const placeholderWarnings = validateDraftConfig(next.draftConfig).warnings.length;
+          const warningCount = importWarnings + placeholderWarnings;
           return {
             ...dirtyMessage(next),
-            message: warned ? `已覆盖导入模板（${warned} 条警告）` : "已覆盖导入模板",
+            message: warningCount
+              ? `已覆盖导入模板，${warningCount} 条警告（${placeholderWarnings} 个规则源待补全）`
+              : "已覆盖导入模板",
             selectedView: "routing",
           };
         } catch (error: unknown) {
@@ -223,21 +234,24 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
     toggleRuleSet(ruleSetId: string) {
       mutate((current) => toggleRuleSet(current, ruleSetId));
     },
-    updateRuleSet(ruleSetId: string, patch: Partial<RuleSet>) {
+    saveRuleSet(originalId: string, nextRuleSet: RuleSet) {
       setProject((current) => {
         try {
-          const next = applyDraftConfig(current, updateRuleSet(current.draftConfig, ruleSetId, patch));
+          const next = applyDraftConfig(
+            current,
+            replaceRuleSet(current.draftConfig, originalId, nextRuleSet),
+          );
           return dirtyMessage({
             ...next,
-            selectedRuleSetId: patch.id ?? next.selectedRuleSetId,
+            selectedRuleSetId:
+              current.selectedRuleSetId === originalId
+                ? nextRuleSet.id
+                : next.selectedRuleSetId,
           });
         } catch (error: unknown) {
           return mutationError(current, error);
         }
       });
-    },
-    updateCustomProxyGroup(groupName: string, patch: Partial<CustomProxyGroup>) {
-      mutate((current) => updateCustomProxyGroup(current, groupName, patch));
     },
     updateProvider(providerName: string, patch: Partial<RuleProviderConfig>) {
       setProject((current) => {

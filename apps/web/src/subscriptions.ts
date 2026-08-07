@@ -16,6 +16,7 @@ export interface SubconverterConvertOptions {
   include?: string[];
   exclude?: string[];
   customParams?: string[];
+  filename?: string;
 }
 
 export interface BuildSubconverterUrlInput {
@@ -47,6 +48,25 @@ function normalizeEndpoint(endpoint?: string): URL {
 function templateUrl(publishBaseUrl: string, templateOutput: string, configVersion?: string | number): string {
   const base = `${publishBaseUrl.replace(/\/+$/, "")}/templates/${templateOutput}`;
   return configVersion === undefined || configVersion === "" ? base : `${base}?v=${configVersion}`;
+}
+
+/**
+ * Turn user-facing node filter tags into a SubConverter `include`/`exclude` regex.
+ * Each tag is one alternative (OR, joined by `|`); within a tag `&` means "name must
+ * contain all parts" and is expanded to chained lookaheads, e.g. `台湾&bgp` →
+ * `(?=.*台湾)(?=.*bgp)`. Tags without `&` pass through unchanged (still a valid regex).
+ */
+function nodeFilterRegex(tags: string[]): string {
+  return tags
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((tag) => {
+      if (!tag.includes("&")) return tag;
+      const parts = tag.split("&").map((part) => part.trim()).filter(Boolean);
+      return parts.map((part) => `(?=.*${part})`).join("");
+    })
+    .filter(Boolean)
+    .join("|");
 }
 
 export function parseProviderLines(input: string): ProviderSubscription[] {
@@ -90,8 +110,15 @@ export function buildSubconverterUrl(input: BuildSubconverterUrlInput): string {
       endpoint.searchParams.set("classic", "true");
     }
     if (convert.ua?.trim()) endpoint.searchParams.set("ua", convert.ua.trim());
-    if (convert.include?.length) endpoint.searchParams.set("include", `(?i)${convert.include.join("|")}`);
-    if (convert.exclude?.length) endpoint.searchParams.set("exclude", `(?i)${convert.exclude.join("|")}`);
+    if (convert.include?.length) {
+      const regex = nodeFilterRegex(convert.include);
+      if (regex) endpoint.searchParams.set("include", `(?i)${regex}`);
+    }
+    if (convert.exclude?.length) {
+      const regex = nodeFilterRegex(convert.exclude);
+      if (regex) endpoint.searchParams.set("exclude", `(?i)${regex}`);
+    }
+    if (convert.filename?.trim()) endpoint.searchParams.set("filename", convert.filename.trim());
     for (const param of convert.customParams ?? []) {
       const eq = param.indexOf("=");
       if (eq > 0) endpoint.searchParams.set(param.slice(0, eq).trim(), param.slice(eq + 1));

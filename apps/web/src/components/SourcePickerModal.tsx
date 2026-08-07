@@ -15,6 +15,15 @@ import { notifyError } from "../notify.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+interface PickerCandidate {
+  key: string;
+  origin?: string;
+  originKind?: string;
+  name: string;
+  label: string;
+  source: RuleSetSource;
+}
+
 function buildSource(originKind: string | undefined, name: string): RuleSetSource {
   if (originKind === "provider-yaml" || originKind === "list-dir") {
     return { type: "rule-provider", behavior: "domain", file: name };
@@ -37,7 +46,8 @@ export function SourcePickerModal(props: {
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useState<PickerCandidate | null>(null);
+  const [crossRepoCandidates, setCrossRepoCandidates] = useState<PickerCandidate[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [policy, setPolicy] = useState(props.defaultPolicy);
   const [section, setSection] = useState<string | undefined>(props.sections[0]);
@@ -76,21 +86,73 @@ export function SourcePickerModal(props: {
   }, [origin, fetcher]);
 
   useEffect(() => {
-    if (!origin || !selected) return;
+    if (!selected?.origin) {
+      setDomains([]);
+      return;
+    }
     let alive = true;
-    void fetchCatalogDomains(origin, selected, fetcher)
+    void fetchCatalogDomains(selected.origin, selected.name, fetcher)
       .then((result) => alive && setDomains(result))
       .catch(() => alive && setDomains([]));
     return () => {
       alive = false;
     };
-  }, [origin, selected, fetcher]);
+  }, [selected, fetcher]);
 
   const originKind = sources.find((s) => s.id === origin)?.originKind;
-  const filtered = useMemo(
-    () => (search.trim() ? entries.filter((e) => e.name.toLowerCase().includes(search.trim().toLowerCase())) : entries),
-    [entries, search],
+  const currentCandidates = useMemo(
+    () =>
+      entries.map((entry) => ({
+        key: `${origin}:${entry.name}`,
+        origin,
+        originKind,
+        name: entry.name,
+        label: entry.name,
+        source: buildSource(originKind, entry.name),
+      })),
+    [entries, origin, originKind],
   );
+
+  useEffect(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      setCrossRepoCandidates([]);
+      return;
+    }
+    let alive = true;
+    void Promise.all(
+      sources
+        .filter((source) => source.kind === "upstream" && source.browsable)
+        .map(async (source) => ({
+          source,
+          entries: await fetchCatalogEntries(source.id, fetcher).catch(() => []),
+        })),
+    ).then((rows) => {
+      if (!alive) return;
+      setCrossRepoCandidates(
+        rows.flatMap(({ source, entries }) =>
+          entries
+            .filter((entry) => entry.name.toLowerCase().includes(q))
+            .map((entry) => ({
+              key: `${source.id}:${entry.name}`,
+              origin: source.id,
+              originKind: source.originKind,
+              name: entry.name,
+              label: entry.name,
+              source: buildSource(source.originKind, entry.name),
+            })),
+        ),
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [search, sources, fetcher]);
+
+  const visibleCandidates = useMemo(() => {
+    const base = search.trim() ? crossRepoCandidates : currentCandidates;
+    return base;
+  }, [crossRepoCandidates, currentCandidates, search]);
 
   async function loadChildren(node: DataNode): Promise<void> {
     const detail = await fetchCatalogEntry(origin, String(node.key), fetcher).catch(() => null);
@@ -113,11 +175,11 @@ export function SourcePickerModal(props: {
           options={sources.map((s) => ({ value: s.id, label: s.label }))}
           onChange={(value) => {
             setOrigin(value);
-            setSelected("");
+            setSelected(null);
           }}
         />
       </Space>
-      <div style={{ display: "flex", gap: 8, minHeight: 240 }}>
+      <div className="rk-picker-body">
         <div style={{ flex: "0 0 46%", overflow: "auto", borderRight: "1px solid #2a2f3a", paddingRight: 8 }}>
           {showTree ? (
             <Tree
@@ -125,27 +187,32 @@ export function SourcePickerModal(props: {
               height={300}
               virtual
               loadData={loadChildren}
-              selectedKeys={selected ? [selected] : []}
-              onSelect={(keys) => keys[0] && setSelected(String(keys[0]))}
+              selectedKeys={selected?.origin === origin ? [selected.name] : []}
+              onSelect={(keys) => {
+                const name = keys[0] ? String(keys[0]) : "";
+                const candidate = currentCandidates.find((item) => item.name === name);
+                setSelected(candidate ?? null);
+              }}
             />
           ) : (
             <List
               size="small"
-              dataSource={filtered.slice(0, 300)}
-              renderItem={(entry) => (
+              dataSource={visibleCandidates.slice(0, 300)}
+              renderItem={(candidate) => (
                 <List.Item
-                  className={selected === entry.name ? "rk-lib-row on" : "rk-lib-row"}
-                  onClick={() => setSelected(entry.name)}
+                  className={selected?.key === candidate.key ? "rk-lib-row on" : "rk-lib-row"}
+                  onClick={() => setSelected(candidate)}
                 >
-                  {entry.name}
+                  <span>{candidate.name}</span>
+                  {candidate.origin && candidate.origin !== origin ? <span className="rk-lib-meta">{candidate.origin}</span> : null}
                 </List.Item>
               )}
             />
           )}
         </div>
-        <div style={{ flex: 1, overflow: "auto" }}>
-          <div className="rk-field-label">预览 · {selected || "（未选择）"}</div>
-          <pre className="rk-ini">{domains.map(formatDomainRule).join("\n")}</pre>
+        <div data-testid="source-preview" className="rk-source-preview rk-fill-preview">
+          <div className="rk-field-label">预览 · {selected?.name || "（未选择）"}</div>
+          <pre className="rk-ini rk-ini-fill">{domains.map(formatDomainRule).join("\n")}</pre>
         </div>
       </div>
       <Space style={{ width: "100%", marginTop: 8, justifyContent: "flex-end" }}>
@@ -163,7 +230,7 @@ export function SourcePickerModal(props: {
           disabled={!selected}
           onClick={() => {
             if (!selected) return;
-            props.onAdd(buildSource(originKind, selected), policy, section);
+            props.onAdd(selected.source, policy, section);
             props.onClose();
           }}
         >

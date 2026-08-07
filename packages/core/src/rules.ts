@@ -4,6 +4,10 @@ import type {
   DomainProviderInput,
   DomainProviderRule,
   DomainProviderSummary,
+  ProviderBehavior,
+  ProviderInput,
+  ProviderRule,
+  ProviderSummary,
 } from "./types.js";
 
 function stripComment(line: string): string {
@@ -78,6 +82,19 @@ function parseRule(rule: string): { kind: string; value: string } | null {
   return { kind: kind.toUpperCase(), value };
 }
 
+function quotePayload(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function renderProviderYaml(source: string, payload: string[]): string {
+  const lines = [`# 生成自 ${source}`, `# 总数: ${payload.length}`, "", "payload:"];
+  for (const entry of payload) {
+    lines.push(`  - ${entry}`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 function normalizeDomainRule(rawRule: string): DomainProviderRule | null {
   const trimmed = rawRule.trim();
   const rule = parseRule(trimmed.includes(",") ? trimmed : `DOMAIN-SUFFIX,${trimmed}`);
@@ -85,14 +102,14 @@ function normalizeDomainRule(rawRule: string): DomainProviderRule | null {
 
   if (rule.kind === "DOMAIN-SUFFIX") {
     return {
-      payload: `'+.${rule.value}'`,
+      payload: quotePayload(`+.${rule.value}`),
       key: `DOMAIN-SUFFIX,${rule.value.toLowerCase()}`,
       rule: `DOMAIN-SUFFIX,${rule.value}`,
     };
   }
   if (rule.kind === "DOMAIN") {
     return {
-      payload: `'${rule.value}'`,
+      payload: quotePayload(rule.value),
       key: `DOMAIN,${rule.value.toLowerCase()}`,
       rule: `DOMAIN,${rule.value}`,
     };
@@ -124,6 +141,70 @@ export function collectDomainProviderRules(input: DomainProviderInput): DomainPr
   return rules.sort((left, right) => left.rule.localeCompare(right.rule));
 }
 
+function normalizeClassicalRule(rawRule: string): ProviderRule | null {
+  const trimmed = rawRule.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+  return {
+    payload: quotePayload(trimmed),
+    key: trimmed.toLowerCase(),
+    rule: trimmed,
+  };
+}
+
+export function collectClassicalProviderRules(input: ProviderInput): ProviderRule[] {
+  const rules: ProviderRule[] = [];
+  const seen = new Set<string>();
+  const excluded = new Set(
+    (input.exclude ?? [])
+      .map(normalizeClassicalRule)
+      .filter((rule): rule is ProviderRule => rule !== null)
+      .map((rule) => rule.key),
+  );
+
+  for (const rawRule of input.rules) {
+    const rule = normalizeClassicalRule(rawRule);
+    if (!rule || excluded.has(rule.key)) continue;
+    if (!seen.has(rule.key)) {
+      seen.add(rule.key);
+      rules.push(rule);
+    }
+  }
+  return rules.sort((left, right) => left.rule.localeCompare(right.rule));
+}
+
+function normalizeIpcidrRule(rawRule: string): ProviderRule | null {
+  const trimmed = rawRule.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+  const parsed = parseRule(trimmed.includes(",") ? trimmed : `IP-CIDR,${trimmed}`);
+  if (!parsed || (parsed.kind !== "IP-CIDR" && parsed.kind !== "IP-CIDR6")) return null;
+  return {
+    payload: quotePayload(parsed.value),
+    key: parsed.value.toLowerCase(),
+    rule: parsed.value,
+  };
+}
+
+export function collectIpcidrProviderRules(input: ProviderInput): ProviderRule[] {
+  const rules: ProviderRule[] = [];
+  const seen = new Set<string>();
+  const excluded = new Set(
+    (input.exclude ?? [])
+      .map(normalizeIpcidrRule)
+      .filter((rule): rule is ProviderRule => rule !== null)
+      .map((rule) => rule.key),
+  );
+
+  for (const rawRule of input.rules) {
+    const rule = normalizeIpcidrRule(rawRule);
+    if (!rule || excluded.has(rule.key)) continue;
+    if (!seen.has(rule.key)) {
+      seen.add(rule.key);
+      rules.push(rule);
+    }
+  }
+  return rules.sort((left, right) => left.rule.localeCompare(right.rule));
+}
+
 function domainPayload(rules: string[], exclude: string[] = []): string[] {
   return collectDomainProviderRules({
     source: "",
@@ -134,12 +215,7 @@ function domainPayload(rules: string[], exclude: string[] = []): string[] {
 
 export function generateDomainProvider(input: DomainProviderInput): string {
   const payload = domainPayload(input.rules, input.exclude);
-  const lines = [`# 生成自 ${input.source}`, `# 总数: ${payload.length}`, "", "payload:"];
-  for (const entry of payload) {
-    lines.push(`  - ${entry}`);
-  }
-  lines.push("");
-  return lines.join("\n");
+  return renderProviderYaml(input.source, payload);
 }
 
 export function summarizeDomainProvider(input: DomainProviderInput): DomainProviderSummary {
@@ -150,5 +226,35 @@ export function summarizeDomainProvider(input: DomainProviderInput): DomainProvi
     domainRules,
     excludedRules: domainRules - outputRules,
     outputRules,
+  };
+}
+
+export function generateClassicalProvider(input: ProviderInput): string {
+  return renderProviderYaml(input.source, collectClassicalProviderRules(input).map((rule) => rule.payload));
+}
+
+export function generateIpcidrProvider(input: ProviderInput): string {
+  return renderProviderYaml(input.source, collectIpcidrProviderRules(input).map((rule) => rule.payload));
+}
+
+export function collectRuleProviderRules(behavior: ProviderBehavior, input: ProviderInput): ProviderRule[] {
+  if (behavior === "domain") return collectDomainProviderRules(input);
+  if (behavior === "classical") return collectClassicalProviderRules(input);
+  return collectIpcidrProviderRules(input);
+}
+
+export function generateRuleProvider(behavior: ProviderBehavior, input: ProviderInput): string {
+  if (behavior === "domain") return generateDomainProvider(input);
+  if (behavior === "classical") return generateClassicalProvider(input);
+  return generateIpcidrProvider(input);
+}
+
+export function summarizeRuleProvider(behavior: ProviderBehavior, input: ProviderInput): ProviderSummary {
+  const outputRules = collectRuleProviderRules(behavior, input).length;
+  const unexcluded = collectRuleProviderRules(behavior, { ...input, exclude: [] }).length;
+  return {
+    inputRules: input.rules.length,
+    outputRules,
+    excludedRules: unexcluded - outputRules,
   };
 }

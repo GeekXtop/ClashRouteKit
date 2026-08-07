@@ -8,6 +8,19 @@
 
 **Tech Stack:** React 19、AntD（Modal/Form/Select/Input/Switch/List/Tree/Button/Popconfirm/Empty）、vitest + @testing-library/react。
 
+> 2026-06-23 完成状态：规则库页主体已落地，且实现扩展了原计划（`folder`、`templateReldir`、仓库移除/重同步）。`pnpm typecheck` 与 `pnpm test` 已通过。历史“确认失败”和“提交”步骤不再作为功能待办追踪。
+
+## 2026-06-23 状态总览
+
+- [x] catalog 客户端 vendor add/update/remove 已对齐后端 `{ input }` / `{ name, input }` / `{ name }` 契约。
+- [x] `RepoModal` 已实现增改弹窗，隐藏 `vendor/` 绝对/本地路径，并扩展本地文件夹与模板目录。
+- [x] `LibrarySidebar` 已实现上游仓库、本地 `.list`、规则源三组入口。
+- [x] `ListFileEditor` 已实现 `.list` 加载与保存。
+- [x] `ProviderRecipeEditor` 已实现规则源配方编辑。
+- [x] `LibraryPage` 已接线仓库同步、编辑、移除、新建 `.list`、新建规则源和仓库浏览。
+- [x] 当前验证：`pnpm typecheck`、`pnpm test` 已通过。
+- [ ] 非功能历史项：逐步提交记录和手动 `pnpm dev` 规则库页面走查未追溯。
+
 ## Global Constraints
 
 - ESM/NodeNext：相对 import 带 `.js`。
@@ -49,7 +62,7 @@
   removeVendorRepoRequest(name: string, fetcher?): Promise<void>            // POST /api/vendor/remove {name}
   ```
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `apps/web/tests/catalog.test.ts` 追加：
 
@@ -73,7 +86,7 @@ it("posts vendor update and remove", async () => {
 
 - [ ] **Step 2: 确认失败** — `pnpm exec vitest run apps/web/tests/catalog.test.ts`（FAIL）
 
-- [ ] **Step 3: 改实现**
+- [x] **Step 3: 改实现**
 
 `apps/web/src/catalog.ts` 把 `NewVendorRepoInput` 与 `addVendorRepoRequest`（108-129 行）替换为：
 
@@ -143,7 +156,7 @@ RepoModal(props: {
 - **不展示** vendor 本地路径（后端自动 `vendor/<name>`）。
 - 提交：组装 `VendorRepoInput`（catalog 仅当 reldir 非空时带上），调 `onSubmit`；成功 `onClose`，失败 `notifyError`。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```tsx
 // @vitest-environment jsdom
@@ -174,7 +187,7 @@ it("submits assembled input and does not expose vendor path", async () => {
 
 - [ ] **Step 2: 确认失败** — `pnpm exec vitest run apps/web/tests/repoModal.test.tsx`（FAIL）
 
-- [ ] **Step 3: 实现 `RepoModal`**
+- [x] **Step 3: 实现 `RepoModal`**
 
 用 AntD `Modal` + `Form`（`Form.Item label` 提供 `aria-label` 对应：名称/Git URL/分支/数据类型/数据目录）。分支用 `Input` + 旁边 `Switch`「钉住」；数据类型 `Select`（domain-list/list-dir/provider-yaml/ini-template）。提交时：
 
@@ -233,7 +246,7 @@ LibrarySidebar(props: {
 ```
 - 三组分区（上游仓库 / 本地 .list / 规则源），每组带「＋」；仓库行带同步时间（`formatSyncedAt`）、⟳ 同步（spin）、⚙ 编辑、`钉 main` 标记（branch）。
 
-- [ ] **Step 1: 写失败测试**（要点：渲染三组标题；点仓库 ⚙ → onEditRepo；点 ⟳ → onSyncRepo；点 .list 行 → onSelect({kind:"list"})）
+- [x] **Step 1: 写失败测试**（要点：渲染三组标题；点仓库 ⚙ → onEditRepo；点 ⟳ → onSyncRepo；点 .list 行 → onSelect({kind:"list"})）
 
 ```tsx
 // @vitest-environment jsdom
@@ -266,7 +279,7 @@ it("edits and syncs a repo, selects a list file", () => {
 
 - [ ] **Step 2: 确认失败** — `pnpm exec vitest run apps/web/tests/librarySidebar.test.tsx`（FAIL）
 
-- [ ] **Step 3: 实现 `LibrarySidebar`**（按 Interfaces；同步图标用 lucide `RefreshCw`，`className={syncingRepo===name?"spin":""}`；`aria-label` 用「同步 <name>」「编辑 <name>」）。完整实现按线框。
+- [x] **Step 3: 实现 `LibrarySidebar`**（按 Interfaces；同步图标用 lucide `RefreshCw`，`className={syncingRepo===name?"spin":""}`；`aria-label` 用「同步 <name>」「编辑 <name>」）。完整实现按线框。
 
 - [ ] **Step 4: 通过 + 提交**
 
@@ -291,7 +304,7 @@ ListFileEditor(props: { file: string; fetcher?: Fetcher }): JSX.Element
 ```
 - 内部用 `loadRuleFile`/`saveRuleFile`（ruleFiles.ts）。AntD `Input.TextArea` 全高 + 「保存」按钮；保存成功/失败 `notifySuccess`/`notifyError`。
 
-- [ ] **Step 1-3: TDD**
+- [x] **Step 1-3: TDD**
 
 测试：mock fetcher 返回 `{file,text}`，渲染后 textarea 显示内容；改文本点保存调 PUT。
 
@@ -343,7 +356,7 @@ ProviderRecipeEditor(props: {
 ```
 - 字段：name（Input）、output（Input）、behavior（固定 domain，只读展示）、sources（列表：每条 type + name + path/entry；可增删）、exclude/remove（`Select mode="tags"`）。
 
-- [ ] **Step 1-3: TDD**
+- [x] **Step 1-3: TDD**
 
 测试要点：改 output 调 `onUpdate({output})`；删除调 `onDelete`。
 
@@ -400,11 +413,11 @@ LibraryPage(props: {
 - 同步：`syncCatalogVendor(fetcher, name)`（或全部）→ 刷新 sources，错误 `notifyError`。
 - 新建 .list：`createRuleFileRequest` → 刷新 listFiles。新建规则源：`draftActions.createProvider()`。
 
-- [ ] **Step 1-3: TDD**（渲染 LibraryPage，mock fetcher 提供 sources/rules，断言左栏出现仓库与 .list；选中 .list 右栏出现编辑器）
+- [x] **Step 1-3: TDD**（渲染 LibraryPage，mock fetcher 提供 sources/rules，断言左栏出现仓库与 .list；选中 .list 右栏出现编辑器）
 
-- [ ] **Step 4: App.tsx 接线**：`view==="library"` 渲染 `LibraryPage`，传 `config`、`draftActions`、`onRefreshConfig`(= 重新 `loadLocalProjectConfig` 并 `setProject(createProjectController(...))`)。更新 `WorkspaceRouter` 透传或 App 内直接按 view 渲染。
+- [x] **Step 4: App.tsx 接线**：`view==="library"` 渲染 `LibraryPage`，传 `config`、`draftActions`、`onRefreshConfig`(= 重新 `loadLocalProjectConfig` 并 `setProject(createProjectController(...))`)。更新 `WorkspaceRouter` 透传或 App 内直接按 view 渲染。
 
-- [ ] **Step 5: 删旧组件 + 测试**
+- [x] **Step 5: 删旧组件 + 测试**
 
 ```bash
 git rm apps/web/src/components/CatalogWorkspace.tsx apps/web/src/components/ProviderWorkspace.tsx apps/web/src/components/RuleProviderEditor.tsx apps/web/src/components/RuleProviderList.tsx apps/web/src/components/RuleFileWorkspace.tsx apps/web/src/components/SourcePicker.tsx

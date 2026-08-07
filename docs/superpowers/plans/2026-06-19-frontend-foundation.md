@@ -8,6 +8,18 @@
 
 **Tech Stack:** React 19、AntD v5、vite、vitest + @testing-library/react（jsdom）。
 
+> 2026-06-23 完成状态：三页 AntD 骨架已被后续页面实现取代并落地。`AppProviders`、`notify`、三页导航、`ProjectView` 三值、`AppShell` 和当前 `App.tsx` 接线已在代码中实现；`pnpm typecheck` 与 `pnpm test` 已通过。顶栏“导出”按钮不是当前产品待办，导出能力由发布页的 `config.yaml` 下载/二维码流程承担。
+
+## 2026-06-23 状态总览
+
+- [x] AntD 依赖、zh_CN/dark provider、全局 notify bridge 已落地。
+- [x] 视图已收敛为 `routing` / `library` / `publish`。
+- [x] 顶栏三页导航与导入入口已落地。
+- [x] 原三页占位已被路由页、规则库页、发布页真实实现替换。
+- [x] 当前验证：`pnpm typecheck`、`pnpm test` 已通过。
+- [x] 设计调整：顶栏“导出”按钮已从待办移除，发布页承担导出 config.yaml。
+- [ ] 非功能历史项：逐步提交记录和手动 `pnpm dev` 浏览器走查未追溯。
+
 ## Global Constraints
 
 - ESM/NodeNext：相对 import 带 `.js` 扩展名。

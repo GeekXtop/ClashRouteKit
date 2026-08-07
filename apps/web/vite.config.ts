@@ -7,13 +7,29 @@ import { createHostingHandler } from "../cli/src/serveHosting.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
+const projectRoot = path.resolve(process.env.CLASH_ROUTE_KIT_ROOT ?? root);
 const configFile = process.env.CLASH_ROUTE_KIT_CONFIG ?? "config/routes.yaml";
+
+export function resolveProjectConfigPath(
+  configuredRoot: string,
+  configuredFile: string,
+): string {
+  return path.resolve(configuredRoot, configuredFile);
+}
+
+export function createConfigWatchIgnore(
+  configuredRoot: string,
+  configuredFile: string,
+) {
+  const configPath = resolveProjectConfigPath(configuredRoot, configuredFile);
+  return (watchedPath: string): boolean => path.resolve(watchedPath) === configPath;
+}
 
 function routeKitApiPlugin(): Plugin {
   return {
     name: "route-kit-local-api",
     configureServer(server) {
-      const base = { root: process.env.CLASH_ROUTE_KIT_ROOT ?? root, configFile };
+      const base = { root: projectRoot, configFile };
       server.middlewares.use(
         createHostingHandler({
           ...base,
@@ -35,6 +51,9 @@ export default defineConfig({
   server: {
     fs: {
       allow: [root],
+    },
+    watch: {
+      ignored: createConfigWatchIgnore(projectRoot, configFile),
     },
   },
 });

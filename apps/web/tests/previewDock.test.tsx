@@ -14,4 +14,5 @@ it("expands to show ini", () => {
   );
   fireEvent.click(screen.getByText("INI 预览"));
   expect(screen.getByText(/ruleset=Proxy/)).toBeTruthy();
+  expect(screen.getByTestId("ini-preview").className).toContain("rk-ini-scroll");
 });

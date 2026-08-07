@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Collapse } from "antd";
-import { Pencil, Plus, RefreshCw } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Settings } from "lucide-react";
 import type { RuleProviderConfig } from "@clash-route-kit/core";
 import { formatSyncedAt, type CatalogSourceInfo } from "../catalog.js";
 
@@ -17,11 +17,12 @@ function sameSelection(a: LibrarySelection | null, b: LibrarySelection): boolean
   return false;
 }
 
-function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+function IconAction({ label, title, onClick, children }: { label: string; title?: string; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
       aria-label={label}
+      title={title}
       className="rk-iconbtn"
       onClick={(e) => {
         e.stopPropagation();
@@ -46,6 +47,7 @@ export function LibrarySidebar(props: {
   onEditRepo: (name: string) => void;
   onNewList: () => void;
   onNewProvider: () => void;
+  onOpenRuleDefaults: () => void;
 }) {
   const now = Date.now();
 
@@ -56,8 +58,11 @@ export function LibrarySidebar(props: {
       onClick={() => props.onSelect({ kind: "repo", name: repo.id })}
     >
       <span className="rk-lib-name">{repo.label}</span>
-      <span className="rk-lib-meta">{formatSyncedAt(repo.syncedAt, now) || "未同步"}</span>
-      <IconAction label={`同步 ${repo.id}`} onClick={() => props.onSyncRepo(repo.id)}>
+      <IconAction
+        label={`同步 ${repo.id}`}
+        title={formatSyncedAt(repo.syncedAt, now) || "未同步"}
+        onClick={() => props.onSyncRepo(repo.id)}
+      >
         <RefreshCw size={13} className={props.syncingRepo === repo.id ? "spin" : ""} />
       </IconAction>
       <IconAction label={`编辑 ${repo.id}`} onClick={() => props.onEditRepo(repo.id)}>
@@ -83,6 +88,7 @@ export function LibrarySidebar(props: {
       onClick={() => props.onSelect({ kind: "provider", name: provider.name })}
     >
       <span className="rk-lib-name">{provider.name}</span>
+      {provider.sources.length === 0 ? <span className="rk-tag warn">待补全</span> : null}
     </div>
   ));
 
@@ -120,9 +126,14 @@ export function LibrarySidebar(props: {
           key: "providers",
           label: "规则源",
           extra: (
-            <IconAction label="新建规则源" onClick={props.onNewProvider}>
-              <Plus size={14} />
-            </IconAction>
+            <>
+              <IconAction label="规则默认值" onClick={props.onOpenRuleDefaults}>
+                <Settings size={14} />
+              </IconAction>
+              <IconAction label="新建规则源" onClick={props.onNewProvider}>
+                <Plus size={14} />
+              </IconAction>
+            </>
           ),
           children: providerRows,
         },

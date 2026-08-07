@@ -7,28 +7,26 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 
 export function PublishPage(props: {
   config: RouteKitProjectConfig;
+  originalConfig?: RouteKitProjectConfig;
   validation: ProjectValidationState;
   onRunCheck: () => void;
   fetcher?: Fetcher;
 }) {
   const subconverterUrl = props.config.subconverterUrl ?? "http://10.0.0.3:25500/sub";
   return (
-    <div className="rk-publish-split">
-      <div className="rk-pane rk-publish-col">
-        <PublishLeftPanel
-          config={props.config}
-          validation={props.validation}
-          onRunCheck={props.onRunCheck}
-          fetcher={props.fetcher}
-        />
-      </div>
-      <div className="rk-pane rk-publish-col">
-        <ConfigYamlSection
-          publishBaseUrl={props.config.publishBaseUrl}
-          templateOutput={props.config.template.output}
-          subconverterUrl={subconverterUrl}
-        />
-      </div>
+    <div className="rk-publish-flow">
+      <PublishLeftPanel
+        config={props.config}
+        originalConfig={props.originalConfig}
+        validation={props.validation}
+        onRunCheck={props.onRunCheck}
+        fetcher={props.fetcher}
+      />
+      <ConfigYamlSection
+        publishBaseUrl={props.config.publishBaseUrl}
+        templateOutput={props.config.template.output}
+        subconverterUrl={subconverterUrl}
+      />
     </div>
   );
 }

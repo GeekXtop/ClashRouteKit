@@ -122,7 +122,7 @@
 - subconverter 端点（默认 `subconverterUrl`，兜底 `http://10.0.0.3:25500/sub`）。
 - 「生成 config.yaml」→ 浏览器**下载** + **二维码**（`clash://install-config?url=…` 供其它设备扫码导入）。
 - **不预览 yaml**。
-- 订阅链接含 token：**持久化到 gitignored 本地文件 `config/subscriptions.local.yaml`**（经专用本地 API 读写，survive 重载、跨浏览器可用），**绝不写入 `routes.yaml` / 不进 git / 不发布**。`.gitignore` 增加该文件。
+- 订阅链接含 token：**仅保存在当前页面会话内存**，刷新页面后丢弃，**绝不写入 `routes.yaml` / 本地文件 / git / 发布产物**。
 
 ### 关于 Use Rule Provider（说明性，非本项目控件）
 OpenClash 该开关开启时给 subconverter 加 `&expand=false&classic=true`：
@@ -160,7 +160,7 @@ OpenClash 该开关开启时给 subconverter 加 `&expand=false&classic=true`：
 
 ## 11. 数据与后端改动清单
 
-- `apps/web`：三页全部重写为 AntD；新增来源选择器、仓库 Modal、导入流程、发布单栏流程、多订阅本地存储；`subscriptions.ts` 重构支持原生多订阅（替换 textarea 解析）；移除旧 `SubscribeAssembler` 的机场 textarea 形态。
+- `apps/web`：三页全部重写为 AntD；新增来源选择器、仓库 Modal、导入流程、发布单栏流程、多订阅会话内填写；`subscriptions.ts` 重构支持原生多订阅（替换 textarea 解析）；移除旧 `SubscribeAssembler` 的机场 textarea 形态。
 - `apps/cli` serve API：上游仓库 增/改/删 API；catalog entries 增 `hasChildren`；catalog 按源容错；（config.yaml 下载走浏览器直连 subconverter URL，QR 编码 `clash://` 深链，无需新服务端转换端点）。
 - `config/routes.yaml`：`Aethersailor` 项 url 改 GeekXtop fork（name 可保留或更名）。
 - 依赖：新增 `antd`；保留 `qrcode`、`lucide-react`（或被 AntD 图标替代，二选一，实现时定）。

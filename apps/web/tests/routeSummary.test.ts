@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createCustomProxyGroupStats, createRouteSummary, selectInboundRuleSets } from "../src/routeSummary.js";
+import {
+  createCustomProxyGroupDetails,
+  createCustomProxyGroupStats,
+  createRouteSummary,
+  selectInboundRuleSets,
+} from "../src/routeSummary.js";
 
 describe("route summary", () => {
   const config = {
@@ -65,12 +70,70 @@ describe("route summary", () => {
     ]);
   });
 
-  it("counts enabled ruleSets per custom proxy group", () => {
+  it("counts all ruleSets per custom proxy group, including disabled", () => {
     expect(createCustomProxyGroupStats(config)).toEqual([
-      { name: "Proxy", ruleSets: 1, options: 2 },
-      { name: "Tech", ruleSets: 2, options: 2 },
-      { name: "Direct", ruleSets: 1, options: 1 },
+      {
+        name: "Proxy",
+        type: "select",
+        directRuleSetCount: 2,
+        referencedByGroupCount: 1,
+        memberCount: 2,
+      },
+      {
+        name: "Tech",
+        type: "select",
+        directRuleSetCount: 2,
+        referencedByGroupCount: 0,
+        memberCount: 2,
+      },
+      {
+        name: "Direct",
+        type: "select",
+        directRuleSetCount: 1,
+        referencedByGroupCount: 2,
+        memberCount: 1,
+      },
     ]);
+  });
+
+  it("returns direct RuleSets and parent groups in config order", () => {
+    expect(createCustomProxyGroupDetails(config, "Direct")).toEqual({
+      directRuleSets: [
+        {
+          id: "china-geoip-cn",
+          enabled: true,
+          source: "[]GEOIP,cn,no-resolve",
+        },
+      ],
+      referencedByGroups: [
+        { name: "Proxy", type: "select" },
+        { name: "Tech", type: "select" },
+      ],
+      memberCount: 1,
+    });
+    expect(createCustomProxyGroupDetails(config, "Missing")).toBeUndefined();
+  });
+
+  it("includes effective health-check values for test groups", () => {
+    const healthConfig = {
+      ...config,
+      defaults: {
+        proxyGroups: {
+          healthCheck: { interval: 600, timeout: 5 },
+          urlTest: { tolerance: 80 },
+        },
+      },
+      customProxyGroups: [
+        ...config.customProxyGroups,
+        { name: "Auto", type: "url-test" as const, options: [], nodeFilters: [".*"] },
+      ],
+    };
+
+    expect(createCustomProxyGroupDetails(healthConfig, "Auto")?.healthCheck).toMatchObject({
+      interval: { value: 600, source: "project" },
+      timeout: { value: 5, source: "project" },
+      tolerance: { value: 80, source: "project" },
+    });
   });
 
   it("selects inbound ruleSets for a group in order, keeping disabled", () => {

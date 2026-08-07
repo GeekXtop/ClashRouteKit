@@ -121,4 +121,113 @@ describe("renderIni", () => {
     expect(lines.filter((line) => line === "; 海外类目")).toHaveLength(1);
     expect(lines.indexOf("; 海外类目")).toBeLessThan(lines.indexOf("ruleset=AI,[]GEOSITE,openai"));
   });
+
+  it("renders inherited and explicitly empty health-check slots with the shortest legal tail", () => {
+    const ini = renderIni({
+      publishBaseUrl: "https://example.com/publish",
+      defaults: {
+        proxyGroups: {
+          healthCheck: {
+            url: "https://probe.example/204",
+            interval: 300,
+            timeout: 5,
+          },
+          urlTest: { tolerance: 50 },
+        },
+      },
+      customProxyGroups: [
+        { name: "Inherited", type: "url-test", options: [], nodeFilters: [".*"] },
+        {
+          name: "NoTimeout",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: null,
+        },
+        {
+          name: "NoTolerance",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: 8,
+          tolerance: null,
+        },
+      ],
+      ruleSets: [],
+    });
+
+    expect(ini).toContain(
+      "custom_proxy_group=Inherited`url-test`.*`https://probe.example/204`300,5,50",
+    );
+    expect(ini).toContain(
+      "custom_proxy_group=NoTimeout`url-test`.*`https://probe.example/204`300,,50",
+    );
+    expect(ini).toContain(
+      "custom_proxy_group=NoTolerance`url-test`.*`https://probe.example/204`300,8",
+    );
+  });
+
+  it("keeps the legacy health-check tail when project defaults are absent", () => {
+    const ini = renderIni({
+      publishBaseUrl: "https://example.com/publish",
+      customProxyGroups: [
+        { name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] },
+      ],
+      ruleSets: [],
+    });
+
+    expect(ini).toContain(
+      "custom_proxy_group=Auto`url-test`.*`https://cp.cloudflare.com/generate_204`300,,50",
+    );
+  });
+
+  it("uses project RuleSet defaults while preserving item overrides", () => {
+    const ini = renderIni({
+      publishBaseUrl: "https://example.com/publish",
+      defaults: {
+        ruleSets: {
+          ruleProviderInterval: 600,
+          geoipNoResolve: false,
+        },
+      },
+      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+      ruleSets: [
+        {
+          id: "inherited-provider",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "Inherited.yaml" },
+        },
+        {
+          id: "custom-provider",
+          policy: "Proxy",
+          source: {
+            type: "rule-provider",
+            behavior: "domain",
+            file: "Custom.yaml",
+            interval: 120,
+          },
+        },
+        {
+          id: "inherited-geoip",
+          policy: "Proxy",
+          source: { type: "geoip", value: "cn" },
+        },
+        {
+          id: "custom-geoip",
+          policy: "Proxy",
+          source: { type: "geoip", value: "telegram", noResolve: true },
+        },
+      ],
+    });
+
+    expect(ini).toContain(
+      "ruleset=Proxy,clash-domain:https://example.com/publish/rules/Inherited.yaml,600",
+    );
+    expect(ini).toContain(
+      "ruleset=Proxy,clash-domain:https://example.com/publish/rules/Custom.yaml,120",
+    );
+    expect(ini).toContain("ruleset=Proxy,[]GEOIP,cn\n");
+    expect(ini).not.toContain("ruleset=Proxy,[]GEOIP,cn,no-resolve");
+    expect(ini).toContain("ruleset=Proxy,[]GEOIP,telegram,no-resolve");
+  });
 });

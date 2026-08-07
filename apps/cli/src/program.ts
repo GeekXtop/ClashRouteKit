@@ -5,16 +5,17 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
-  collectDomainProviderRules,
+  collectRuleProviderRules,
   convertDomainListCommunity,
-  generateDomainProvider,
+  generateRuleProvider,
   parseIniToConfig,
   renderIni,
   serializeRouteKitConfig,
-  summarizeDomainProvider,
-  type DomainProviderRule,
-  type DomainProviderSummary,
+  summarizeRuleProvider,
+  validateDefaultAwareConfig,
   type ImportedConfig,
+  type ProviderRule,
+  type ProviderSummary,
   type RouteKitProjectConfig,
   type RuleProviderSource,
   type SourceBase,
@@ -33,10 +34,10 @@ export interface SourceContributionSummary {
   name: string;
   type: RuleProviderSource["type"];
   inputRules: number;
-  domainRules: number;
+  outputRules: number;
 }
 
-export interface ProviderOutputSummary extends DomainProviderSummary {
+export interface ProviderOutputSummary extends ProviderSummary {
   name: string;
   output: string;
   path: string;
@@ -273,7 +274,7 @@ function sourceLabel(source: RuleProviderSource): string {
 
 function duplicateRulesBySource(
   provider: string,
-  sourceRules: Array<{ source: string; rules: DomainProviderRule[] }>,
+  sourceRules: Array<{ source: string; rules: ProviderRule[] }>,
 ): ProviderDuplicateSummary | null {
   const rulesByKey = new Map<string, { rule: string; sources: string[] }>();
   for (const source of sourceRules) {
@@ -296,7 +297,7 @@ function duplicateRulesBySource(
 }
 
 function overlapRulesByProvider(
-  providerRules: Array<{ provider: string; rules: DomainProviderRule[] }>,
+  providerRules: Array<{ provider: string; rules: ProviderRule[] }>,
 ): ProviderOverlapSummary[] {
   const rulesByKey = new Map<string, { rule: string; providers: string[] }>();
   for (const provider of providerRules) {
@@ -334,20 +335,20 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
   const rulePaths: string[] = [];
   const providers: ProviderOutputSummary[] = [];
   const duplicates: ProviderDuplicateSummary[] = [];
-  const finalProviderRules: Array<{ provider: string; rules: DomainProviderRule[] }> = [];
+  const finalProviderRules: Array<{ provider: string; rules: ProviderRule[] }> = [];
   for (const provider of config.ruleProviders ?? []) {
     const rules: string[] = [];
     const sources: SourceContributionSummary[] = [];
-    const sourceRulesForReport: Array<{ source: string; rules: DomainProviderRule[] }> = [];
+    const sourceRulesForReport: Array<{ source: string; rules: ProviderRule[] }> = [];
     for (const source of provider.sources) {
       const sourceRules = await readRules(options.root, source);
-      const sourceSummary = summarizeDomainProvider({
+      const sourceSummary = summarizeRuleProvider(provider.behavior, {
         source: sourceLabel(source),
         rules: sourceRules,
       });
       sourceRulesForReport.push({
         source: source.name,
-        rules: collectDomainProviderRules({
+        rules: collectRuleProviderRules(provider.behavior, {
           source: sourceLabel(source),
           rules: sourceRules,
         }),
@@ -356,7 +357,7 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
         name: source.name,
         type: source.type,
         inputRules: sourceSummary.inputRules,
-        domainRules: sourceSummary.domainRules,
+        outputRules: sourceSummary.outputRules,
       });
       rules.push(...sourceRules);
     }
@@ -370,7 +371,7 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
     ];
     await writeFile(
       rulePath,
-      generateDomainProvider({
+      generateRuleProvider(provider.behavior, {
         source: provider.sources.map(sourceLabel).join(", "),
         rules,
         exclude,
@@ -382,7 +383,7 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
     if (duplicateSummary) duplicates.push(duplicateSummary);
     finalProviderRules.push({
       provider: provider.name,
-      rules: collectDomainProviderRules({
+      rules: collectRuleProviderRules(provider.behavior, {
         source: provider.name,
         rules,
         exclude,
@@ -392,7 +393,7 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
       name: provider.name,
       output: provider.output,
       path: rulePath,
-      ...summarizeDomainProvider({
+      ...summarizeRuleProvider(provider.behavior, {
         source: provider.name,
         rules,
         exclude,
@@ -493,7 +494,7 @@ export async function checkConfig(options: ProgramOptions): Promise<string[]> {
   const groupNames = new Set(config.customProxyGroups.map((group) => group.name));
   const builtInPolicies = new Set(["DIRECT", "REJECT"]);
   const geositeTags = await readLocalGeositeTags(options.root);
-  const diagnostics: string[] = [];
+  const diagnostics = validateDefaultAwareConfig(config);
   let finalRuleCount = 0;
 
   for (const ruleSet of config.ruleSets) {

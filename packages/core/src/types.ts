@@ -28,6 +28,29 @@ export type RuleSetSource =
   | GeoipRuleSetSource
   | FinalRuleSetSource;
 
+export interface ProxyGroupHealthCheckDefaults {
+  url?: string;
+  interval?: number;
+  timeout?: number;
+}
+
+export interface ProxyGroupDefaults {
+  healthCheck?: ProxyGroupHealthCheckDefaults;
+  urlTest?: {
+    tolerance?: number;
+  };
+}
+
+export interface RuleSetDefaults {
+  ruleProviderInterval?: number;
+  geoipNoResolve?: boolean;
+}
+
+export interface RouteKitDefaults {
+  proxyGroups?: ProxyGroupDefaults;
+  ruleSets?: RuleSetDefaults;
+}
+
 export interface RuleSet {
   id: string;
   enabled?: boolean;
@@ -43,12 +66,14 @@ export interface CustomProxyGroup {
   nodeFilters?: string[];
   url?: string;
   interval?: number;
-  tolerance?: number;
+  timeout?: number | null;
+  tolerance?: number | null;
 }
 
 export interface RouteKitConfig {
   publishBaseUrl: string;
   subconverterUrl?: string;
+  defaults?: RouteKitDefaults;
   customProxyGroups: CustomProxyGroup[];
   ruleSets: RuleSet[];
 }
@@ -62,6 +87,8 @@ export interface VendorRepoConfig {
     dir: string;
     kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template";
   };
+  /** Optional directory of SubConverter `.ini` templates exposed as an import source. */
+  templateDir?: string;
 }
 
 export interface SourceBase {
@@ -91,7 +118,7 @@ export type RuleProviderSource = ClashListSource | ClashProviderSource | DomainL
 export interface RuleProviderConfig {
   name: string;
   output: string;
-  behavior: "domain";
+  behavior: ProviderBehavior;
   exclude?: string[];
   remove?: string[];
   sources: RuleProviderSource[];
@@ -114,24 +141,30 @@ export interface DomainListCommunityOptions {
   fetchText: (url: string) => Promise<string>;
 }
 
-export interface DomainProviderInput {
+export interface ProviderInput {
   source: string;
   rules: string[];
   exclude?: string[];
 }
 
-export interface DomainProviderSummary {
+export interface ProviderSummary {
   inputRules: number;
-  domainRules: number;
-  excludedRules: number;
   outputRules: number;
+  excludedRules: number;
 }
 
-export interface DomainProviderRule {
+export interface DomainProviderSummary extends ProviderSummary {
+  domainRules: number;
+}
+
+export interface ProviderRule {
   key: string;
   rule: string;
   payload: string;
 }
+
+export type DomainProviderInput = ProviderInput;
+export type DomainProviderRule = ProviderRule;
 
 export interface RenderIniOptions {
   enableRuleGenerator?: boolean;
@@ -148,11 +181,4 @@ export interface ImportedConfig {
   customProxyGroups: CustomProxyGroup[];
   ruleSets: RuleSet[];
   warnings: string[];
-}
-
-export interface LocalSubscription {
-  id: string;
-  name: string;
-  url: string;
-  enabled: boolean;
 }

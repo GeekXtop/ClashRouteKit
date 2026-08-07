@@ -61,7 +61,7 @@ describe("project controller", () => {
     });
 
     expect(next.dirty).toBe(true);
-    expect(canSaveProject(next)).toEqual({ ok: true });
+    expect(canSaveProject(next)).toEqual({ ok: true, warnings: [] });
     expect(controller.dirty).toBe(false);
   });
 
@@ -76,6 +76,7 @@ describe("project controller", () => {
     expect(canSaveProject(next)).toEqual({
       ok: false,
       reason: "RuleSet ID 不能为空",
+      warnings: [],
     });
   });
 
@@ -94,6 +95,7 @@ describe("project controller", () => {
     expect(canSaveProject(next)).toEqual({
       ok: false,
       reason: "RuleSet ID 不能重复：developer-geosite-github",
+      warnings: [],
     });
   });
 
@@ -108,6 +110,7 @@ describe("project controller", () => {
     expect(canSaveProject(next)).toEqual({
       ok: false,
       reason: "RuleSet developer-geosite-github 引用了不存在的 custom_proxy_group：Missing",
+      warnings: [],
     });
   });
 
@@ -160,6 +163,31 @@ describe("project controller", () => {
     expect(canSaveProject(dirty)).toEqual({
       ok: false,
       reason: "RuleSet ai 引用了不存在的 custom_proxy_group：Missing",
+      warnings: [],
+    });
+  });
+
+  it("allows saving drafts that only have placeholder provider warnings", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const dirty = applyDraftConfig(controller, {
+      ...config,
+      ruleSets: [
+        {
+          id: "custom-direct",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "classical", file: "Custom_Direct_Classical_IP.yaml" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+      ruleProviders: [
+        { name: "CustomDirect", output: "Custom_Direct_Classical_IP.yaml", behavior: "classical", sources: [] },
+      ],
+    });
+
+    expect(canSaveProject(dirty)).toEqual({
+      ok: true,
+      warnings: ["规则源 CustomDirect 待补全：尚未指定数据源"],
     });
   });
 

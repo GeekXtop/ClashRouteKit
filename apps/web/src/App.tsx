@@ -36,8 +36,12 @@ export default function App() {
       .catch(() => {});
   }
 
-  function handleImport(text: string) {
-    draftActions.importTemplate(parseIniToConfig(text));
+  function handleImport(text: string, mode: "replace" | "merge") {
+    if (mode === "merge") {
+      draftActions.importIni(text);
+    } else {
+      draftActions.importTemplate(parseIniToConfig(text));
+    }
     setImportOpen(false);
   }
 
@@ -84,7 +88,14 @@ export default function App() {
 
   // 实时自动保存：草稿有效且有改动时，防抖写回 config/routes.yaml
   useEffect(() => {
-    if (!project.dirty || !canSaveProject(project).ok) return;
+    if (!project.dirty) return;
+    const readiness = canSaveProject(project);
+    if (!readiness.ok) {
+      if (project.status !== "error" || project.message !== readiness.reason) {
+        setProject((current) => setProjectStatus(current, "error", readiness.reason));
+      }
+      return;
+    }
     const timer = setTimeout(() => {
       setProject((current) => setProjectStatus(current, "saving", "正在保存"));
       void saveLocalProjectConfig(project.draftConfig)
@@ -119,7 +130,12 @@ export default function App() {
         ) : project.selectedView === "library" ? (
           <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
         ) : (
-          <PublishPage config={config} validation={project.validation} onRunCheck={runCheck} />
+          <PublishPage
+            config={config}
+            originalConfig={project.originalConfig}
+            validation={project.validation}
+            onRunCheck={runCheck}
+          />
         )}
       </AppShell>
       <ImportModal open={importOpen} sources={importSources} onClose={() => setImportOpen(false)} onImport={handleImport} />

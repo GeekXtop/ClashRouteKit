@@ -1,6 +1,22 @@
 import { useEffect, useState } from "react";
-import { Button, Drawer, Input, InputNumber, Popconfirm, Select, Space, Switch } from "antd";
-import type { ProviderBehavior, RuleSet, RuleSetSource } from "@clash-route-kit/core";
+import { Alert, Button, Drawer, Input, Popconfirm, Select, Space, Switch } from "antd";
+import {
+  LEGACY_RULE_PROVIDER_INTERVAL,
+  resolveGeoipNoResolve,
+  resolveRuleProviderInterval,
+  type ProviderBehavior,
+  type ResolvedConfigValue,
+  type RouteKitDefaults,
+  type RuleSet,
+  type RuleSetSource,
+} from "@clash-route-kit/core";
+import {
+  createRuleSetDraft,
+  finalizeRuleSetDraft,
+  type EditableRuleSet,
+  type EditableRuleSetSource,
+} from "../drawerDrafts.js";
+import { InheritedNumberSetting } from "./InheritedSettingField.js";
 
 const SOURCE_TYPES: RuleSetSource["type"][] = ["geosite", "geoip", "rule-provider", "final"];
 const SOURCE_LABELS: Record<RuleSetSource["type"], string> = {
@@ -11,39 +27,99 @@ const SOURCE_LABELS: Record<RuleSetSource["type"], string> = {
 };
 const BEHAVIORS: ProviderBehavior[] = ["domain", "classical", "ipcidr"];
 
-function makeSource(type: RuleSetSource["type"]): RuleSetSource {
+function makeSource(type: RuleSetSource["type"]): EditableRuleSetSource {
   if (type === "geosite") return { type: "geosite", value: "" };
-  if (type === "geoip") return { type: "geoip", value: "", noResolve: true };
+  if (type === "geoip") return { type: "geoip", value: "" };
   if (type === "rule-provider") return { type: "rule-provider", behavior: "domain", file: "" };
   return { type: "final" };
+}
+
+function booleanCaption(resolved: ResolvedConfigValue<boolean>): string {
+  const value = resolved.value ? "开启" : "关闭";
+  if (resolved.source === "item") return `当前使用单项覆盖：${value}`;
+  if (resolved.source === "project") return `继承项目默认值：${value}`;
+  return `使用程序默认值：${value}`;
 }
 
 export function RuleDrawer(props: {
   open: boolean;
   ruleSet: RuleSet | undefined;
+  ruleSetIds: string[];
   policies: string[];
-  onClose: () => void;
-  onUpdate: (patch: Partial<RuleSet>) => void;
+  defaults?: RouteKitDefaults;
+  onSave: (nextRuleSet: RuleSet) => void;
+  onCancel: () => void;
   onDelete: () => void;
 }) {
-  const { ruleSet } = props;
-  const [id, setId] = useState(ruleSet?.id ?? "");
-  useEffect(() => setId(ruleSet?.id ?? ""), [ruleSet?.id]);
-  if (!ruleSet) return <Drawer open={props.open} onClose={props.onClose} width={420} title="规则" />;
+  const [draft, setDraft] = useState<EditableRuleSet | null>(() =>
+    props.ruleSet ? createRuleSetDraft(props.ruleSet) : null,
+  );
+  const [error, setError] = useState("");
 
-  const source = ruleSet.source;
-  const patchSource = (next: RuleSetSource) => props.onUpdate({ source: next });
+  useEffect(() => {
+    if (props.open && props.ruleSet) {
+      setDraft(createRuleSetDraft(props.ruleSet));
+      setError("");
+    }
+  }, [props.open, props.ruleSet?.id]);
+
+  function updateDraft(patch: Partial<EditableRuleSet>) {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+    setError("");
+  }
+
+  function patchSource(source: EditableRuleSetSource) {
+    updateDraft({ source });
+  }
+
+  function handleSave() {
+    if (!draft || !props.ruleSet) return;
+    const result = finalizeRuleSetDraft(
+      draft,
+      props.ruleSetIds,
+      props.ruleSet.id,
+    );
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    props.onSave(result.value);
+  }
+
+  if (!props.ruleSet || !draft) {
+    return (
+      <Drawer
+        open={props.open}
+        onClose={props.onCancel}
+        width={420}
+        title="规则"
+      />
+    );
+  }
+
+  const source = draft.source;
 
   return (
-    <Drawer open={props.open} onClose={props.onClose} width={420} title={`规则 · ${ruleSet.id}`}>
+    <Drawer
+      open={props.open}
+      onClose={props.onCancel}
+      width={420}
+      title={`规则 · ${props.ruleSet.id}`}
+      footer={(
+        <Space style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button onClick={props.onCancel}>取消</Button>
+          <Button type="primary" onClick={handleSave}>保存</Button>
+        </Space>
+      )}
+    >
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        {error ? <Alert type="error" showIcon message={error} /> : null}
         <div>
           <div className="rk-field-label">ID</div>
           <Input
             aria-label="规则 ID"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            onBlur={() => id.trim() && id.trim() !== ruleSet.id && props.onUpdate({ id: id.trim() })}
+            value={draft.id}
+            onChange={(event) => updateDraft({ id: event.target.value })}
           />
         </div>
         <div>
@@ -71,10 +147,34 @@ export function RuleDrawer(props: {
                 onChange={(e) => patchSource({ ...source, value: e.target.value })}
               />
             </div>
-            <Space>
-              <Switch checked={source.noResolve !== false} onChange={(checked) => patchSource({ ...source, noResolve: checked })} />
-              <span className="rk-field-label">no-resolve</span>
-            </Space>
+            <div>
+              <div className="rk-field-label">no-resolve</div>
+              <Select
+                aria-label="GEOIP no-resolve"
+                style={{ width: "100%" }}
+                value={
+                  source.noResolve === undefined
+                    ? "inherit"
+                    : source.noResolve
+                      ? "enabled"
+                      : "disabled"
+                }
+                options={[
+                  { value: "inherit", label: "继承项目默认值" },
+                  { value: "enabled", label: "开启" },
+                  { value: "disabled", label: "关闭" },
+                ]}
+                onChange={(value) =>
+                  patchSource({
+                    ...source,
+                    noResolve: value === "inherit" ? undefined : value === "enabled",
+                  })
+                }
+              />
+              <div className="rk-setting-hint">
+                {booleanCaption(resolveGeoipNoResolve(source, props.defaults))}
+              </div>
+            </div>
           </>
         ) : null}
         {source.type === "rule-provider" ? (
@@ -92,14 +192,18 @@ export function RuleDrawer(props: {
               <div className="rk-field-label">文件 / 列表（如 AI_Domain.yaml）</div>
               <Input value={source.file} onChange={(e) => patchSource({ ...source, file: e.target.value })} />
             </div>
-            <div>
-              <div className="rk-field-label">更新间隔（秒，可空）</div>
-              <InputNumber
-                style={{ width: "100%" }}
-                value={source.interval}
-                onChange={(value) => patchSource({ ...source, interval: value ?? undefined })}
-              />
-            </div>
+            <InheritedNumberSetting
+              label="更新间隔（秒）"
+              value={source.interval}
+              resolved={resolveRuleProviderInterval(
+                { ...source, interval: source.interval ?? undefined },
+                props.defaults,
+              )}
+              customFallback={LEGACY_RULE_PROVIDER_INTERVAL}
+              min={1}
+              unit="秒"
+              onChange={(interval) => patchSource({ ...source, interval })}
+            />
           </>
         ) : null}
         <div>
@@ -107,25 +211,28 @@ export function RuleDrawer(props: {
           <Select
             aria-label="归属策略组"
             style={{ width: "100%" }}
-            value={ruleSet.policy}
-            options={props.policies.map((p) => ({ value: p, label: p }))}
-            onChange={(policy) => props.onUpdate({ policy })}
+            value={draft.policy}
+            options={props.policies.map((policy) => ({ value: policy, label: policy }))}
+            onChange={(policy) => updateDraft({ policy })}
           />
         </div>
         <div>
           <div className="rk-field-label">分节（可空）</div>
           <Input
-            value={ruleSet.section ?? ""}
-            onChange={(e) => props.onUpdate({ section: e.target.value || undefined })}
+            value={draft.section ?? ""}
+            onChange={(event) => updateDraft({ section: event.target.value })}
           />
         </div>
         {source.type !== "final" ? (
           <>
             <Space>
-              <Switch checked={ruleSet.enabled !== false} onChange={(checked) => props.onUpdate({ enabled: checked })} />
+              <Switch
+                checked={draft.enabled !== false}
+                onChange={(enabled) => updateDraft({ enabled })}
+              />
               <span className="rk-field-label">启用</span>
             </Space>
-            <Popconfirm title={`删除规则 ${ruleSet.id}？`} okText="删除" cancelText="取消" onConfirm={props.onDelete}>
+            <Popconfirm title={`删除规则 ${props.ruleSet.id}？`} okText="删除" cancelText="取消" onConfirm={props.onDelete}>
               <Button danger>删除规则</Button>
             </Popconfirm>
           </>

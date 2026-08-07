@@ -3,11 +3,20 @@ export interface RuleFileResponse {
   text: string;
 }
 
+export interface DeleteRuleFileResponse {
+  file: string;
+}
+
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 function isRuleFileResponse(value: unknown): value is RuleFileResponse {
   const candidate = value as RuleFileResponse;
   return typeof candidate?.file === "string" && typeof candidate.text === "string";
+}
+
+function isDeleteRuleFileResponse(value: unknown): value is DeleteRuleFileResponse {
+  const candidate = value as DeleteRuleFileResponse;
+  return typeof candidate?.file === "string";
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -50,6 +59,19 @@ export async function saveRuleFile(
     }),
   );
   if (!isRuleFileResponse(payload)) {
+    throw new Error("Invalid rule file response");
+  }
+  return payload;
+}
+
+export async function deleteRuleFile(
+  file: string,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<DeleteRuleFileResponse> {
+  const payload = await readJson(
+    await fetcher(`/api/project/rules/${encodeURIComponent(file)}`, { method: "DELETE" }),
+  );
+  if (!isDeleteRuleFileResponse(payload)) {
     throw new Error("Invalid rule file response");
   }
   return payload;

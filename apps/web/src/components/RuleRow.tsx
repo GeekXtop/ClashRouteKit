@@ -1,6 +1,6 @@
 import type { DragEvent } from "react";
 import { Switch, Tag } from "antd";
-import { GripVertical, X } from "lucide-react";
+import { GripVertical, Pencil } from "lucide-react";
 import type { RuleSet } from "@clash-route-kit/core";
 import type { PolicyTone } from "../proxyGroups.js";
 
@@ -11,7 +11,8 @@ export function RuleRow({
   selected,
   onSelect,
   onToggle,
-  onDelete,
+  onEdit,
+  incompleteProvider = false,
   dragHandlers,
 }: {
   ruleSet: RuleSet;
@@ -20,7 +21,8 @@ export function RuleRow({
   selected: boolean;
   onSelect: () => void;
   onToggle: () => void;
-  onDelete: () => void;
+  onEdit: () => void;
+  incompleteProvider?: boolean;
   dragHandlers: {
     draggable: boolean;
     onDragStart: () => void;
@@ -41,6 +43,7 @@ export function RuleRow({
     >
       <GripVertical size={14} className="rk-grip" />
       <span className="rk-src">{sourceText}</span>
+      {incompleteProvider ? <span className="rk-tag warn">规则源待补全</span> : null}
       <Tag style={{ marginLeft: "auto" }}>{ruleSet.policy}</Tag>
       {!isFinal ? (
         <Switch
@@ -50,19 +53,17 @@ export function RuleRow({
           onChange={onToggle}
         />
       ) : null}
-      {!isFinal ? (
-        <button
-          type="button"
-          aria-label={`删除 ${ruleSet.id}`}
-          className="rk-iconbtn rk-del"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <X size={13} />
-        </button>
-      ) : null}
+      <button
+        type="button"
+        aria-label={`编辑 ${ruleSet.id}`}
+        className="rk-iconbtn"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
+      >
+        <Pencil size={13} />
+      </button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Input, Modal, Segmented, Select, Space } from "antd";
+import { Button, Input, Modal, Segmented, Select, Space } from "antd";
 import {
   fetchCatalogEntries,
   fetchCatalogTemplate,
@@ -14,7 +14,7 @@ export function ImportModal(props: {
   open: boolean;
   sources: CatalogSourceInfo[];
   onClose: () => void;
-  onImport: (text: string) => void;
+  onImport: (text: string, mode: "replace" | "merge") => void;
   fetcher?: Fetcher;
 }) {
   const fetcher = props.fetcher ?? globalThis.fetch;
@@ -51,9 +51,9 @@ export function ImportModal(props: {
 
   const text = mode === "paste" ? paste : templateText;
 
-  function emit() {
+  function emit(importMode: "replace" | "merge") {
     if (!text.trim()) return;
-    props.onImport(text);
+    props.onImport(text, importMode);
     props.onClose();
   }
 
@@ -63,9 +63,17 @@ export function ImportModal(props: {
       onCancel={props.onClose}
       title="导入模板（覆盖现有配置）"
       width={680}
-      okText="覆盖导入"
-      cancelText="取消"
-      onOk={emit}
+      footer={[
+        <Button key="cancel" onClick={props.onClose}>
+          取消
+        </Button>,
+        <Button key="merge" onClick={() => emit("merge")}>
+          合并进现有配置
+        </Button>,
+        <Button key="replace" type="primary" onClick={() => emit("replace")}>
+          替换现有配置
+        </Button>,
+      ]}
     >
       <Segmented
         options={[

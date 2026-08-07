@@ -6,24 +6,30 @@ import { RepoModal } from "../src/components/RepoModal.js";
 
 afterEach(cleanup);
 
-it("submits assembled input and does not expose vendor path", async () => {
+it("decouples name from local folder; dirs show the folder name (no vendor leak)", async () => {
   const onSubmit = vi.fn(async () => {});
   render(
     <AppProviders>
       <RepoModal open mode="add" onSubmit={onSubmit} onClose={() => {}} />
     </AppProviders>,
   );
-  expect(screen.queryByText(/vendor\//)).toBeNull();
-  fireEvent.change(screen.getByLabelText("名称"), { target: { value: "GeekX" } });
-  fireEvent.change(screen.getByLabelText("Git URL"), { target: { value: "https://x.git" } });
+  fireEvent.change(screen.getByLabelText("名称"), { target: { value: "Aethersailor" } });
+  fireEvent.change(screen.getByLabelText("Git URL"), {
+    target: { value: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git" },
+  });
+  // folder defaults to the URL repo basename and is the base for both dir fields — name stays separate
+  expect(screen.getAllByText("Custom_OpenClash_Rules/").length).toBe(2);
   fireEvent.change(screen.getByLabelText("数据目录"), { target: { value: "rule" } });
+  fireEvent.change(screen.getByLabelText("模板目录"), { target: { value: "cfg" } });
   fireEvent.click(screen.getByText("保存"));
   await waitFor(() =>
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "GeekX",
-        url: "https://x.git",
+        name: "Aethersailor",
+        url: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git",
+        folder: "Custom_OpenClash_Rules",
         catalog: { reldir: "rule", kind: expect.any(String) },
+        templateReldir: "cfg",
       }),
     ),
   );

@@ -34,7 +34,7 @@ function createConfig(overrides: Partial<RouteKitProjectConfig> = {}): RouteKitP
 
 describe("draft config validation", () => {
   it("accepts a valid draft config", () => {
-    expect(validateDraftConfig(createConfig())).toEqual([]);
+    expect(validateDraftConfig(createConfig())).toEqual({ errors: [], warnings: [] });
   });
 
   it("accepts custom proxy groups that use node filters without explicit options", () => {
@@ -49,7 +49,61 @@ describe("draft config validation", () => {
       ],
     });
 
-    expect(validateDraftConfig(config)).toEqual([]);
+    expect(validateDraftConfig(config)).toEqual({ errors: [], warnings: [] });
+  });
+
+  it("accepts explicit empty timeout and tolerance overrides", () => {
+    const config = createConfig({
+      customProxyGroups: [
+        { name: "Proxy", type: "select", options: ["Auto", "DIRECT"] },
+        {
+          name: "Auto",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: null,
+          tolerance: null,
+        },
+      ],
+      ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+      ruleProviders: [],
+    });
+
+    expect(validateDraftConfig(config)).toEqual({ errors: [], warnings: [] });
+  });
+
+  it("rejects invalid project defaults and item overrides", () => {
+    const config = createConfig({
+      defaults: {
+        proxyGroups: {
+          healthCheck: { url: "ftp://probe.example", interval: 0, timeout: 0 },
+          urlTest: { tolerance: -1 },
+        },
+      },
+      customProxyGroups: [
+        { name: "Proxy", type: "select", options: ["Auto", "DIRECT"] },
+        {
+          name: "Auto",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: 0,
+        },
+      ],
+      ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+      ruleProviders: [],
+    });
+
+    expect(validateDraftConfig(config)).toEqual({
+      errors: [
+        "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
+        "defaults.proxyGroups.healthCheck.interval 必须为正整数",
+        "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
+        "defaults.proxyGroups.urlTest.tolerance 必须为非负整数",
+        "custom_proxy_group Auto 的 timeout 必须为正整数",
+      ],
+      warnings: [],
+    });
   });
 
   it("accepts vendor rule provider sources with a safe base path", () => {
@@ -75,7 +129,7 @@ describe("draft config validation", () => {
       ] satisfies RuleProviderConfig[],
     });
 
-    expect(validateDraftConfig(config)).toEqual([]);
+    expect(validateDraftConfig(config)).toEqual({ errors: [], warnings: [] });
   });
 
   it("reports duplicate custom proxy group names and missing policy references", () => {
@@ -90,17 +144,20 @@ describe("draft config validation", () => {
       ] satisfies RuleSet[],
     });
 
-    expect(validateDraftConfig(config)).toEqual([
-      "custom_proxy_group 名称不能重复：Proxy",
-      "RuleSet ai 引用了不存在的 custom_proxy_group：Missing",
-      "RuleSet final 引用了不存在的 custom_proxy_group：Gone",
-    ]);
+    expect(validateDraftConfig(config)).toEqual({
+      errors: [
+        "custom_proxy_group 名称不能重复：Proxy",
+        "RuleSet ai 引用了不存在的 custom_proxy_group：Missing",
+        "RuleSet final 引用了不存在的 custom_proxy_group：Gone",
+      ],
+      warnings: [],
+    });
   });
 
   it("reports missing and duplicate FINAL ruleSets", () => {
     expect(validateDraftConfig(createConfig({
       ruleSets: [{ id: "ai", policy: "AI", source: { type: "geosite", value: "openai" } }],
-    }))).toEqual(["ruleSets 需要包含一条 FINAL 兜底规则"]);
+    }))).toEqual({ errors: ["ruleSets 需要包含一条 FINAL 兜底规则"], warnings: [] });
 
     expect(validateDraftConfig(createConfig({
       ruleSets: [
@@ -108,7 +165,7 @@ describe("draft config validation", () => {
         { id: "final-a", policy: "Proxy", source: { type: "final" } },
         { id: "final-b", policy: "Proxy", source: { type: "final" } },
       ],
-    }))).toEqual(["FINAL 兜底规则只能出现一次"]);
+    }))).toEqual({ errors: ["FINAL 兜底规则只能出现一次"], warnings: [] });
   });
 
   it("reports duplicate ruleSets and invalid ruleSet sources", () => {
@@ -122,13 +179,16 @@ describe("draft config validation", () => {
       ] satisfies RuleSet[],
     });
 
-    expect(validateDraftConfig(config)).toEqual([
-      "RuleSet ID 不能重复：ai",
-      "RuleSet ai 的 provider 文件不能为空",
-      "RuleSet ai 引用了不存在的 provider 输出：Missing.yaml",
-      "RuleSet empty-geosite 的 GEOSITE 不能为空",
-      "RuleSet empty-geoip 的 GEOIP 不能为空",
-    ]);
+    expect(validateDraftConfig(config)).toEqual({
+      errors: [
+        "RuleSet ID 不能重复：ai",
+        "RuleSet ai 的 provider 文件不能为空",
+        "RuleSet ai 引用了不存在的 provider 输出：Missing.yaml",
+        "RuleSet empty-geosite 的 GEOSITE 不能为空",
+        "RuleSet empty-geoip 的 GEOIP 不能为空",
+      ],
+      warnings: [],
+    });
   });
 
   it("reports invalid rule providers and unsafe rule source paths", () => {
@@ -144,11 +204,34 @@ describe("draft config validation", () => {
       ] satisfies RuleProviderConfig[],
     });
 
-    expect(validateDraftConfig(config)).toEqual([
-      "Rule provider 名称不能重复：AI",
-      "Rule provider 输出不能重复：AI_Domain.yaml",
-      "Rule provider AI 至少需要一个 source",
-      "Rule provider AI 的 source Bad path 不能包含绝对路径或 ..：../secret.list",
-    ]);
+    expect(validateDraftConfig(config)).toEqual({
+      errors: [
+        "Rule provider 名称不能重复：AI",
+        "Rule provider 输出不能重复：AI_Domain.yaml",
+        "Rule provider AI 的 source Bad path 不能包含绝对路径或 ..：../secret.list",
+      ],
+      warnings: ["规则源 AI 待补全：尚未指定数据源"],
+    });
+  });
+
+  it("warns but does not error for empty placeholder rule providers", () => {
+    const config = createConfig({
+      ruleProviders: [
+        { name: "CustomDirect", output: "Custom_Direct_Classical_IP.yaml", behavior: "classical", sources: [] },
+      ] satisfies RuleProviderConfig[],
+      ruleSets: [
+        {
+          id: "custom-direct",
+          policy: "AI",
+          source: { type: "rule-provider", behavior: "classical", file: "Custom_Direct_Classical_IP.yaml" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+    });
+
+    expect(validateDraftConfig(config)).toEqual({
+      errors: [],
+      warnings: ["规则源 CustomDirect 待补全：尚未指定数据源"],
+    });
   });
 });

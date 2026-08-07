@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> Agent 规则入口：修改代码前先读 `.agents/instructions.md`。本文件保留 Claude Code 专用指南，`.agents/instructions.md` 是跨 agent 的工作约定汇总。
+
+本文件为 Claude Code（claude.ai/code）在本仓库工作时提供指导。
 
 ## 项目简介
 

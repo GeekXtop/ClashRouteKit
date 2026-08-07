@@ -1,4 +1,16 @@
-import type { CustomProxyGroup, ProviderBehavior, RenderIniOptions, RouteKitConfig, RuleSet } from "./types.js";
+import {
+  resolveGeoipNoResolve,
+  resolveProxyGroupHealthCheck,
+  resolveRuleProviderInterval,
+} from "./defaults.js";
+import type {
+  CustomProxyGroup,
+  ProviderBehavior,
+  RenderIniOptions,
+  RouteKitConfig,
+  RouteKitDefaults,
+  RuleSet,
+} from "./types.js";
 
 function providerKind(behavior: ProviderBehavior): string {
   if (behavior === "domain") return "clash-domain";
@@ -11,7 +23,11 @@ function publishRulesUrl(baseUrl: string, file: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/rules/${file}`;
 }
 
-function renderRuleSet(ruleSet: RuleSet, publishBaseUrl: string): string[] {
+function renderRuleSet(
+  ruleSet: RuleSet,
+  publishBaseUrl: string,
+  defaults?: RouteKitDefaults,
+): string[] {
   if (ruleSet.enabled === false) return [];
 
   const source = ruleSet.source;
@@ -20,15 +36,16 @@ function renderRuleSet(ruleSet: RuleSet, publishBaseUrl: string): string[] {
       `ruleset=${ruleSet.policy},${providerKind(source.behavior)}:${publishRulesUrl(
         publishBaseUrl,
         source.file,
-      )},${source.interval ?? 28800}`,
+      )},${resolveRuleProviderInterval(source, defaults).value}`,
     ];
   }
   if (source.type === "geosite") {
     return [`ruleset=${ruleSet.policy},[]GEOSITE,${source.value}`];
   }
   if (source.type === "geoip") {
+    const noResolve = resolveGeoipNoResolve(source, defaults).value;
     return [
-      `ruleset=${ruleSet.policy},[]GEOIP,${source.value}${source.noResolve !== false ? ",no-resolve" : ""}`,
+      `ruleset=${ruleSet.policy},[]GEOIP,${source.value}${noResolve ? ",no-resolve" : ""}`,
     ];
   }
   if (source.type === "final") {
@@ -39,17 +56,35 @@ function renderRuleSet(ruleSet: RuleSet, publishBaseUrl: string): string[] {
   throw new Error(`Unsupported ruleSet source: ${String(unsupported)}`);
 }
 
-function renderCustomProxyGroup(group: CustomProxyGroup): string {
+function renderHealthCheckTail(
+  interval: number,
+  timeout: number | undefined,
+  tolerance: number | undefined,
+): string {
+  if (tolerance !== undefined) return `${interval},${timeout ?? ""},${tolerance}`;
+  if (timeout !== undefined) return `${interval},${timeout}`;
+  return String(interval);
+}
+
+function renderCustomProxyGroup(
+  group: CustomProxyGroup,
+  defaults?: RouteKitDefaults,
+): string {
   const optionRefs = group.options.map((option) => `[]${option}`);
   const options = [...optionRefs, ...(group.nodeFilters ?? [])].join("`");
   if (group.type === "select") {
     return `custom_proxy_group=${group.name}\`select\`${options}`;
   }
 
-  const url = group.url ?? "https://cp.cloudflare.com/generate_204";
-  const interval = group.interval ?? 300;
-  const tolerance = group.tolerance ?? 50;
-  return `custom_proxy_group=${group.name}\`${group.type}\`${options}\`${url}\`${interval},,${tolerance}`;
+  const healthCheck = resolveProxyGroupHealthCheck(group, defaults);
+  const url = healthCheck.url.value!;
+  const interval = healthCheck.interval.value!;
+  const tail = renderHealthCheckTail(
+    interval,
+    healthCheck.timeout.value,
+    healthCheck.tolerance.value,
+  );
+  return `custom_proxy_group=${group.name}\`${group.type}\`${options}\`${url}\`${tail}`;
 }
 
 export function renderIni(config: RouteKitConfig, options: RenderIniOptions = {}): string {
@@ -61,10 +96,12 @@ export function renderIni(config: RouteKitConfig, options: RenderIniOptions = {}
       ruleLines.push(`; ${ruleSet.section}`);
       lastSection = ruleSet.section;
     }
-    ruleLines.push(...renderRuleSet(ruleSet, config.publishBaseUrl));
+    ruleLines.push(...renderRuleSet(ruleSet, config.publishBaseUrl, config.defaults));
   }
 
-  const groupLines = config.customProxyGroups.map(renderCustomProxyGroup);
+  const groupLines = config.customProxyGroups.map((group) =>
+    renderCustomProxyGroup(group, config.defaults),
+  );
 
   const tail: string[] = [];
   if (options.clashRuleBase) {

@@ -30,10 +30,11 @@ export interface ProjectControllerState {
 }
 
 export type SaveReadiness =
-  | { ok: true }
+  | { ok: true; warnings: string[] }
   | {
       ok: false;
       reason: string;
+      warnings: string[];
     };
 
 export interface ProjectConfigSnapshot {
@@ -164,6 +165,7 @@ export function markProjectSaved(
   state: ProjectControllerState,
   snapshot: ProjectConfigSnapshot,
 ): ProjectControllerState {
+  const warnings = validateDraftConfig(snapshot.config).warnings;
   return {
     ...state,
     originalYaml: snapshot.yaml,
@@ -172,7 +174,10 @@ export function markProjectSaved(
     draftYaml: serializeConfig(snapshot.config),
     dirty: false,
     status: "ready",
-    message: "已保存 config/routes.yaml，可运行检查、生成和提交",
+    message:
+      warnings.length > 0
+        ? `已保存，${warnings.length} 个规则源待补全数据源`
+        : "已保存 config/routes.yaml，可运行检查、生成和提交",
     selectedRuleSetId: hasSelectedRuleSet(snapshot.config, state.selectedRuleSetId)
       ? state.selectedRuleSetId
       : firstRuleSetId(snapshot.config),
@@ -191,16 +196,18 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
     return {
       ok: false,
       reason: "没有未保存的修改",
+      warnings: validateDraftConfig(state.draftConfig).warnings,
     };
   }
 
   const diagnostics = validateDraftConfig(state.draftConfig);
-  if (diagnostics.length > 0) {
+  if (diagnostics.errors.length > 0) {
     return {
       ok: false,
-      reason: diagnostics[0]!,
+      reason: diagnostics.errors[0]!,
+      warnings: diagnostics.warnings,
     };
   }
 
-  return { ok: true };
+  return { ok: true, warnings: diagnostics.warnings };
 }

@@ -18,6 +18,10 @@ import { CatalogBrowser } from "./CatalogBrowser.js";
 import { LibrarySidebar, type LibrarySelection } from "./LibrarySidebar.js";
 import { ListFileEditor } from "./ListFileEditor.js";
 import { ProviderRecipeEditor } from "./ProviderRecipeEditor.js";
+import {
+  ProjectDefaultsDrawer,
+  type ProjectDefaultsSection,
+} from "./ProjectDefaultsDrawer.js";
 import { RepoModal } from "./RepoModal.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -25,7 +29,15 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 interface RepoModalState {
   open: boolean;
   mode: "add" | "edit";
-  initial?: { name: string; url: string; branch?: string; reldir?: string; kind?: NonNullable<VendorRepoInput["catalog"]>["kind"] };
+  initial?: {
+    name: string;
+    url: string;
+    branch?: string;
+    folder?: string;
+    reldir?: string;
+    kind?: NonNullable<VendorRepoInput["catalog"]>["kind"];
+    templateReldir?: string;
+  };
 }
 
 export function LibraryPage({
@@ -48,11 +60,12 @@ export function LibraryPage({
   const [newListOpen, setNewListOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [defaultsSection, setDefaultsSection] = useState<ProjectDefaultsSection | null>(null);
 
   useEffect(() => {
     let alive = true;
     void fetchCatalogSources(fetch)
-      .then((result) => alive && setSources(result.filter((s) => s.kind === "upstream")))
+      .then((result) => alive && setSources(result.filter((s) => s.kind === "upstream" && s.originKind !== "ini-template")))
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
     void listRuleFiles(fetch)
       .then((files) => alive && setListFiles(files))
@@ -79,23 +92,32 @@ export function LibraryPage({
 
   function openEditRepo(name: string) {
     const repo = config.vendorRepos.find((r) => r.name === name);
-    const reldir = repo?.catalog ? repo.catalog.dir.replace(`vendor/${name}/`, "") : "";
+    // Strip the actual clone path (vendor/<folder>/) — folder can differ from name.
+    const folder = repo ? repo.path.replace(/^vendor\//, "") : "";
+    const base = repo ? `${repo.path}/` : "";
+    const reldir = repo?.catalog ? repo.catalog.dir.replace(base, "") : "";
+    const templateReldir = repo?.templateDir ? repo.templateDir.replace(base, "") : "";
     setRepoModal({
       open: true,
       mode: "edit",
-      initial: { name, url: repo?.url ?? "", branch: repo?.branch, reldir, kind: repo?.catalog?.kind },
+      initial: { name, url: repo?.url ?? "", branch: repo?.branch, folder, reldir, kind: repo?.catalog?.kind, templateReldir },
     });
   }
 
   async function submitRepo(input: VendorRepoInput) {
     if (repoModal.mode === "edit" && repoModal.initial) {
-      await updateVendorRepoRequest(repoModal.initial.name, input, fetch);
+      const { resync } = await updateVendorRepoRequest(repoModal.initial.name, input, fetch);
+      notifySuccess("已保存上游仓库");
+      setRefreshKey((k) => k + 1);
+      onRefreshConfig();
+      // Source/folder changed → old dir was cleared server-side; re-clone into the new folder.
+      if (resync) void syncRepo(input.name);
     } else {
       await addVendorRepoRequest(input, fetch);
+      notifySuccess("已保存上游仓库");
+      setRefreshKey((k) => k + 1);
+      onRefreshConfig();
     }
-    notifySuccess("已保存上游仓库");
-    setRefreshKey((k) => k + 1);
-    onRefreshConfig();
   }
 
   async function removeRepo(name: string) {
@@ -125,7 +147,18 @@ export function LibraryPage({
   }
 
   function renderDetail() {
-    if (selection?.kind === "list") return <ListFileEditor file={selection.file} fetcher={fetch} />;
+    if (selection?.kind === "list")
+      return (
+        <ListFileEditor
+          file={selection.file}
+          fetcher={fetch}
+          onDeleted={(file) => {
+            setListFiles((files) => files.filter((item) => item !== file));
+            setSelection(null);
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      );
     if (selection?.kind === "provider") {
       const provider = providers.find((p) => p.name === selection.name);
       if (!provider) return <Empty description="规则源不存在" style={{ paddingTop: 60 }} />;
@@ -166,6 +199,7 @@ export function LibraryPage({
           onEditRepo={openEditRepo}
           onNewList={() => setNewListOpen(true)}
           onNewProvider={() => draftActions.createProvider()}
+          onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
         />
       </div>
       <div className="rk-pane">{renderDetail()}</div>
@@ -186,6 +220,18 @@ export function LibraryPage({
           onChange={(e) => setNewListName(e.target.value)}
         />
       </Modal>
+      {defaultsSection ? (
+        <ProjectDefaultsDrawer
+          open
+          initialSection={defaultsSection}
+          defaults={config.defaults}
+          onSave={(defaults) => {
+            draftActions.setProjectDefaults(defaults);
+            setDefaultsSection(null);
+          }}
+          onCancel={() => setDefaultsSection(null)}
+        />
+      ) : null}
     </div>
   );
 }

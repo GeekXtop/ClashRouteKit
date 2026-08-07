@@ -15,10 +15,8 @@ it("shows the group name and routes inbound jumps", () => {
         group={{ name: "Proxy", type: "select", options: ["Direct"] }}
         groups={[{ name: "Proxy", type: "select", options: [] }]}
         inbound={[{ id: "geosite-gfw", enabled: true, source: "[]GEOSITE,gfw" }]}
-        onClose={() => {}}
-        onUpdate={() => {}}
-        onRename={() => {}}
-        onSetListField={() => {}}
+        onSave={() => {}}
+        onCancel={() => {}}
         onDelete={() => {}}
         onJumpToRule={onJumpToRule}
       />
@@ -27,4 +25,142 @@ it("shows the group name and routes inbound jumps", () => {
   expect(screen.getByDisplayValue("Proxy")).toBeTruthy();
   fireEvent.click(screen.getByText("geosite-gfw"));
   expect(onJumpToRule).toHaveBeenCalledWith("geosite-gfw");
+});
+
+it("shows inherited health-check fields for fallback groups without URLTest tolerance", () => {
+  render(
+    <AppProviders>
+      <GroupDrawer
+        open
+        group={{ name: "Fallback", type: "fallback", options: [], nodeFilters: [".*"] }}
+        groups={[{ name: "Fallback", type: "fallback", options: [], nodeFilters: [".*"] }]}
+        defaults={{
+          proxyGroups: {
+            healthCheck: { url: "https://probe.example/204", interval: 600, timeout: 5 },
+            urlTest: { tolerance: 80 },
+          },
+        }}
+        inbound={[]}
+        onSave={() => {}}
+        onCancel={() => {}}
+        onDelete={() => {}}
+        onJumpToRule={() => {}}
+      />
+    </AppProviders>,
+  );
+
+  expect(screen.getByText("测速 URL")).toBeTruthy();
+  expect(screen.getByText("测速间隔（秒）")).toBeTruthy();
+  expect(screen.getByText("测速超时（秒）")).toBeTruthy();
+  expect(screen.queryByText("URLTest 容差（毫秒）")).toBeNull();
+  expect(screen.getByText("继承项目默认值：600 秒")).toBeTruthy();
+});
+
+it("keeps group edits local until Save is clicked", async () => {
+  const onSave = vi.fn();
+  render(
+    <AppProviders>
+      <GroupDrawer
+        open
+        group={{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }}
+        groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
+        inbound={[]}
+        onSave={onSave}
+        onCancel={() => {}}
+        onDelete={() => {}}
+        onJumpToRule={() => {}}
+      />
+    </AppProviders>,
+  );
+
+  fireEvent.mouseDown(screen.getByRole("combobox", { name: "策略组类型" }));
+  fireEvent.click(await screen.findByText("fallback"));
+  fireEvent.change(screen.getByLabelText("节点过滤正则"), {
+    target: { value: "(港|HK)\nHKG" },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 650));
+  expect(onSave).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+    name: "Auto",
+    type: "fallback",
+    nodeFilters: ["(港|HK)", "HKG"],
+  }));
+});
+
+it("discards edits when Cancel is clicked", () => {
+  const onSave = vi.fn();
+  const onCancel = vi.fn();
+  render(
+    <AppProviders>
+      <GroupDrawer
+        open
+        group={{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }}
+        groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
+        inbound={[]}
+        onSave={onSave}
+        onCancel={onCancel}
+        onDelete={() => {}}
+        onJumpToRule={() => {}}
+      />
+    </AppProviders>,
+  );
+  fireEvent.change(screen.getByDisplayValue("Auto"), { target: { value: "Changed" } });
+  fireEvent.click(screen.getByRole("button", { name: "取消" }));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(onCancel).toHaveBeenCalledTimes(1);
+});
+
+it("saves a custom blank timeout as null", () => {
+  const onSave = vi.fn();
+  render(
+    <AppProviders>
+      <GroupDrawer
+        open
+        group={{
+          name: "Auto",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: 8,
+        }}
+        groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
+        inbound={[]}
+        onSave={onSave}
+        onCancel={() => {}}
+        onDelete={() => {}}
+        onJumpToRule={() => {}}
+      />
+    </AppProviders>,
+  );
+  fireEvent.change(screen.getByLabelText("测速超时（秒）"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ timeout: null }));
+});
+
+it("keeps duplicate-name validation inside the Drawer", () => {
+  const onSave = vi.fn();
+  render(
+    <AppProviders>
+      <GroupDrawer
+        open
+        group={{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }}
+        groups={[
+          { name: "Proxy", type: "select", options: ["DIRECT"] },
+          { name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] },
+        ]}
+        inbound={[]}
+        onSave={onSave}
+        onCancel={() => {}}
+        onDelete={() => {}}
+        onJumpToRule={() => {}}
+      />
+    </AppProviders>,
+  );
+  fireEvent.change(screen.getByDisplayValue("Auto"), { target: { value: "Proxy" } });
+  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  expect(screen.getByText('custom_proxy_group "Proxy" already exists')).toBeTruthy();
+  expect(onSave).not.toHaveBeenCalled();
 });

@@ -20,9 +20,12 @@ import {
   mergeImportedConfig,
   renameCustomProxyGroup,
   reorderRuleSets,
+  replaceCustomProxyGroup,
   replaceImportedConfig,
+  replaceRuleSet,
   setCustomProxyGroupListField,
   setGlobalRemove,
+  setProjectDefaults,
   setRuleProviderListField,
   setRuleProviderSources,
   setTemplateField,
@@ -154,14 +157,118 @@ describe("config mutation helpers", () => {
     expect(config.customProxyGroups).toHaveLength(1);
   });
 
-  it("renames custom proxy groups and updates ruleSet policy references", () => {
+  it("creates a region (url-test) group with shared probe defaults", () => {
     const config = createConfig();
+    const created = createCustomProxyGroup(config, "url-test");
+
+    expect(created).toEqual({
+      name: "ProxyGroup",
+      type: "url-test",
+      options: [],
+      nodeFilters: [".*"],
+    });
+  });
+
+  it.each(["fallback", "load-balance"] as const)(
+    "creates a %s group without baking project defaults into the item",
+    (type) => {
+      expect(createCustomProxyGroup(createConfig(), type)).toEqual({
+        name: "ProxyGroup",
+        type,
+        options: [],
+        nodeFilters: [".*"],
+      });
+    },
+  );
+
+  it("sets, clones and clears project defaults immutably", () => {
+    const config = createConfig();
+    const defaults = {
+      proxyGroups: { healthCheck: { interval: 300, timeout: 5 } },
+      ruleSets: { geoipNoResolve: false },
+    };
+    const next = setProjectDefaults(config, defaults);
+
+    defaults.proxyGroups.healthCheck.interval = 600;
+    expect(next.defaults).toEqual({
+      proxyGroups: { healthCheck: { interval: 300, timeout: 5 } },
+      ruleSets: { geoipNoResolve: false },
+    });
+    expect(config.defaults).toBeUndefined();
+    expect(setProjectDefaults(next, undefined).defaults).toBeUndefined();
+  });
+
+  it("renames custom proxy groups and updates ruleSet policy references", () => {
+    const config = {
+      ...createConfig(),
+      customProxyGroups: [
+        { name: "Proxy", type: "select", options: ["DIRECT"] },
+        { name: "Parent", type: "select", options: ["Proxy", "DIRECT"] },
+      ] satisfies CustomProxyGroup[],
+    };
     const renamed = renameCustomProxyGroup(config, "Proxy", "Main");
 
     expect(renamed.customProxyGroups[0]?.name).toBe("Main");
+    expect(renamed.customProxyGroups[1]?.options).toEqual(["Main", "DIRECT"]);
     expect(renamed.ruleSets[0]?.policy).toBe("Main");
     expect(renamed.ruleSets[1]?.policy).toBe("Main");
     expect(config.customProxyGroups[0]?.name).toBe("Proxy");
+  });
+
+  it("atomically replaces and renames a custom proxy group without moving it", () => {
+    const config = {
+      ...createConfig(),
+      customProxyGroups: [
+        { name: "Proxy", type: "select", options: ["HK", "DIRECT"] },
+        { name: "HK", type: "url-test", options: [], nodeFilters: ["(港|HK)"] },
+      ],
+      ruleSets: [
+        { id: "hk", policy: "HK", source: { type: "geosite", value: "hk" } },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+    } satisfies RouteKitProjectConfig;
+
+    const next = replaceCustomProxyGroup(config, "HK", {
+      name: "Hong Kong",
+      type: "fallback",
+      options: [],
+      nodeFilters: ["(港|HK)", "HKG"],
+      timeout: 8,
+    });
+
+    expect(next.customProxyGroups.map((group) => group.name)).toEqual(["Proxy", "Hong Kong"]);
+    expect(next.customProxyGroups[0]?.options).toEqual(["Hong Kong", "DIRECT"]);
+    expect(next.ruleSets[0]?.policy).toBe("Hong Kong");
+    expect(next.customProxyGroups[1]).toEqual({
+      name: "Hong Kong",
+      type: "fallback",
+      options: [],
+      nodeFilters: ["(港|HK)", "HKG"],
+      timeout: 8,
+    });
+    expect(config.customProxyGroups[1]?.name).toBe("HK");
+  });
+
+  it("atomically replaces a RuleSet and keeps its index", () => {
+    const config = createConfig();
+    const next = replaceRuleSet(config, "ai-geosite-openai", {
+      id: "ai-geosite-anthropic",
+      policy: "Proxy",
+      section: "AI",
+      source: { type: "geosite", value: "anthropic" },
+    });
+
+    expect(next.ruleSets.map((ruleSet) => ruleSet.id)).toEqual([
+      "ai-geosite-anthropic",
+      "final",
+    ]);
+    expect(next.ruleSets[0]).toEqual({
+      id: "ai-geosite-anthropic",
+      policy: "Proxy",
+      section: "AI",
+      source: { type: "geosite", value: "anthropic" },
+    });
+    expect(config.ruleSets[0]?.id).toBe("ai-geosite-openai");
   });
 
   it("rejects duplicate custom proxy group names and protects referenced deletes", () => {
@@ -178,6 +285,19 @@ describe("config mutation helpers", () => {
     );
     expect(() => deleteCustomProxyGroup(config, "Proxy")).toThrow("custom_proxy_group is still referenced: Proxy");
     expect(deleteCustomProxyGroup(config, "Unused").customProxyGroups.map((group) => group.name)).toEqual(["Proxy"]);
+  });
+
+  it("protects custom proxy groups referenced by parent group options", () => {
+    const config = {
+      ...createConfig(),
+      ruleSets: [{ id: "final", policy: "Parent", source: { type: "final" } }] satisfies RouteKitProjectConfig["ruleSets"],
+      customProxyGroups: [
+        { name: "Parent", type: "select", options: ["Child"] },
+        { name: "Child", type: "url-test", options: [], nodeFilters: [".*"] },
+      ] satisfies CustomProxyGroup[],
+    };
+
+    expect(() => deleteCustomProxyGroup(config, "Child")).toThrow("Parent");
   });
 
   it("normalizes custom proxy group option and node filter lists", () => {
@@ -312,9 +432,25 @@ describe("config mutation helpers", () => {
   });
 
   it("replaces groups and ruleSets but keeps infra fields", () => {
-    const config = { ...createConfig(), publishBaseUrl: "http://keep", globalRemove: ["x"] };
+    const config = {
+      ...createConfig(),
+      publishBaseUrl: "http://keep",
+      globalRemove: ["x"],
+      defaults: {
+        proxyGroups: { healthCheck: { timeout: 5 } },
+      },
+    };
     const imported: ImportedConfig = {
-      customProxyGroups: [{ name: "New", type: "select", options: ["DIRECT"] }],
+      customProxyGroups: [
+        {
+          name: "New",
+          type: "url-test",
+          options: [],
+          nodeFilters: [".*"],
+          timeout: null,
+          tolerance: null,
+        },
+      ],
       ruleSets: [{ id: "n1", policy: "New", source: { type: "final" } }],
       warnings: [],
     };
@@ -325,6 +461,67 @@ describe("config mutation helpers", () => {
     expect(next.vendorRepos).toBe(config.vendorRepos);
     expect(next.template).toEqual(config.template);
     expect(next.globalRemove).toEqual(["x"]);
+    expect(next.defaults).toEqual(config.defaults);
+    expect(next.customProxyGroups[0]).toMatchObject({ timeout: null, tolerance: null });
+  });
+
+  it("replaces imported templates and creates placeholder rule providers for missing outputs", () => {
+    const config = {
+      ...createConfig(),
+      ruleProviders: [
+        {
+          name: "ExistingAI",
+          output: "AI_Domain.yaml",
+          behavior: "domain",
+          sources: [{ name: "AI", type: "clash-list", path: "config/rules/AI.list" }],
+        },
+        {
+          name: "KeepEvenUnused",
+          output: "Unused_Domain.yaml",
+          behavior: "domain",
+          sources: [],
+        },
+      ] satisfies RuleProviderConfig[],
+    };
+    const imported: ImportedConfig = {
+      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+      ruleSets: [
+        {
+          id: "ai",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "AI_Domain.yaml" },
+        },
+        {
+          id: "custom-classical-ip",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "classical", file: "Custom_Direct_Classical_IP.yaml" },
+        },
+        {
+          id: "custom-ipcidr",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "ipcidr", file: "Custom_IP.yaml" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+      warnings: [],
+    };
+
+    const next = replaceImportedConfig(config, imported);
+
+    expect(next.ruleProviders?.map((provider) => provider.output)).toEqual([
+      "AI_Domain.yaml",
+      "Unused_Domain.yaml",
+      "Custom_Direct_Classical_IP.yaml",
+      "Custom_IP.yaml",
+    ]);
+    expect(next.ruleProviders?.find((provider) => provider.output === "AI_Domain.yaml")?.name).toBe("ExistingAI");
+    expect(next.ruleProviders?.find((provider) => provider.output === "Custom_Direct_Classical_IP.yaml")).toEqual({
+      name: "Custom_Direct_Classical_IP",
+      output: "Custom_Direct_Classical_IP.yaml",
+      behavior: "classical",
+      sources: [],
+    });
+    expect(next.ruleProviders?.find((provider) => provider.output === "Custom_IP.yaml")?.behavior).toBe("ipcidr");
   });
 });
 

@@ -2,10 +2,19 @@ import { useMemo, useState } from "react";
 import { Button, Empty, Space } from "antd";
 import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
-import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
+import {
+  createCustomProxyGroupDetails,
+  createCustomProxyGroupStats,
+  selectInboundRuleSets,
+} from "../routeSummary.js";
+import { GroupContextPanel } from "./GroupContextPanel.js";
 import { GroupNav } from "./GroupNav.js";
 import { GroupDrawer } from "./GroupDrawer.js";
 import { PreviewDock } from "./PreviewDock.js";
+import {
+  ProjectDefaultsDrawer,
+  type ProjectDefaultsSection,
+} from "./ProjectDefaultsDrawer.js";
 import { RuleDrawer } from "./RuleDrawer.js";
 import { RuleStream } from "./RuleStream.js";
 import { SourcePickerModal } from "./SourcePickerModal.js";
@@ -29,10 +38,20 @@ export function RoutingPage({
   const [drawerGroup, setDrawerGroup] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editRuleId, setEditRuleId] = useState<string | null>(null);
+  const [defaultsSection, setDefaultsSection] = useState<ProjectDefaultsSection | null>(null);
 
   const stats = useMemo(() => createCustomProxyGroupStats(config), [config]);
   const iniPreview = useMemo(() => renderIni(config), [config]);
   const policies = config.customProxyGroups.map((group) => group.name);
+  const incompleteProviderOutputs = useMemo(
+    () =>
+      new Set(
+        (config.ruleProviders ?? [])
+          .filter((provider) => provider.sources.length === 0)
+          .map((provider) => provider.output),
+      ),
+    [config.ruleProviders],
+  );
   const sections = [
     ...new Set(config.ruleSets.map((ruleSet) => ruleSet.section).filter((s): s is string => Boolean(s))),
   ];
@@ -41,6 +60,12 @@ export function RoutingPage({
     ? config.ruleSets.filter((ruleSet) => ruleSet.policy === selectedGroup)
     : config.ruleSets;
   const editingGroup = config.customProxyGroups.find((group) => group.name === drawerGroup);
+  const selectedGroupConfig = selectedGroup
+    ? config.customProxyGroups.find((group) => group.name === selectedGroup)
+    : undefined;
+  const selectedGroupDetails = selectedGroup
+    ? createCustomProxyGroupDetails(config, selectedGroup)
+    : undefined;
 
   if (config.ruleSets.length === 0 && config.customProxyGroups.length === 0) {
     return (
@@ -49,7 +74,7 @@ export function RoutingPage({
           <Button type="primary" onClick={onOpenImport}>
             从模板导入开始
           </Button>
-          <Button onClick={draftActions.createCustomProxyGroup}>手动新建策略组</Button>
+          <Button onClick={() => draftActions.createCustomProxyGroup()}>手动新建策略组</Button>
         </Space>
       </Empty>
     );
@@ -67,23 +92,58 @@ export function RoutingPage({
             onSelectGroup={setSelectedGroup}
             onEditGroup={setDrawerGroup}
             onCreateGroup={draftActions.createCustomProxyGroup}
+            onOpenDefaults={() => setDefaultsSection("proxy-groups")}
           />
         </div>
         <div className="rk-pane">
-          <RuleStream
-            ruleSets={visibleRuleSets}
-            selectedGroup={selectedGroup}
-            selectedRuleSetId={selectedRuleSetId}
-            allOrderedIds={allOrderedIds}
-            onSelectRuleSet={(id) => {
-              draftActions.selectRuleSet(id);
-              setEditRuleId(id);
-            }}
-            onToggle={draftActions.toggleRuleSet}
-            onDelete={draftActions.deleteRuleSet}
-            onReorder={draftActions.reorderRuleSets}
-            onAddRule={() => setPickerOpen(true)}
-          />
+          {selectedGroupConfig && selectedGroupDetails ? (
+            <GroupContextPanel
+              group={selectedGroupConfig}
+              details={selectedGroupDetails}
+              onEdit={() => setDrawerGroup(selectedGroupConfig.name)}
+              onSelectParent={setSelectedGroup}
+            >
+              <RuleStream
+                ruleSets={visibleRuleSets}
+                selectedGroup={selectedGroupConfig.name}
+                selectedRuleSetId={selectedRuleSetId}
+                allOrderedIds={allOrderedIds}
+                incompleteProviderOutputs={incompleteProviderOutputs}
+                defaults={config.defaults}
+                emptyDescription={(
+                  <>
+                    <div>当前没有 RuleSet 直接指向此组。</div>
+                    <div>该组仍可作为下游策略组被其他组引用。</div>
+                  </>
+                )}
+                onSelectRuleSet={draftActions.selectRuleSet}
+                onToggle={draftActions.toggleRuleSet}
+                onEditRule={(id) => {
+                  draftActions.selectRuleSet(id);
+                  setEditRuleId(id);
+                }}
+                onReorder={draftActions.reorderRuleSets}
+                onAddRule={() => setPickerOpen(true)}
+              />
+            </GroupContextPanel>
+          ) : (
+            <RuleStream
+              ruleSets={visibleRuleSets}
+              selectedGroup={selectedGroup}
+              selectedRuleSetId={selectedRuleSetId}
+              allOrderedIds={allOrderedIds}
+              incompleteProviderOutputs={incompleteProviderOutputs}
+              defaults={config.defaults}
+              onSelectRuleSet={draftActions.selectRuleSet}
+              onToggle={draftActions.toggleRuleSet}
+              onEditRule={(id) => {
+                draftActions.selectRuleSet(id);
+                setEditRuleId(id);
+              }}
+              onReorder={draftActions.reorderRuleSets}
+              onAddRule={() => setPickerOpen(true)}
+            />
+          )}
         </div>
       </div>
       <PreviewDock ini={iniPreview} />
@@ -92,16 +152,15 @@ export function RoutingPage({
         open={drawerGroup !== null}
         group={editingGroup}
         groups={config.customProxyGroups}
+        defaults={config.defaults}
         inbound={drawerGroup ? selectInboundRuleSets(config, drawerGroup) : []}
-        onClose={() => setDrawerGroup(null)}
-        onUpdate={(patch) => drawerGroup && draftActions.updateCustomProxyGroup(drawerGroup, patch)}
-        onRename={(next) => {
-          if (drawerGroup) {
-            draftActions.renameCustomProxyGroup(drawerGroup, next);
-            setDrawerGroup(next);
-          }
+        onSave={(nextGroup) => {
+          if (!drawerGroup) return;
+          draftActions.saveCustomProxyGroup(drawerGroup, nextGroup);
+          if (selectedGroup === drawerGroup) setSelectedGroup(nextGroup.name);
+          setDrawerGroup(null);
         }}
-        onSetListField={(field, values) => drawerGroup && draftActions.setCustomProxyGroupListField(drawerGroup, field, values)}
+        onCancel={() => setDrawerGroup(null)}
         onDelete={() => {
           if (drawerGroup) {
             draftActions.deleteCustomProxyGroup(drawerGroup);
@@ -117,18 +176,33 @@ export function RoutingPage({
       <RuleDrawer
         open={editRuleId !== null}
         ruleSet={config.ruleSets.find((r) => r.id === editRuleId)}
+        ruleSetIds={config.ruleSets.map((ruleSet) => ruleSet.id)}
         policies={policies}
-        onClose={() => setEditRuleId(null)}
-        onUpdate={(patch) => {
+        defaults={config.defaults}
+        onSave={(nextRuleSet) => {
           if (!editRuleId) return;
-          draftActions.updateRuleSet(editRuleId, patch);
-          if (patch.id) setEditRuleId(patch.id);
+          draftActions.saveRuleSet(editRuleId, nextRuleSet);
+          setEditRuleId(null);
         }}
+        onCancel={() => setEditRuleId(null)}
         onDelete={() => {
           if (editRuleId) draftActions.deleteRuleSet(editRuleId);
           setEditRuleId(null);
         }}
       />
+
+      {defaultsSection ? (
+        <ProjectDefaultsDrawer
+          open
+          initialSection={defaultsSection}
+          defaults={config.defaults}
+          onSave={(defaults) => {
+            draftActions.setProjectDefaults(defaults);
+            setDefaultsSection(null);
+          }}
+          onCancel={() => setDefaultsSection(null)}
+        />
+      ) : null}
 
       {pickerOpen ? (
         <SourcePickerModal

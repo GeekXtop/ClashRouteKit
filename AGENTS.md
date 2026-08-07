@@ -1,5 +1,7 @@
 # 仓库指南
 
+> Agent 规则入口：修改代码前先读 `.agents/instructions.md`。本文件保留仓库级指南，`.agents/instructions.md` 是跨 agent 的工作约定汇总。
+
 ## 项目结构与模块组织
 
 本仓库是一个 pnpm TypeScript workspace，用于维护 OpenClash / Clash Meta 路由配置。

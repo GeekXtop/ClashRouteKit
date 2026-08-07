@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Modal, Popconfirm, Select, Space, Switch } from "antd";
+import { Button, Input, Modal, Popconfirm, Select, Space } from "antd";
 import type { VendorRepoInput } from "../catalog.js";
 import { notifyError } from "../notify.js";
 
 type Kind = NonNullable<VendorRepoInput["catalog"]>["kind"];
 const KINDS: Kind[] = ["domain-list", "list-dir", "provider-yaml", "ini-template"];
 
+/** Default local folder = the git repo's basename (e.g. .../Custom_OpenClash_Rules.git → Custom_OpenClash_Rules). */
+function repoFolderFromUrl(url: string): string {
+  const trimmed = url.trim().replace(/\.git$/i, "").replace(/\/+$/, "");
+  if (!trimmed) return "";
+  return trimmed.split(/[/:]/).pop() ?? "";
+}
+
 export function RepoModal(props: {
   open: boolean;
   mode: "add" | "edit";
-  initial?: { name: string; url: string; branch?: string; reldir?: string; kind?: Kind };
+  initial?: { name: string; url: string; branch?: string; folder?: string; reldir?: string; kind?: Kind; templateReldir?: string };
   onSubmit: (input: VendorRepoInput) => Promise<void>;
   onClose: () => void;
   onRemove?: () => void;
@@ -17,26 +24,33 @@ export function RepoModal(props: {
   const [name, setName] = useState(props.initial?.name ?? "");
   const [url, setUrl] = useState(props.initial?.url ?? "");
   const [branch, setBranch] = useState(props.initial?.branch ?? "");
-  const [pinned, setPinned] = useState(Boolean(props.initial?.branch));
+  const [folder, setFolder] = useState(props.initial?.folder ?? "");
   const [kind, setKind] = useState<Kind>(props.initial?.kind ?? "list-dir");
   const [reldir, setReldir] = useState(props.initial?.reldir ?? "");
+  const [templateReldir, setTemplateReldir] = useState(props.initial?.templateReldir ?? "");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setName(props.initial?.name ?? "");
     setUrl(props.initial?.url ?? "");
     setBranch(props.initial?.branch ?? "");
-    setPinned(Boolean(props.initial?.branch));
+    setFolder(props.initial?.folder ?? "");
     setKind(props.initial?.kind ?? "list-dir");
     setReldir(props.initial?.reldir ?? "");
+    setTemplateReldir(props.initial?.templateReldir ?? "");
   }, [props.initial, props.open]);
+
+  // The folder shown/used for relative dirs: explicit field, else derived from the URL, else the name.
+  const resolvedFolder = folder.trim() || repoFolderFromUrl(url) || name.trim();
 
   async function submit() {
     const input: VendorRepoInput = {
       name: name.trim(),
       url: url.trim(),
-      ...(pinned && branch.trim() ? { branch: branch.trim() } : {}),
+      ...(branch.trim() ? { branch: branch.trim() } : {}),
+      ...(resolvedFolder ? { folder: resolvedFolder } : {}),
       ...(reldir.trim() ? { catalog: { reldir: reldir.trim(), kind } } : {}),
+      ...(templateReldir.trim() ? { templateReldir: templateReldir.trim() } : {}),
     };
     setBusy(true);
     try {
@@ -62,18 +76,24 @@ export function RepoModal(props: {
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
         <div>
           <div className="rk-field-label">名称</div>
-          <Input aria-label="名称" value={name} onChange={(e) => setName(e.target.value)} disabled={props.mode === "edit"} />
+          <Input aria-label="名称" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
           <div className="rk-field-label">Git URL</div>
           <Input aria-label="Git URL" value={url} onChange={(e) => setUrl(e.target.value)} />
         </div>
         <div>
-          <div className="rk-field-label">分支</div>
-          <Space>
-            <Input aria-label="分支" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="默认分支" style={{ width: 200 }} />
-            <Switch checked={pinned} onChange={setPinned} /> <span className="rk-field-label">钉住</span>
-          </Space>
+          <div className="rk-field-label">本地文件夹（克隆到 vendor/ 下的目录名；改名后清空旧目录并重新同步）</div>
+          <Input
+            aria-label="本地文件夹"
+            value={folder}
+            onChange={(e) => setFolder(e.target.value)}
+            placeholder={repoFolderFromUrl(url) || "默认取 Git URL 仓库名"}
+          />
+        </div>
+        <div>
+          <div className="rk-field-label">分支（留空＝默认分支）</div>
+          <Input aria-label="分支" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="默认分支" />
         </div>
         <div>
           <div className="rk-field-label">数据类型</div>
@@ -86,8 +106,22 @@ export function RepoModal(props: {
           />
         </div>
         <div>
-          <div className="rk-field-label">数据目录（仓库内相对路径，如 data / Clash / rule）</div>
-          <Input aria-label="数据目录" value={reldir} onChange={(e) => setReldir(e.target.value)} placeholder="留空＝不浏览此仓库" />
+          <div className="rk-field-label">数据目录（相对本地文件夹，如 data / Clash / rule；留空＝不浏览）</div>
+          <Input
+            aria-label="数据目录"
+            addonBefore={`${resolvedFolder || "文件夹"}/`}
+            value={reldir}
+            onChange={(e) => setReldir(e.target.value)}
+          />
+        </div>
+        <div>
+          <div className="rk-field-label">模板目录（可选，相对本地文件夹的 .ini 模板路径，如 Clash/config / cfg）</div>
+          <Input
+            aria-label="模板目录"
+            addonBefore={`${resolvedFolder || "文件夹"}/`}
+            value={templateReldir}
+            onChange={(e) => setTemplateReldir(e.target.value)}
+          />
         </div>
         {props.mode === "edit" && props.onRemove ? (
           <Popconfirm

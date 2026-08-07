@@ -2,11 +2,22 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 为 Web 控制台重做提供后端支撑：上游仓库增改删 API（隐藏 vendor 路径、相对数据目录、可钉分支）、catalog 条目带 `hasChildren`（修树 bug 的数据基础）、订阅本地存储 API、配置换 GeekXtop fork。
+**Goal:** 为 Web 控制台重做提供后端支撑：上游仓库增改删 API（隐藏 vendor 路径、相对数据目录、可钉分支）、catalog 条目带 `hasChildren`（修树 bug 的数据基础）、配置换 GeekXtop fork。
 
 **Architecture:** 沿用 `apps/cli/src/serveApi.ts` 既有范式——纯函数 + 可注入 IO（`readText`/`readDirectory`/`writeText`/`runCommand`），HTTP 由 `createRouteKitApiHandler` 薄封装。配置变换放 `packages/core`（纯函数）。测试用 vitest + 注入 fake，不碰真实磁盘。
 
 **Tech Stack:** TypeScript（NodeNext ESM）、Node `node:fs/promises`、`yaml` 包、vitest、pnpm workspace。
+
+> 2026-06-23 完成状态：功能目标已落地。`updateVendorRepo`/`removeVendorRepo`、vendor 增改删 API、catalog `hasChildren/root`、GeekXtop fork 配置均已在当前代码中实现；`pnpm typecheck`、`pnpm test`、`pnpm check`、`pnpm --filter @clash-route-kit/core build` 已通过。历史“确认失败”和“提交”步骤不再作为功能待办追踪。
+
+## 2026-06-23 状态总览
+
+- [x] Task 1：core vendor repo update/remove mutation 已实现并导出。
+- [x] Task 2：serveApi vendor 输入归一化、add/update/remove helper 与 HTTP API 已接线。
+- [x] Task 3：catalog entries 已返回 `hasChildren`，并扩展 `root` 以避免子类目重复显示。
+- [x] Task 4：`config/routes.yaml` 已切到 `https://github.com/GeekXtop/Custom_OpenClash_Rules.git`。
+- [x] 收尾校验：`pnpm typecheck`、`pnpm test`、`pnpm check`、`pnpm --filter @clash-route-kit/core build` 已通过。
+- [ ] 非功能历史项：逐步提交记录未追溯；不影响实现状态。
 
 ## Global Constraints
 
@@ -24,13 +35,11 @@
 | 文件 | 责任 | 动作 |
 |---|---|---|
 | `packages/core/src/configMutations.ts` | vendorRepos 纯变换（add/update/remove） | 修改 |
-| `packages/core/src/types.ts` | 共享类型，新增 `LocalSubscription` | 修改 |
 | `packages/core/src/index.ts` | re-export 新函数与类型 | 修改 |
 | `packages/core/tests/configMutations.test.ts` | update/remove 单测 | 修改 |
-| `apps/cli/src/serveApi.ts` | vendor 输入归一化 + 增改删 helper + catalog hasChildren + 订阅读写 + 路由 | 修改 |
+| `apps/cli/src/serveApi.ts` | vendor 输入归一化 + 增改删 helper + catalog hasChildren + 路由 | 修改 |
 | `apps/cli/tests/serveApi.test.ts` | 上述 helper 单测 | 修改 |
 | `config/routes.yaml` | 换 GeekXtop fork | 修改 |
-| `.gitignore` | 忽略订阅本地文件 | 修改 |
 
 ---
 
@@ -47,7 +56,7 @@
   - `updateVendorRepo(config: RouteKitProjectConfig, name: string, patch: Partial<VendorRepoConfig>): RouteKitProjectConfig`
   - `removeVendorRepo(config: RouteKitProjectConfig, name: string): RouteKitProjectConfig`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `packages/core/tests/configMutations.test.ts` 顶部 import 行改为：
 
@@ -98,7 +107,7 @@ describe("removeVendorRepo", () => {
 Run: `pnpm exec vitest run packages/core/tests/configMutations.test.ts`
 Expected: FAIL（`updateVendorRepo`/`removeVendorRepo` is not a function / 未导出）
 
-- [ ] **Step 3: 实现两个函数**
+- [x] **Step 3: 实现两个函数**
 
 在 `packages/core/src/configMutations.ts` 末尾追加：
 
@@ -143,7 +152,7 @@ export function removeVendorRepo(config: RouteKitProjectConfig, name: string): R
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 ```
 
-- [ ] **Step 4: 运行测试，确认通过**
+- [x] **Step 4: 运行测试，确认通过**
 
 Run: `pnpm exec vitest run packages/core/tests/configMutations.test.ts`
 Expected: PASS（5 个新用例全过）
@@ -174,7 +183,7 @@ git commit -m "feat(core): add updateVendorRepo and removeVendorRepo mutations"
   - `removeProjectVendorRepo(options & { name }): Promise<ProjectConfigFileResult>`
   - HTTP：`POST /api/vendor/add`（body `{input}`）、`POST /api/vendor/update`（body `{name, input}`）、`POST /api/vendor/remove`（body `{name}`）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/cli/tests/serveApi.test.ts` 的 import 块加入：
 
@@ -277,7 +286,7 @@ describe("vendor repo mutations over project config", () => {
 Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
 Expected: FAIL（`normalizeVendorRepoInput` 等未导出）
 
-- [ ] **Step 3: 实现归一化与 helper**
+- [x] **Step 3: 实现归一化与 helper**
 
 在 `apps/cli/src/serveApi.ts` 顶部 import 块，把第 21 行：
 
@@ -349,12 +358,12 @@ export async function removeProjectVendorRepo(
 }
 ```
 
-- [ ] **Step 4: 运行测试，确认通过**
+- [x] **Step 4: 运行测试，确认通过**
 
 Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
 Expected: PASS（5 个新用例全过；旧用例不受影响）
 
-- [ ] **Step 5: 接线 HTTP 路由**
+- [x] **Step 5: 接线 HTTP 路由**
 
 在 `apps/cli/src/serveApi.ts` 的 `createRouteKitApiHandler` 内，将现有 `/api/vendor/add` 整段（约 655–681 行）替换为下面三段：
 
@@ -447,7 +456,7 @@ Expected typecheck：通过（无报错）
   - `listCatalogEntriesWithMeta(options: CatalogEntriesOptions & { readText?: ReadText }): Promise<CatalogEntryMeta[]>`
   - `/api/catalog/entries` 响应改为 `{ entries: CatalogEntryMeta[] }`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/cli/tests/serveApi.test.ts` import 块加入 `listCatalogEntriesWithMeta`（并入已有 `../src/serveApi.js` import）。在 `catalog browse helpers` describe 内追加：
 
@@ -494,7 +503,7 @@ Expected typecheck：通过（无报错）
 Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
 Expected: FAIL（`listCatalogEntriesWithMeta` 未导出）
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 在 `apps/cli/src/serveApi.ts` 的 `listCatalogEntries` 之后追加：
 
@@ -529,12 +538,12 @@ export async function listCatalogEntriesWithMeta(
 
 > 性能注记：domain-list 浏览时会逐条读取文件判定 `hasChildren`（domain-list-community ~1500 个小文件）。本地磁盘可接受；后续可加「按数据目录 mtime 缓存」优化（不在本计划）。
 
-- [ ] **Step 4: 运行测试，确认通过**
+- [x] **Step 4: 运行测试，确认通过**
 
 Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 切换 `/api/catalog/entries` 响应**
+- [x] **Step 5: 切换 `/api/catalog/entries` 响应**
 
 在 `createRouteKitApiHandler` 内，把 `/api/catalog/entries` 段（约 604–613 行）的：
 
@@ -563,208 +572,12 @@ git commit -m "feat(cli): catalog entries carry hasChildren for tree rendering"
 
 ---
 
-## Task 4: 订阅本地存储（类型 + helper + API + gitignore）
-
-**Files:**
-- Modify: `packages/core/src/types.ts`、`packages/core/src/index.ts`
-- Modify: `apps/cli/src/serveApi.ts`
-- Modify: `.gitignore`
-- Test: `apps/cli/tests/serveApi.test.ts`
-
-**Interfaces:**
-- Produces:
-  - core 类型 `LocalSubscription { id: string; name: string; url: string; enabled: boolean }`
-  - `readLocalSubscriptions(options & { readText? }): Promise<LocalSubscription[]>`（文件不存在→`[]`）
-  - `writeLocalSubscriptions(options & { subscriptions, writeText? }): Promise<LocalSubscription[]>`
-  - HTTP：`GET /api/subscriptions` → `{ subscriptions }`；`PUT /api/subscriptions`（body `{ subscriptions }`）
-
-- [ ] **Step 1: 加类型并导出**
-
-`packages/core/src/types.ts` 末尾追加：
-
-```ts
-export interface LocalSubscription {
-  id: string;
-  name: string;
-  url: string;
-  enabled: boolean;
-}
-```
-
-`packages/core/src/index.ts` 的类型 re-export 块加入 `LocalSubscription`（与既有 `export type { ... }` 合并；若无则新增一行）：
-
-```ts
-export type { LocalSubscription } from "./types.js";
-```
-
-- [ ] **Step 2: 写失败测试**
-
-`apps/cli/tests/serveApi.test.ts` import 块加入 `readLocalSubscriptions`、`writeLocalSubscriptions`（并入 `../src/serveApi.js` import）。末尾追加：
-
-```ts
-describe("local subscriptions store", () => {
-  const root = path.resolve("fixture-repo");
-  const configFile = "config/routes.yaml";
-
-  it("returns [] when the file is absent", async () => {
-    const subs = await readLocalSubscriptions({
-      root,
-      configFile,
-      readText: async () => {
-        throw new Error("ENOENT");
-      },
-    });
-    expect(subs).toEqual([]);
-  });
-
-  it("parses subscriptions from yaml", async () => {
-    const subs = await readLocalSubscriptions({
-      root,
-      configFile,
-      readText: async () =>
-        ["subscriptions:", "  - id: a", "    name: AirA", "    url: https://a/sub", "    enabled: true", ""].join("\n"),
-    });
-    expect(subs).toEqual([{ id: "a", name: "AirA", url: "https://a/sub", enabled: true }]);
-  });
-
-  it("serializes subscriptions to yaml under config/subscriptions.local.yaml", async () => {
-    let writtenPath = "";
-    let writtenText = "";
-    await writeLocalSubscriptions({
-      root,
-      configFile,
-      subscriptions: [{ id: "a", name: "AirA", url: "https://a/sub", enabled: true }],
-      writeText: async (filePath, text) => {
-        writtenPath = filePath;
-        writtenText = text;
-      },
-    });
-    expect(writtenPath).toBe(path.resolve(root, "config/subscriptions.local.yaml"));
-    expect(writtenText).toContain("AirA");
-    expect(writtenText).toContain("subscriptions:");
-  });
-});
-```
-
-- [ ] **Step 3: 运行测试，确认失败**
-
-Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
-Expected: FAIL（未导出）
-
-- [ ] **Step 4: 实现 helper**
-
-`apps/cli/src/serveApi.ts` 顶部 import 区加入（`yaml` 已是 cli 依赖，program.ts 在用）：
-
-```ts
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-import type { LocalSubscription } from "@clash-route-kit/core";
-```
-
-在 `readGitRemote` 定义附近追加：
-
-```ts
-function subscriptionsPath(options: ProgramOptions): string {
-  return path.resolve(options.root, "config/subscriptions.local.yaml");
-}
-
-export interface LocalSubscriptionsOptions extends ProgramOptions {
-  readText?: ReadText;
-}
-
-export async function readLocalSubscriptions(options: LocalSubscriptionsOptions): Promise<LocalSubscription[]> {
-  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
-  let text: string;
-  try {
-    text = await readText(subscriptionsPath(options));
-  } catch {
-    return [];
-  }
-  const parsed = parseYaml(text) as { subscriptions?: LocalSubscription[] } | null;
-  return Array.isArray(parsed?.subscriptions) ? parsed.subscriptions : [];
-}
-
-export interface WriteLocalSubscriptionsOptions extends ProgramOptions {
-  subscriptions: LocalSubscription[];
-  writeText?: WriteText;
-}
-
-export async function writeLocalSubscriptions(
-  options: WriteLocalSubscriptionsOptions,
-): Promise<LocalSubscription[]> {
-  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
-  await writeText(subscriptionsPath(options), stringifyYaml({ subscriptions: options.subscriptions }));
-  return options.subscriptions;
-}
-```
-
-- [ ] **Step 5: 运行测试，确认通过**
-
-Run: `pnpm exec vitest run apps/cli/tests/serveApi.test.ts`
-Expected: PASS
-
-- [ ] **Step 6: 接线 HTTP + gitignore**
-
-`createRouteKitApiHandler` 内，在 `/api/git/remote` 段之后追加：
-
-```ts
-    if (url.pathname === "/api/subscriptions") {
-      if (request.method === "GET") {
-        void readLocalSubscriptions(options)
-          .then((subscriptions) => writeJson(response, 200, { subscriptions }))
-          .catch((error: unknown) =>
-            writeJson(response, 500, { ok: false, output: error instanceof Error ? error.message : String(error) }),
-          );
-        return;
-      }
-      if (request.method === "PUT") {
-        let body = "";
-        request.on("data", (chunk: Buffer) => {
-          body += chunk.toString("utf8");
-        });
-        request.on("end", () => {
-          void Promise.resolve()
-            .then(() => JSON.parse(body) as { subscriptions?: LocalSubscription[] })
-            .then((payload) => {
-              if (!Array.isArray(payload.subscriptions)) {
-                throw new Error("Missing subscriptions");
-              }
-              return writeLocalSubscriptions({ ...options, subscriptions: payload.subscriptions });
-            })
-            .then((subscriptions) => writeJson(response, 200, { subscriptions }))
-            .catch((error: unknown) =>
-              writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
-            );
-        });
-        return;
-      }
-      writeJson(response, 405, { ok: false, output: "Method not allowed" });
-      return;
-    }
-```
-
-`.gitignore` 末尾追加一行：
-
-```
-config/subscriptions.local.yaml
-```
-
-- [ ] **Step 7: 类型检查 + 构建 + 提交**
-
-```bash
-pnpm -r typecheck
-pnpm --filter @clash-route-kit/core build
-git add packages/core/src/types.ts packages/core/src/index.ts apps/cli/src/serveApi.ts apps/cli/tests/serveApi.test.ts .gitignore
-git commit -m "feat: local subscriptions store API (gitignored, never published)"
-```
-
----
-
-## Task 5: config — 换 GeekXtop fork
+## Task 4: config — 换 GeekXtop fork
 
 **Files:**
 - Modify: `config/routes.yaml`
 
-- [ ] **Step 1: 改 url**
+- [x] **Step 1: 改 url**
 
 把 `config/routes.yaml` 中 `name: Aethersailor` 那条的：
 
@@ -780,7 +593,7 @@ git commit -m "feat: local subscriptions store API (gitignored, never published)
 
 其余字段（`name`、`path: vendor/Custom_OpenClash_Rules`、`branch: main`、`catalog`）保持不变。
 
-- [ ] **Step 2: 验证**
+- [x] **Step 2: 验证**
 
 Run: `git grep -n "GeekXtop/Custom_OpenClash_Rules" config/routes.yaml`
 Expected: 命中一行；不再出现 `Aethersailor/Custom_OpenClash_Rules.git`。
@@ -802,6 +615,6 @@ git commit -m "chore(config): point Custom_OpenClash_Rules to GeekXtop fork"
 
 ## Self-Review 记录
 
-- **Spec 覆盖**：本计划对应 spec §6.3（vendor CRUD、hasChildren、隐藏 vendor 路径、相对数据目录）、§7②（订阅本地存储）、§10#2（GeekXtop）、§11（后端改动）。catalog「按源容错」spec 已由现有代码 `listCatalogEntries` 的 try/catch 返回 `[]` 覆盖（serveApi.ts:255-260），本计划不重复。`CATALOG_ORIGINS` 作为种子保留（spec §2/§6.3 明确允许「仅用于首次种子」）。
+- **Spec 覆盖**：本计划对应 spec §6.3（vendor CRUD、hasChildren、隐藏 vendor 路径、相对数据目录）、§10#2（GeekXtop）、§11（后端改动）。catalog「按源容错」spec 已由现有代码 `listCatalogEntries` 的 try/catch 返回 `[]` 覆盖（serveApi.ts:255-260），本计划不重复。`CATALOG_ORIGINS` 作为种子保留（spec §2/§6.3 明确允许「仅用于首次种子」）。
 - **占位符**：无 TBD/TODO；每步含完整代码与命令。
-- **类型一致性**：`VendorRepoInput`/`normalizeVendorRepoInput`/`addProjectVendorRepo`/`updateProjectVendorRepo`/`removeProjectVendorRepo`/`CatalogEntryMeta`/`listCatalogEntriesWithMeta`/`LocalSubscription`/`readLocalSubscriptions`/`writeLocalSubscriptions` 在定义与调用处签名一致。
+- **类型一致性**：`VendorRepoInput`/`normalizeVendorRepoInput`/`addProjectVendorRepo`/`updateProjectVendorRepo`/`removeProjectVendorRepo`/`CatalogEntryMeta`/`listCatalogEntriesWithMeta` 在定义与调用处签名一致。

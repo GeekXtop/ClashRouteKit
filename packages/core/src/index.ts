@@ -6,11 +6,34 @@ export { renderIni } from "./ini.js";
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 export { parseIniToConfig } from "./import.js";
 export {
+  LEGACY_GEOIP_NO_RESOLVE,
+  LEGACY_HEALTH_CHECK_INTERVAL,
+  LEGACY_HEALTH_CHECK_URL,
+  LEGACY_RULE_PROVIDER_INTERVAL,
+  LEGACY_URL_TEST_TOLERANCE,
+  resolveGeoipNoResolve,
+  resolveProxyGroupHealthCheck,
+  resolveRuleProviderInterval,
+  validateDefaultAwareConfig,
+} from "./defaults.js";
+export type {
+  ResolvedConfigValue,
+  ResolvedConfigValueSource,
+  ResolvedProxyGroupHealthCheck,
+} from "./defaults.js";
+export {
+  collectClassicalProviderRules,
   collectDomainProviderRules,
+  collectIpcidrProviderRules,
+  collectRuleProviderRules,
   convertDomainListCommunity,
+  generateClassicalProvider,
   generateDomainProvider,
+  generateIpcidrProvider,
+  generateRuleProvider,
   parseDomainListEntry,
   summarizeDomainProvider,
+  summarizeRuleProvider,
 } from "./rules.js";
 export type {
   DomainListCommunityOptions,
@@ -20,7 +43,6 @@ export type {
   DomainListCommunitySource,
   DomainListEntryInfo,
   ImportedConfig,
-  LocalSubscription,
   ClashListSource,
   ClashProviderSource,
   CustomProxyGroup,
@@ -28,9 +50,16 @@ export type {
   GeositeRuleSetSource,
   GeoipRuleSetSource,
   ProviderBehavior,
+  ProviderInput,
+  ProviderRule,
+  ProviderSummary,
+  ProxyGroupDefaults,
+  ProxyGroupHealthCheckDefaults,
   RenderIniOptions,
   RouteKitProjectConfig,
   RouteKitConfig,
+  RouteKitDefaults,
+  RuleSetDefaults,
   RuleProviderRuleSetSource,
   RuleSet,
   RuleSetSource,

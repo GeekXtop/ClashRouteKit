@@ -76,4 +76,28 @@ provider:lxy,https://example.com/lxy?token=abc
       "http://10.0.0.3:8787/templates/Custom_Clash.ini",
     );
   });
+
+  it("expands & in node filters to AND lookaheads, OR across tags", () => {
+    const url = buildSubconverterUrl({
+      providers: [{ id: "a", name: "Air", url: "https://air/sub", enabled: true }],
+      publishBaseUrl: "http://10.0.0.3:8787",
+      templateOutput: "Custom_Clash.ini",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+      convert: { include: ["香港", "台湾&bgp"], exclude: ["新加坡&bgp&奈飞"] },
+    });
+    const params = new URL(url).searchParams;
+    expect(params.get("include")).toBe("(?i)香港|(?=.*台湾)(?=.*bgp)");
+    expect(params.get("exclude")).toBe("(?i)(?=.*新加坡)(?=.*bgp)(?=.*奈飞)");
+  });
+
+  it("sets the config filename when provided", () => {
+    const url = buildSubconverterUrl({
+      providers: [{ id: "a", name: "Air", url: "https://air/sub", enabled: true }],
+      publishBaseUrl: "http://10.0.0.3:8787",
+      templateOutput: "Custom_Clash.ini",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+      convert: { filename: "我的家庭配置" },
+    });
+    expect(new URL(url).searchParams.get("filename")).toBe("我的家庭配置");
+  });
 });

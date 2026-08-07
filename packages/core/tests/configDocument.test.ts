@@ -136,4 +136,45 @@ describe("config document utilities", () => {
     expect(config.subconverterUrl).toBe("http://10.0.0.3:25500/sub");
     expect(serializeRouteKitConfig(config)).toContain("subconverterUrl: http://10.0.0.3:25500/sub");
   });
+
+  it("preserves project defaults across parse and serialize", () => {
+    const config = parseRouteKitConfig(
+      [
+        "publishBaseUrl: http://127.0.0.1:8787",
+        "defaults:",
+        "  proxyGroups:",
+        "    healthCheck:",
+        "      url: https://probe.example/204",
+        "      interval: 300",
+        "      timeout: 5",
+        "    urlTest:",
+        "      tolerance: 50",
+        "  ruleSets:",
+        "    ruleProviderInterval: 28800",
+        "    geoipNoResolve: true",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "vendorRepos: []",
+        "customProxyGroups: []",
+        "ruleSets: []",
+        "",
+      ].join("\n"),
+    );
+
+    expect(config.defaults).toEqual({
+      proxyGroups: {
+        healthCheck: {
+          url: "https://probe.example/204",
+          interval: 300,
+          timeout: 5,
+        },
+        urlTest: { tolerance: 50 },
+      },
+      ruleSets: {
+        ruleProviderInterval: 28800,
+        geoipNoResolve: true,
+      },
+    });
+    expect(serializeRouteKitConfig(config)).toContain("ruleProviderInterval: 28800");
+  });
 });

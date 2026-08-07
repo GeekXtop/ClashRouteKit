@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  deleteRuleFile,
   listRuleFiles,
   loadRuleFile,
   saveRuleFile,
@@ -39,5 +40,14 @@ describe("rule file client", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text: "DOMAIN,openai.com\n" }),
     });
+  });
+
+  it("deletes one config rule file", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ file: "AI.list" }), { status: 200 }),
+    );
+
+    await expect(deleteRuleFile("AI.list", fetcher)).resolves.toEqual({ file: "AI.list" });
+    expect(fetcher).toHaveBeenCalledWith("/api/project/rules/AI.list", { method: "DELETE" });
   });
 });

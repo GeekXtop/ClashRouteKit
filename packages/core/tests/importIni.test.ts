@@ -44,6 +44,32 @@ describe("parseIniToConfig · rulesets", () => {
     // 不识别的远程 .list 进 warnings、不进 ruleSets
     expect(out.warnings.some((w) => w.includes("extra.list"))).toBe(true);
   });
+
+  it("does not leak a comment section to unrelated following rulesets", () => {
+    const out = parseIniToConfig(
+      [
+        "[custom]",
+        "; Emby 包括主流 Emby 服务相关域名",
+        "ruleset=Emby,[]GEOSITE,category-emby",
+        "ruleset=Spotify,[]GEOSITE,spotify",
+        "",
+      ].join("\n"),
+    );
+
+    expect(out.ruleSets).toEqual([
+      {
+        id: "category-emby",
+        section: "Emby 包括主流 Emby 服务相关域名",
+        policy: "Emby",
+        source: { type: "geosite", value: "category-emby" },
+      },
+      {
+        id: "spotify",
+        policy: "Spotify",
+        source: { type: "geosite", value: "spotify" },
+      },
+    ]);
+  });
 });
 
 describe("parseIniToConfig · proxy groups", () => {
@@ -68,7 +94,21 @@ describe("parseIniToConfig · proxy groups", () => {
       nodeFilters: ["!!GROUPID=0!!(港|HK)"],
       url: "https://cp.cloudflare.com/generate_204",
       interval: 300,
+      timeout: null,
       tolerance: 50,
     });
+  });
+
+  it.each([
+    ["300", { interval: 300, timeout: null, tolerance: null }],
+    ["300,5", { interval: 300, timeout: 5, tolerance: null }],
+    ["300,,50", { interval: 300, timeout: null, tolerance: 50 }],
+    ["300,5,50", { interval: 300, timeout: 5, tolerance: 50 }],
+  ])("parses health-check tail %s", (tail, expected) => {
+    const out = parseIniToConfig(
+      `custom_proxy_group=Auto\`url-test\`.*\`https://probe.example/204\`${tail}\n`,
+    );
+
+    expect(out.customProxyGroups[0]).toMatchObject(expected);
   });
 });

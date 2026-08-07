@@ -8,6 +8,20 @@
 
 **Tech Stack:** React 19、AntD v5（Select/Switch/Drawer/Modal/Tree/Input/Collapse/Empty）、lucide-react、vitest + @testing-library/react。
 
+> 2026-06-23 完成状态：路由页主体已落地，包含策略组导航、规则流、策略组 Drawer、规则 Drawer、来源选择器、INI 预览与空状态导入 CTA；`pnpm typecheck` 与 `pnpm test` 已通过。未完整覆盖原计划的交互已迁移到 `docs/superpowers/plans/2026-06-23-web-console-followups.md`。
+
+## 2026-06-23 状态总览
+
+- [x] catalog 客户端已支持 `{ name, hasChildren, root }` entries。
+- [x] `addRoute` mutation 与 `draftActions.addRoute` 已实现。
+- [x] `GroupNav`、`GroupDrawer`、`PreviewDock`、`RoutingPage` 容器已落地。
+- [x] `RuleRow` / `RuleStream` 已实现规则流、选择、启停、拖拽重排和打开规则 Drawer。
+- [x] `SourcePickerModal` 已实现仓库选择、domain-list 树、当前仓库搜索、域名预览和添加规则。
+- [x] 旧路由 workspace 组件已清理。
+- [x] 当前验证：`pnpm typecheck`、`pnpm test` 已通过。
+- [ ] 剩余功能：来源选择器类型筛选/GEOIP/跨仓库搜索、规则行内策略切换与行内删除，已迁移到 `2026-06-23-web-console-followups.md`。
+- [ ] 非功能历史项：逐步提交记录和手动 `pnpm dev` 路由页走查未追溯。
+
 ## Global Constraints
 
 - ESM/NodeNext：相对 import 带 `.js`。

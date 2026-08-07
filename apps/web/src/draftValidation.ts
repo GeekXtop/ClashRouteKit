@@ -1,7 +1,8 @@
-import type {
-  RouteKitProjectConfig,
-  RuleProviderConfig,
-  RuleProviderSource,
+import {
+  validateDefaultAwareConfig,
+  type RouteKitProjectConfig,
+  type RuleProviderConfig,
+  type RuleProviderSource,
 } from "@clash-route-kit/core";
 
 function addDuplicateDiagnostics(values: string[], label: string, diagnostics: string[]): void {
@@ -80,24 +81,30 @@ function validateRuleProviderSource(
   }
 }
 
-export function validateDraftConfig(config: RouteKitProjectConfig): string[] {
-  const diagnostics: string[] = [];
+export interface DraftDiagnostics {
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateDraftConfig(config: RouteKitProjectConfig): DraftDiagnostics {
+  const errors = validateDefaultAwareConfig(config);
+  const warnings: string[] = [];
   const policies = new Set(config.customProxyGroups.map((group) => group.name));
   const builtInPolicies = new Set(["DIRECT", "REJECT"]);
   const providerOutputs = new Set((config.ruleProviders ?? []).map((provider) => provider.output));
   let finalRuleCount = 0;
 
-  addDuplicateDiagnostics(config.customProxyGroups.map((group) => group.name), "custom_proxy_group 名称", diagnostics);
-  addDuplicateDiagnostics(config.ruleSets.map((ruleSet) => ruleSet.id), "RuleSet ID ", diagnostics);
-  addDuplicateDiagnostics((config.ruleProviders ?? []).map((provider) => provider.name), "Rule provider 名称", diagnostics);
-  addDuplicateDiagnostics((config.ruleProviders ?? []).map((provider) => provider.output), "Rule provider 输出", diagnostics);
+  addDuplicateDiagnostics(config.customProxyGroups.map((group) => group.name), "custom_proxy_group 名称", errors);
+  addDuplicateDiagnostics(config.ruleSets.map((ruleSet) => ruleSet.id), "RuleSet ID ", errors);
+  addDuplicateDiagnostics((config.ruleProviders ?? []).map((provider) => provider.name), "Rule provider 名称", errors);
+  addDuplicateDiagnostics((config.ruleProviders ?? []).map((provider) => provider.output), "Rule provider 输出", errors);
 
   for (const group of config.customProxyGroups) {
     if (!group.name.trim()) {
-      diagnostics.push("custom_proxy_group 名称不能为空");
+      errors.push("custom_proxy_group 名称不能为空");
     }
     if (group.options.length === 0 && (group.nodeFilters ?? []).length === 0) {
-      diagnostics.push(`custom_proxy_group ${group.name} 至少需要一个 option 或 node filter`);
+      errors.push(`custom_proxy_group ${group.name} 至少需要一个 option 或 node filter`);
     }
   }
 
@@ -106,53 +113,53 @@ export function validateDraftConfig(config: RouteKitProjectConfig): string[] {
       finalRuleCount += 1;
     }
     if (!ruleSet.id.trim()) {
-      diagnostics.push("RuleSet ID 不能为空");
+      errors.push("RuleSet ID 不能为空");
     }
     if (!ruleSet.policy.trim()) {
-      diagnostics.push(`RuleSet ${ruleSet.id} 的目标 custom_proxy_group 不能为空`);
+      errors.push(`RuleSet ${ruleSet.id} 的目标 custom_proxy_group 不能为空`);
     }
     if (ruleSet.policy.trim() && !policies.has(ruleSet.policy) && !builtInPolicies.has(ruleSet.policy)) {
-      diagnostics.push(`RuleSet ${ruleSet.id} 引用了不存在的 custom_proxy_group：${ruleSet.policy}`);
+      errors.push(`RuleSet ${ruleSet.id} 引用了不存在的 custom_proxy_group：${ruleSet.policy}`);
     }
 
     const source = ruleSet.source;
     if (source.type === "rule-provider") {
       if (!source.file.trim()) {
-        diagnostics.push(`RuleSet ${ruleSet.id} 的 provider 文件不能为空`);
+        errors.push(`RuleSet ${ruleSet.id} 的 provider 文件不能为空`);
       } else if (!providerOutputs.has(source.file)) {
-        diagnostics.push(`RuleSet ${ruleSet.id} 引用了不存在的 provider 输出：${source.file}`);
+        errors.push(`RuleSet ${ruleSet.id} 引用了不存在的 provider 输出：${source.file}`);
       }
     } else if (source.type === "geosite") {
       if (!source.value.trim()) {
-        diagnostics.push(`RuleSet ${ruleSet.id} 的 GEOSITE 不能为空`);
+        errors.push(`RuleSet ${ruleSet.id} 的 GEOSITE 不能为空`);
       }
     } else if (source.type === "geoip") {
       if (!source.value.trim()) {
-        diagnostics.push(`RuleSet ${ruleSet.id} 的 GEOIP 不能为空`);
+        errors.push(`RuleSet ${ruleSet.id} 的 GEOIP 不能为空`);
       }
     }
   }
 
   if (finalRuleCount === 0) {
-    diagnostics.push("ruleSets 需要包含一条 FINAL 兜底规则");
+    errors.push("ruleSets 需要包含一条 FINAL 兜底规则");
   } else if (finalRuleCount > 1) {
-    diagnostics.push("FINAL 兜底规则只能出现一次");
+    errors.push("FINAL 兜底规则只能出现一次");
   }
 
   for (const provider of config.ruleProviders ?? []) {
     if (!provider.name.trim()) {
-      diagnostics.push("Rule provider 名称不能为空");
+      errors.push("Rule provider 名称不能为空");
     }
     if (!provider.output.trim()) {
-      diagnostics.push(`Rule provider ${provider.name} 输出不能为空`);
+      errors.push(`Rule provider ${provider.name} 输出不能为空`);
     }
     if (provider.sources.length === 0) {
-      diagnostics.push(`Rule provider ${provider.name} 至少需要一个 source`);
+      warnings.push(`规则源 ${provider.name} 待补全：尚未指定数据源`);
     }
     for (const source of provider.sources) {
-      validateRuleProviderSource(provider, source, diagnostics);
+      validateRuleProviderSource(provider, source, errors);
     }
   }
 
-  return diagnostics;
+  return { errors, warnings };
 }

@@ -1,6 +1,7 @@
 import type {
   CustomProxyGroup,
   ImportedConfig,
+  RouteKitDefaults,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -123,6 +124,29 @@ export function updateRuleSet(
   return found ? { ...config, ruleSets } : config;
 }
 
+export function replaceRuleSet(
+  config: RouteKitProjectConfig,
+  originalId: string,
+  nextRuleSet: RuleSet,
+): RouteKitProjectConfig {
+  const id = nextRuleSet.id.trim();
+  if (!id) {
+    throw new Error("RuleSet id is required");
+  }
+  if (id !== originalId && config.ruleSets.some((ruleSet) => ruleSet.id === id)) {
+    throw new Error(`RuleSet "${id}" already exists`);
+  }
+
+  return {
+    ...config,
+    ruleSets: config.ruleSets.map((ruleSet) =>
+      ruleSet.id === originalId
+        ? cloneRuleSet({ ...nextRuleSet, id })
+        : ruleSet,
+    ),
+  };
+}
+
 export function toggleRuleSet(config: RouteKitProjectConfig, ruleSetId: string): RouteKitProjectConfig {
   const ruleSet = config.ruleSets.find((item) => item.id === ruleSetId);
   if (!ruleSet) return config;
@@ -145,12 +169,15 @@ function cloneCustomProxyGroup(group: CustomProxyGroup): CustomProxyGroup {
   };
 }
 
-export function createCustomProxyGroup(config: RouteKitProjectConfig): CustomProxyGroup {
-  return {
-    name: nextName(config.customProxyGroups.map((group) => group.name), "ProxyGroup"),
-    type: "select",
-    options: ["DIRECT"],
-  };
+export function createCustomProxyGroup(
+  config: RouteKitProjectConfig,
+  type: CustomProxyGroup["type"] = "select",
+): CustomProxyGroup {
+  const names = config.customProxyGroups.map((group) => group.name);
+  const name = nextName(names, "ProxyGroup");
+  return type === "select"
+    ? { name, type, options: ["DIRECT"] }
+    : { name, type, options: [], nodeFilters: [".*"] };
 }
 
 export function addCustomProxyGroup(
@@ -202,7 +229,11 @@ export function renameCustomProxyGroup(
   return {
     ...config,
     customProxyGroups: config.customProxyGroups.map((group) =>
-      group.name === groupName ? cloneCustomProxyGroup({ ...group, name }) : group,
+      cloneCustomProxyGroup({
+        ...group,
+        name: group.name === groupName ? name : group.name,
+        options: group.options.map((option) => (option === groupName ? name : option)),
+      }),
     ),
     ruleSets: config.ruleSets.map((ruleSet) =>
       ruleSet.policy === groupName ? { ...ruleSet, policy: name } : ruleSet,
@@ -217,6 +248,14 @@ export function deleteCustomProxyGroup(
   const referenced = config.ruleSets.some((ruleSet) => ruleSet.policy === groupName);
   if (referenced) {
     throw new Error(`custom_proxy_group is still referenced: ${groupName}`);
+  }
+  const parentGroup = config.customProxyGroups.find(
+    (group) => group.name !== groupName && group.options.includes(groupName),
+  );
+  if (parentGroup) {
+    throw new Error(
+      `custom_proxy_group is still referenced by ${parentGroup.name}: ${groupName}`,
+    );
   }
 
   return {
@@ -247,6 +286,58 @@ function cloneRuleProvider(provider: RuleProviderConfig): RuleProviderConfig {
     remove: provider.remove ? [...provider.remove] : undefined,
     sources: cloneRuleProviderSources(provider.sources),
   };
+}
+
+export function replaceCustomProxyGroup(
+  config: RouteKitProjectConfig,
+  originalName: string,
+  nextGroup: CustomProxyGroup,
+): RouteKitProjectConfig {
+  const name = nextGroup.name.trim();
+  const renamed = renameCustomProxyGroup(config, originalName, name);
+  return updateCustomProxyGroup(renamed, name, {
+    ...nextGroup,
+    name,
+    options: [...nextGroup.options],
+    nodeFilters: nextGroup.nodeFilters ? [...nextGroup.nodeFilters] : undefined,
+  });
+}
+
+function providerNameFromOutput(output: string): string {
+  return (
+    output
+      .replace(/\.(ya?ml)$/i, "")
+      .replace(/[^A-Za-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "Provider"
+  );
+}
+
+function importedProviderPlaceholders(
+  config: RouteKitProjectConfig,
+  imported: ImportedConfig,
+): RuleProviderConfig[] {
+  const existingProviders = (config.ruleProviders ?? []).map(cloneRuleProvider);
+  const existingOutputs = new Set(existingProviders.map((provider) => provider.output));
+  const names = existingProviders.map((provider) => provider.name);
+  const placeholders: RuleProviderConfig[] = [];
+
+  for (const ruleSet of imported.ruleSets) {
+    const source = ruleSet.source;
+    if (source.type !== "rule-provider") continue;
+    const output = source.file.trim();
+    if (!output || existingOutputs.has(output)) continue;
+    existingOutputs.add(output);
+    const name = nextName(names, providerNameFromOutput(output));
+    names.push(name);
+    placeholders.push({
+      name,
+      output,
+      behavior: source.behavior,
+      sources: [],
+    });
+  }
+
+  return [...existingProviders, ...placeholders];
 }
 
 export function createRuleProvider(config: RouteKitProjectConfig): RuleProviderConfig {
@@ -363,6 +454,34 @@ export function setTemplateField(
   return { ...config, template: { ...config.template, ...patch } };
 }
 
+function cloneRouteKitDefaults(defaults: RouteKitDefaults): RouteKitDefaults {
+  return {
+    ...(defaults.proxyGroups
+      ? {
+          proxyGroups: {
+            ...(defaults.proxyGroups.healthCheck
+              ? { healthCheck: { ...defaults.proxyGroups.healthCheck } }
+              : {}),
+            ...(defaults.proxyGroups.urlTest
+              ? { urlTest: { ...defaults.proxyGroups.urlTest } }
+              : {}),
+          },
+        }
+      : {}),
+    ...(defaults.ruleSets ? { ruleSets: { ...defaults.ruleSets } } : {}),
+  };
+}
+
+export function setProjectDefaults(
+  config: RouteKitProjectConfig,
+  defaults: RouteKitDefaults | undefined,
+): RouteKitProjectConfig {
+  return {
+    ...config,
+    defaults: defaults === undefined ? undefined : cloneRouteKitDefaults(defaults),
+  };
+}
+
 export function mergeImportedConfig(
   config: RouteKitProjectConfig,
   imported: ImportedConfig,
@@ -401,5 +520,6 @@ export function replaceImportedConfig(
       nodeFilters: group.nodeFilters ? [...group.nodeFilters] : undefined,
     })),
     ruleSets: imported.ruleSets.map((ruleSet) => ({ ...ruleSet, source: { ...ruleSet.source } })),
+    ruleProviders: importedProviderPlaceholders(config, imported),
   };
 }

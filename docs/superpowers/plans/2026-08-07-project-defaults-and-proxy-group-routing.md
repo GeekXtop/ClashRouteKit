@@ -4,6 +4,8 @@
 
 **Goal:** 为 ClashRouteKit 增加项目级健康检查与 RuleSet 默认值、SubConverter `timeout` 全链路支持，并把路由页改为按原始顺序展示全部策略组及其真实引用关系。
 
+**Execution Status:** 已于 2026-08-07 实施并完成全量验证。实现代码因与任务开始前已有未提交改动重叠而保持未暂存、未提交；规格提交为 `d190b80`，计划提交为 `a662a8f`。
+
 **Architecture:** `packages/core` 新增唯一的默认值解析层，INI 渲染、CLI 检查和 Web 有效值展示都消费同一组纯函数。Web 继续以 `RouteKitProjectConfig` 为单一草稿状态，通过独立的项目默认值 Drawer、继承字段控件和策略组关系摘要编辑该配置，不引入 `role`、`categoryOverride` 或导入专用元数据。
 
 **Tech Stack:** TypeScript 5.8、React 19、Ant Design 5、Vitest 3、YAML 2、pnpm workspace、SubConverter INI。
@@ -92,7 +94,7 @@
 - Produces: `resolveProxyGroupHealthCheck(group, defaults)`、`resolveRuleProviderInterval(source, defaults)`、`resolveGeoipNoResolve(source, defaults)`。
 - Produces: `validateDefaultAwareConfig(config): string[]`，供 Web 与 CLI 复用。
 
-- [ ] **Step 1: Write failing tests for precedence and explicit empty values**
+- [x] **Step 1: Write failing tests for precedence and explicit empty values**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -133,13 +135,13 @@ it("keeps legacy fallbacks when the project has no defaults", () => {
 });
 ```
 
-- [ ] **Step 2: Run the new test and verify the missing exports fail**
+- [x] **Step 2: Run the new test and verify the missing exports fail**
 
 Run: `pnpm exec vitest run packages/core/tests/defaults.test.ts`
 
 Expected: FAIL because the defaults types and resolver exports do not exist.
 
-- [ ] **Step 3: Add the exact public types**
+- [x] **Step 3: Add the exact public types**
 
 ```ts
 export interface ProxyGroupHealthCheckDefaults {
@@ -183,7 +185,7 @@ export interface RouteKitConfig {
 }
 ```
 
-- [ ] **Step 4: Implement pure resolvers and validation**
+- [x] **Step 4: Implement pure resolvers and validation**
 
 ```ts
 export type ResolvedConfigValueSource = "item" | "project" | "fallback" | "empty";
@@ -216,13 +218,13 @@ Implementation requirements:
 - interval and timeout are positive integers; tolerance is a non-negative integer.
 - Validate both project defaults and explicit group/RuleSet overrides, and return deterministic messages in config order.
 
-- [ ] **Step 5: Export the new API and run Core tests**
+- [x] **Step 5: Export the new API and run Core tests**
 
 Run: `pnpm exec vitest run packages/core/tests/defaults.test.ts`
 
 Expected: PASS, including precedence, explicit empty, integer bounds and URL protocol cases.
 
-- [ ] **Step 6: Review the scoped diff and checkpoint**
+- [x] **Step 6: Review the scoped diff and checkpoint**
 
 Run: `git diff -- packages/core/src/types.ts packages/core/src/defaults.ts packages/core/src/index.ts packages/core/tests/defaults.test.ts`
 
@@ -253,7 +255,7 @@ Otherwise leave the verified task uncommitted and record the checkpoint in `.age
 - Produces: `parseIniToConfig` with nullable timeout/tolerance preservation.
 - Produces: `renderIni` output whose RuleSet and health-check values use project defaults.
 
-- [ ] **Step 1: Add the import matrix as a failing test**
+- [x] **Step 1: Add the import matrix as a failing test**
 
 ```ts
 it.each([
@@ -269,7 +271,7 @@ it.each([
 });
 ```
 
-- [ ] **Step 2: Add failing render tests for inheritance and shortest legal tails**
+- [x] **Step 2: Add failing render tests for inheritance and shortest legal tails**
 
 ```ts
 it("renders inherited and explicitly empty health-check slots", () => {
@@ -297,13 +299,13 @@ it("renders inherited and explicitly empty health-check slots", () => {
 
 Add a separate regression asserting a config without `defaults` still emits `300,,50`.
 
-- [ ] **Step 3: Run focused tests and confirm red state**
+- [x] **Step 3: Run focused tests and confirm red state**
 
 Run: `pnpm exec vitest run packages/core/tests/importIni.test.ts packages/core/tests/renderIni.test.ts`
 
 Expected: FAIL because timeout is neither parsed nor rendered and RuleSets do not consume `config.defaults`.
 
-- [ ] **Step 4: Implement parsing and compact rendering**
+- [x] **Step 4: Implement parsing and compact rendering**
 
 Use this tail construction after resolving effective values:
 
@@ -332,7 +334,7 @@ Rendering requirements:
 - GEOIP uses explicit boolean, then project default, then `true`.
 - Health-check groups use `renderHealthCheckTail`; select groups remain unchanged.
 
-- [ ] **Step 5: Cover YAML round-trip and CLI validation**
+- [x] **Step 5: Cover YAML round-trip and CLI validation**
 
 Add this shape to `configDocument.test.ts` and assert parse/serialize preservation:
 
@@ -352,13 +354,13 @@ defaults:
 
 In `checkConfig`, append `validateDefaultAwareConfig(config)` to diagnostics before returning. Add a CLI test with `timeout: 0` and expect the exact validation diagnostic.
 
-- [ ] **Step 6: Run Core and CLI regression tests**
+- [x] **Step 6: Run Core and CLI regression tests**
 
 Run: `pnpm exec vitest run packages/core/tests/defaults.test.ts packages/core/tests/importIni.test.ts packages/core/tests/renderIni.test.ts packages/core/tests/configDocument.test.ts apps/cli/tests/cli.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 7: Review the scoped diff and checkpoint**
+- [x] **Step 7: Review the scoped diff and checkpoint**
 
 Run: `git diff -- packages/core/src/import.ts packages/core/src/ini.ts packages/core/tests/importIni.test.ts packages/core/tests/renderIni.test.ts packages/core/tests/configDocument.test.ts apps/cli/src/program.ts apps/cli/tests/cli.test.ts`
 
@@ -385,7 +387,7 @@ git commit -m "feat(core): support inherited probe settings"
 - Produces: `setProjectDefaults(config, defaults)` and `draftActions.setProjectDefaults(defaults)`.
 - Changes: `createCustomProxyGroup(config, type)` accepts all four `CustomProxyGroup["type"]` values.
 
-- [ ] **Step 1: Write failing mutation tests**
+- [x] **Step 1: Write failing mutation tests**
 
 ```ts
 it("sets and clears compact project defaults immutably", () => {
@@ -419,13 +421,13 @@ it.each(["url-test", "fallback", "load-balance"] as const)(
 Also assert imported `timeout: null` and `tolerance: null` survive both merge and replace without changing existing `defaults`.
 Add regressions showing `renameCustomProxyGroup` rewrites exact matches in parent-group `options`, and `deleteCustomProxyGroup` refuses deletion while another group still references the target.
 
-- [ ] **Step 2: Run focused tests and verify red state**
+- [x] **Step 2: Run focused tests and verify red state**
 
 Run: `pnpm exec vitest run apps/web/tests/configMutations.test.ts apps/web/tests/draftValidation.test.ts`
 
 Expected: FAIL because the defaults mutation does not exist and URLTest creation still writes hard-coded probe fields.
 
-- [ ] **Step 3: Implement immutable defaults replacement and type-neutral creation**
+- [x] **Step 3: Implement immutable defaults replacement and type-neutral creation**
 
 ```ts
 export function setProjectDefaults(
@@ -454,7 +456,7 @@ export function createCustomProxyGroup(
 
 When renaming a group, update both `ruleSet.policy` and every exact `parent.options` match. When deleting, treat either a RuleSet policy or a parent-group option as an active reference and include the referring group name in the thrown error.
 
-- [ ] **Step 4: Wire draft actions and validation**
+- [x] **Step 4: Wire draft actions and validation**
 
 Expose:
 
@@ -472,7 +474,7 @@ errors.push(...validateDefaultAwareConfig(config));
 
 Add tests showing invalid URL, zero interval, zero timeout and negative tolerance block save, while `timeout: null` and `tolerance: null` remain valid per-group states.
 
-- [ ] **Step 5: Run focused Web tests and typecheck**
+- [x] **Step 5: Run focused Web tests and typecheck**
 
 Run: `pnpm exec vitest run apps/web/tests/configMutations.test.ts apps/web/tests/draftValidation.test.ts`
 
@@ -480,7 +482,7 @@ Run: `pnpm --filter @clash-route-kit/web typecheck`
 
 Expected: both PASS.
 
-- [ ] **Step 6: Review the scoped diff and checkpoint**
+- [x] **Step 6: Review the scoped diff and checkpoint**
 
 Run: `git diff -- apps/web/src/configMutations.ts apps/web/src/useProjectDraftActions.ts apps/web/src/draftValidation.ts apps/web/tests/configMutations.test.ts apps/web/tests/draftValidation.test.ts`
 
@@ -507,7 +509,7 @@ git commit -m "feat(web): edit project route defaults"
 - Produces: `createCustomProxyGroupDetails(config, groupName)` with ordered direct RuleSets, ordered parent groups and effective health values.
 - Changes: `GroupNav.onCreateGroup(type)` and `GroupNav.onOpenDefaults()`; removes `onCreateRegion`.
 
-- [ ] **Step 1: Write failing relationship tests**
+- [x] **Step 1: Write failing relationship tests**
 
 ```ts
 it("counts direct RuleSets and parent group references without reordering groups", () => {
@@ -542,13 +544,13 @@ it("returns parent groups in customProxyGroups order", () => {
 });
 ```
 
-- [ ] **Step 2: Run summary tests and verify red state**
+- [x] **Step 2: Run summary tests and verify red state**
 
 Run: `pnpm exec vitest run apps/web/tests/routeSummary.test.ts`
 
 Expected: FAIL because only direct rule and member counts currently exist.
 
-- [ ] **Step 3: Implement relationship indexes and effective summaries**
+- [x] **Step 3: Implement relationship indexes and effective summaries**
 
 ```ts
 export interface CustomProxyGroupStat {
@@ -574,7 +576,7 @@ export interface CustomProxyGroupDetails {
 
 Build counts with maps in one pass over `ruleSets` and one pass over every parent group's `options`; return arrays in existing config order.
 
-- [ ] **Step 4: Rewrite GroupNav as one ordered list**
+- [x] **Step 4: Rewrite GroupNav as one ordered list**
 
 Required rendered structure:
 
@@ -592,7 +594,7 @@ Required rendered structure:
 
 After the fixed “全部规则” row, map `props.groups` directly. Each group row must render its name, a type tag, `规则 N · 引用 N`, and edit action; do not call `filter` to create categories.
 
-- [ ] **Step 5: Update navigation tests**
+- [x] **Step 5: Update navigation tests**
 
 Assert:
 
@@ -607,7 +609,7 @@ Run: `pnpm exec vitest run apps/web/tests/routeSummary.test.ts apps/web/tests/gr
 
 Expected: PASS.
 
-- [ ] **Step 6: Review the scoped diff and checkpoint**
+- [x] **Step 6: Review the scoped diff and checkpoint**
 
 Run: `git diff -- apps/web/src/routeSummary.ts apps/web/tests/routeSummary.test.ts apps/web/src/components/GroupNav.tsx apps/web/tests/groupNav.test.tsx apps/web/src/styles.css`
 
@@ -639,7 +641,7 @@ git commit -m "feat(web): show ordered proxy group relationships"
 - Produces: `InheritedNumberSetting` and `InheritedTextSetting` controlled components.
 - Produces: `GroupContextPanel` that wraps the direct RuleSet stream without owning config state.
 
-- [ ] **Step 1: Write failing tests for the selected-group context**
+- [x] **Step 1: Write failing tests for the selected-group context**
 
 ```tsx
 it("shows references and node sources for a downstream group", () => {
@@ -664,7 +666,7 @@ it("shows references and node sources for a downstream group", () => {
 });
 ```
 
-- [ ] **Step 2: Add failing three-state field tests**
+- [x] **Step 2: Add failing three-state field tests**
 
 Test the exact transitions:
 
@@ -676,13 +678,13 @@ expect(onChange).toHaveBeenCalledWith(8);         // 自定义数值
 
 Text URL supports only inherit/custom; interval supports inherit/custom; timeout and tolerance support all three states.
 
-- [ ] **Step 3: Run focused tests and verify red state**
+- [x] **Step 3: Run focused tests and verify red state**
 
 Run: `pnpm exec vitest run apps/web/tests/groupContextPanel.test.tsx apps/web/tests/inheritedSettingField.test.tsx apps/web/tests/groupDrawer.test.tsx apps/web/tests/routingPage.test.tsx`
 
 Expected: FAIL because the components and relationship view do not exist.
 
-- [ ] **Step 4: Implement controlled inherited setting components**
+- [x] **Step 4: Implement controlled inherited setting components**
 
 Use one explicit mode type:
 
@@ -705,7 +707,7 @@ The control displays an effective-value caption using these labels:
 
 When switching to custom, seed the input with the current effective value; timeout without any effective value seeds `5`, while URL and interval use the resolver fallback.
 
-- [ ] **Step 5: Implement GroupContextPanel and RuleStream empty copy**
+- [x] **Step 5: Implement GroupContextPanel and RuleStream empty copy**
 
 `GroupContextPanel` renders, in order:
 
@@ -717,7 +719,7 @@ When switching to custom, seed the input with the current effective value; timeo
 
 Add `emptyDescription?: ReactNode` and `defaults?: RouteKitDefaults` to `RuleStream`. Use `ruleSetSourceText(ruleSet, props.defaults)` and render the supplied empty description instead of the generic “没有匹配规则”.
 
-- [ ] **Step 6: Upgrade GroupDrawer**
+- [x] **Step 6: Upgrade GroupDrawer**
 
 Pass `defaults={config.defaults}` from RoutingPage. Show URL, interval and timeout for `url-test`, `fallback`, `load-balance`; show tolerance only for `url-test`. Use these exact item updates:
 
@@ -730,7 +732,7 @@ onChange={(tolerance) => props.onUpdate({ tolerance })}
 
 Retain name, type, options, nodeFilters, direct-rule links and delete action. Do not remove an imported fallback/load-balance tolerance field when editing other properties.
 
-- [ ] **Step 7: Compose selected-group mode in RoutingPage**
+- [x] **Step 7: Compose selected-group mode in RoutingPage**
 
 When `selectedGroup === null`, render the existing complete `RuleStream`. Otherwise:
 
@@ -759,7 +761,7 @@ When `selectedGroup === null`, render the existing complete `RuleStream`. Otherw
 Keep the “添加直接路由规则” action available and keep global RuleSet reorder semantics.
 Add a RoutingPage assertion for both exact empty-state lines so the explanatory copy is covered at the composition level.
 
-- [ ] **Step 8: Run routing/editor tests and typecheck**
+- [x] **Step 8: Run routing/editor tests and typecheck**
 
 Run: `pnpm exec vitest run apps/web/tests/groupContextPanel.test.tsx apps/web/tests/inheritedSettingField.test.tsx apps/web/tests/groupDrawer.test.tsx apps/web/tests/routingPage.test.tsx apps/web/tests/ruleStream.test.tsx`
 
@@ -767,7 +769,7 @@ Run: `pnpm --filter @clash-route-kit/web typecheck`
 
 Expected: PASS.
 
-- [ ] **Step 9: Review the scoped diff and checkpoint**
+- [x] **Step 9: Review the scoped diff and checkpoint**
 
 Run: `git diff -- apps/web/src/components/GroupContextPanel.tsx apps/web/tests/groupContextPanel.test.tsx apps/web/src/components/InheritedSettingField.tsx apps/web/tests/inheritedSettingField.test.tsx apps/web/src/components/GroupDrawer.tsx apps/web/tests/groupDrawer.test.tsx apps/web/src/components/RuleStream.tsx apps/web/src/components/RoutingPage.tsx apps/web/tests/routingPage.test.tsx apps/web/src/styles.css`
 
@@ -799,7 +801,7 @@ git commit -m "feat(web): explain proxy group routing context"
 - Produces: controlled `ProjectDefaultsDrawer({ open, initialSection, defaults, onChange, onClose })`.
 - Changes: `RuleDrawer` receives `defaults?: RouteKitDefaults`.
 
-- [ ] **Step 1: Write failing Drawer tests**
+- [x] **Step 1: Write failing Drawer tests**
 
 ```tsx
 it("opens on the requested section and updates health-check defaults", () => {
@@ -824,7 +826,7 @@ it("opens on the requested section and updates health-check defaults", () => {
 
 Add a second test opening `rule-sets` and changing `ruleProviderInterval` plus `geoipNoResolve: false`.
 
-- [ ] **Step 2: Write failing RuleDrawer inheritance tests**
+- [x] **Step 2: Write failing RuleDrawer inheritance tests**
 
 For a Rule Provider with `interval: undefined`, selecting custom and entering `600` must emit:
 
@@ -840,13 +842,13 @@ For GEOIP, test all three exact states:
 { source: { type: "geoip", value: "cn", noResolve: false } }
 ```
 
-- [ ] **Step 3: Run UI tests and verify red state**
+- [x] **Step 3: Run UI tests and verify red state**
 
 Run: `pnpm exec vitest run apps/web/tests/projectDefaultsDrawer.test.tsx apps/web/tests/ruleDrawer.test.tsx apps/web/tests/routingPage.test.tsx apps/web/tests/libraryPage.test.tsx`
 
 Expected: FAIL because the unified Drawer and tri-state editors do not exist.
 
-- [ ] **Step 4: Implement ProjectDefaultsDrawer**
+- [x] **Step 4: Implement ProjectDefaultsDrawer**
 
 Use Ant Design `Drawer` plus `Tabs`. Tab keys are the public section values. Render these controlled fields:
 
@@ -864,14 +866,14 @@ Use Ant Design `Drawer` plus `Tabs`. Tab keys are the public section values. Ren
 
 Every field allows clearing back to `undefined`. The GEOIP default Select has “使用程序默认值（开启） / 开启 / 关闭”. After every change, compact empty nested objects so clearing the last value emits `undefined` instead of `{ proxyGroups: {} }`.
 
-- [ ] **Step 5: Upgrade RuleDrawer to consume effective defaults**
+- [x] **Step 5: Upgrade RuleDrawer to consume effective defaults**
 
 - Rule Provider interval uses `InheritedNumberSetting`, with project/fallback source caption.
 - GEOIP uses a Select with values `inherit`, `enabled`, `disabled` mapped to `undefined`, `true`, `false`.
 - `makeSource("geoip")` returns `{ type: "geoip", value: "" }`, allowing inheritance instead of writing `true` immediately.
 - Pass `config.defaults` from RoutingPage.
 
-- [ ] **Step 6: Wire both page entry points to the same component**
+- [x] **Step 6: Wire both page entry points to the same component**
 
 RoutingPage:
 
@@ -883,7 +885,7 @@ The GroupNav gear opens `proxy-groups`.
 
 LibraryPage uses the same state shape; the “规则源” Collapse header gear opens `rule-sets`. Both render `ProjectDefaultsDrawer` with `onChange={draftActions.setProjectDefaults}`.
 
-- [ ] **Step 7: Run focused UI tests and typecheck**
+- [x] **Step 7: Run focused UI tests and typecheck**
 
 Run: `pnpm exec vitest run apps/web/tests/projectDefaultsDrawer.test.tsx apps/web/tests/ruleDrawer.test.tsx apps/web/tests/routingPage.test.tsx apps/web/tests/libraryPage.test.tsx apps/web/tests/groupNav.test.tsx`
 
@@ -891,7 +893,7 @@ Run: `pnpm --filter @clash-route-kit/web typecheck`
 
 Expected: PASS.
 
-- [ ] **Step 8: Review the scoped diff and checkpoint**
+- [x] **Step 8: Review the scoped diff and checkpoint**
 
 Run: `git diff -- apps/web/src/components/ProjectDefaultsDrawer.tsx apps/web/tests/projectDefaultsDrawer.test.tsx apps/web/src/components/RuleDrawer.tsx apps/web/tests/ruleDrawer.test.tsx apps/web/src/components/RoutingPage.tsx apps/web/tests/routingPage.test.tsx apps/web/src/components/LibrarySidebar.tsx apps/web/src/components/LibraryPage.tsx apps/web/tests/libraryPage.test.tsx apps/web/src/styles.css`
 
@@ -915,7 +917,7 @@ git commit -m "feat(web): add unified route defaults editor"
 - Consumes: all previous tasks.
 - Produces: current project config with explicit project defaults and no duplicate per-item values.
 
-- [ ] **Step 1: Capture the pre-migration generated template**
+- [x] **Step 1: Capture the pre-migration generated template**
 
 Run: `pnpm generate`
 
@@ -923,7 +925,7 @@ Run: `Copy-Item -LiteralPath 'output\templates\Custom_Clash.ini' -Destination "$
 
 Expected: generation succeeds and the snapshot contains seven health-check lines ending in `300,,50`.
 
-- [ ] **Step 2: Apply the exact YAML migration**
+- [x] **Step 2: Apply the exact YAML migration**
 
 Insert after `publishBaseUrl`:
 
@@ -949,7 +951,7 @@ Remove only:
 
 Do not edit any `nodeFilters`, group options, type, policy, section, provider recipe or array order.
 
-- [ ] **Step 3: Verify config-level behavior**
+- [x] **Step 3: Verify config-level behavior**
 
 Run: `pnpm check`
 
@@ -970,7 +972,7 @@ if ($normalized -ne $before) { throw 'Generated INI changed outside the intended
 
 Expected: no exception; the only generated INI difference is seven `300,,50` tails becoming `300,5,50`.
 
-- [ ] **Step 4: Run focused tests, then the complete suite**
+- [x] **Step 4: Run focused tests, then the complete suite**
 
 Run:
 
@@ -986,7 +988,7 @@ Run: `pnpm build`
 
 Expected: all commands PASS; the existing Ant Design deprecation warning may remain non-blocking.
 
-- [ ] **Step 5: Perform a browser-level routing-page smoke test**
+- [x] **Step 5: Perform a browser-level routing-page smoke test**
 
 Run: `pnpm dev`
 
@@ -1000,7 +1002,7 @@ Verify manually or with the available browser runner:
 6. Rule Provider and GEOIP drawers expose inherit/custom states.
 7. Preview INI shows `300,5,50` for inherited current-project URLTest groups.
 
-- [ ] **Step 6: Audit the final workspace diff**
+- [x] **Step 6: Audit the final workspace diff**
 
 Run: `git status --short`
 
@@ -1010,7 +1012,7 @@ Run: `git diff -- config/routes.yaml packages/core/src packages/core/tests apps/
 
 Expected: no whitespace errors; every new change maps to this plan; pre-existing unrelated changes remain preserved.
 
-- [ ] **Step 7: Record the milestone**
+- [x] **Step 7: Record the milestone**
 
 Update `.agents/active.md` with final commands and any non-blocking warning. Append a dated entry to `.agents/progress.md` covering:
 
@@ -1019,7 +1021,7 @@ Update `.agents/active.md` with final commands and any non-blocking warning. App
 - current config migration;
 - exact verification commands and results.
 
-- [ ] **Step 8: Create a final implementation commit only when isolation is safe**
+- [x] **Step 8: Create a final implementation commit only when isolation is safe**
 
 Because several target files were already modified before this task, first inspect `git diff --cached --name-status` and the complete cached patch. If task-owned hunks are cleanly isolated, commit them with:
 
@@ -1028,3 +1030,11 @@ git commit -m "feat: add project defaults and proxy group relationships"
 ```
 
 If isolation is not safe, leave implementation changes uncommitted and report the verified file list instead of absorbing pre-existing work.
+
+## Closure Notes
+
+- 2026-08-07：全部任务步骤已完成。新鲜验证为 `pnpm test`（49 文件、276 测试）、`pnpm typecheck`、`pnpm build`、`pnpm check` 和 `pnpm generate` 全部通过。
+- 浏览器烟测覆盖单一有序策略组列表、父组引用、两个默认值入口、组/规则继承状态和 INI 预览；`300,5,50` 出现 7 次，旧尾段 `300,,50` 未出现。
+- 迁移后 INI 将 7 个 timeout 槽位归一回空值后，与迁移前快照逐字一致。
+- `git diff --check` 无空白错误；仅报告工作树既有的 LF/CRLF 转换提示。暂存区为空。
+- 由于多个目标文件包含任务开始前已有改动，无法安全整体暂存；按计划保留实现未提交，未自动 stage、commit、merge 或 push。

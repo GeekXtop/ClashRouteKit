@@ -254,7 +254,6 @@ ruleProviders:
         output: "Developer_Domain.yaml",
         path: path.join(root, "output/rules/Developer_Domain.yaml"),
         inputRules: 4,
-        domainRules: 4,
         excludedRules: 2,
         outputRules: 2,
         sources: [
@@ -262,11 +261,78 @@ ruleProviders:
             name: "DeveloperList",
             type: "clash-list",
             inputRules: 4,
-            domainRules: 4,
+            outputRules: 4,
           },
         ],
       },
     ]);
+  });
+
+  it("generates classical, ipcidr, and empty placeholder provider outputs", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await mkdir(path.join(root, "config/rules"), { recursive: true });
+    await writeFile(
+      path.join(root, "config/rules/Mixed.list"),
+      [
+        "DOMAIN-SUFFIX,example.com",
+        "IP-CIDR,192.0.2.0/24,no-resolve",
+        "PROCESS-NAME,Telegram.exe",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      [
+        "publishBaseUrl: http://127.0.0.1:8787",
+        "template:",
+        "  output: Custom_Clash.ini",
+        "customProxyGroups:",
+        "  - name: Proxy",
+        "    type: select",
+        "    options:",
+        "      - DIRECT",
+        "ruleSets:",
+        "  - id: final",
+        "    policy: Proxy",
+        "    source:",
+        "      type: final",
+        "ruleProviders:",
+        "  - name: MixedClassical",
+        "    output: Mixed_Classical.yaml",
+        "    behavior: classical",
+        "    sources:",
+        "      - name: Mixed",
+        "        type: clash-list",
+        "        path: config/rules/Mixed.list",
+        "  - name: MixedIP",
+        "    output: Mixed_IP.yaml",
+        "    behavior: ipcidr",
+        "    sources:",
+        "      - name: Mixed",
+        "        type: clash-list",
+        "        path: config/rules/Mixed.list",
+        "  - name: Placeholder",
+        "    output: Placeholder_Classical.yaml",
+        "    behavior: classical",
+        "    sources: []",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const result = await generateOutputs({ root, configFile: "routes.yaml" });
+
+    const classical = await readFile(path.join(root, "output/rules/Mixed_Classical.yaml"), "utf8");
+    const ipcidr = await readFile(path.join(root, "output/rules/Mixed_IP.yaml"), "utf8");
+    const placeholder = await readFile(path.join(root, "output/rules/Placeholder_Classical.yaml"), "utf8");
+    expect(classical).toContain("'DOMAIN-SUFFIX,example.com'");
+    expect(classical).toContain("'PROCESS-NAME,Telegram.exe'");
+    expect(ipcidr).toContain("'192.0.2.0/24'");
+    expect(ipcidr).not.toContain("example.com");
+    expect(placeholder).toContain("payload:");
+    expect(placeholder).toContain("# 总数: 0");
+    expect(result.providers.find((provider) => provider.name === "MixedIP")?.outputRules).toBe(1);
   });
 
   it("reports duplicate rules within providers and overlaps across provider outputs", async () => {
@@ -535,6 +601,37 @@ vendorRepos:
       "FINAL -> 🚀 手动选择",
     );
     await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([]);
+  });
+
+  it("checks invalid project default values", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      `
+publishBaseUrl: http://127.0.0.1:8787
+defaults:
+  proxyGroups:
+    healthCheck:
+      timeout: 0
+template:
+  output: Custom_Clash.ini
+customProxyGroups:
+  - name: Proxy
+    type: select
+    options:
+      - DIRECT
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
+`,
+      "utf8",
+    );
+
+    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([
+      "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
+    ]);
   });
 
   it("checks geosite tags when local domain-list-community data is available", async () => {

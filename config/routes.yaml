@@ -1,4 +1,15 @@
 publishBaseUrl: http://127.0.0.1:8787
+defaults:
+  proxyGroups:
+    healthCheck:
+      url: https://cp.cloudflare.com/generate_204
+      interval: 300
+      timeout: 5
+    urlTest:
+      tolerance: 50
+  ruleSets:
+    ruleProviderInterval: 28800
+    geoipNoResolve: true
 template:
   output: Custom_Clash.ini
 vendorRepos:
@@ -14,296 +25,662 @@ vendorRepos:
     catalog:
       dir: vendor/ACL4SSR/Clash
       kind: list-dir
+    templateDir: vendor/ACL4SSR/Clash/config
   - name: dler-io
     url: https://github.com/dler-io/Rules.git
-    path: vendor/Rules
+    path: vendor/dler-io
     branch: main
     catalog:
-      dir: vendor/Rules/Clash/Provider
+      dir: vendor/dler-io/Clash/Provider
       kind: provider-yaml
   - name: Aethersailor
-    url: https://github.com/GeekXtop/Custom_OpenClash_Rules.git
-    path: vendor/Custom_OpenClash_Rules
+    url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
+    path: vendor/Aethersailor
     branch: main
     catalog:
-      dir: vendor/Custom_OpenClash_Rules/rule
+      dir: vendor/Aethersailor/rule
       kind: list-dir
+    templateDir: vendor/Aethersailor/cfg
 customProxyGroups:
-  - name: Proxy
+  - name: 🚀 手动选择
     type: select
     options:
-      - Auto
-      - Direct
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
     nodeFilters:
       - .*
-  - name: Auto
+  - name: ♻️ 自动选择
     type: url-test
     options: []
     nodeFilters:
       - .*
-    url: https://cp.cloudflare.com/generate_204
-    interval: 300
-    tolerance: 50
-  - name: AI
+  - name: 💬 即时通讯
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
-  - name: Tech
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+      - 🎯 全球直连
+  - name: 🌐 社交媒体
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
-  - name: Crypto
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+      - 🎯 全球直连
+    nodeFilters:
+      - .*
+  - name: 🚀 GitHub
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
-  - name: Microsoft
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+      - 🎯 全球直连
+  - name: 🤖 ChatGPT
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
-  - name: Streaming
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🤖 AI服务
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
-  - name: Games
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎶 TikTok
     type: select
     options:
-      - Proxy
-      - Auto
-      - Direct
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 📹 YouTube
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎥 Netflix
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎥 DisneyPlus
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎥 HBO
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎥 PrimeVideo
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎥 AppleTV+
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇸🇬 新加坡节点
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+      - 🎯 全球直连
+    nodeFilters:
+      - .*
+  - name: 🎥 Emby
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎻 Spotify
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 📺 Bahamut
+    type: select
+    options:
+      - 🇼🇸 台湾节点
+      - 🚀 手动选择
+      - 🎯 全球直连
+    nodeFilters:
+      - .*
+  - name: 🌎 国外媒体
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🛒 国外电商
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 📢 谷歌FCM
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+  - name: 🇬 谷歌服务
+    type: select
+    options:
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🍎 苹果服务
+    type: select
+    options:
+      - 🎯 全球直连
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: Ⓜ️ 微软服务
+    type: select
+    options:
+      - 🎯 全球直连
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎮 游戏平台
+    type: select
+    options:
+      - 🎯 全球直连
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🎮 Steam
+    type: select
+    options:
+      - 🎯 全球直连
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
+  - name: 🚀 测速工具
+    type: select
+    options:
+      - 🎯 全球直连
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
+    nodeFilters:
+      - .*
   - name: 🐟 漏网之鱼
     type: select
     options:
-      - Proxy
-      - Direct
-      - Auto
+      - 🚀 手动选择
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - 🇭🇰 香港节点
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇸🇬 新加坡节点
+      - 🇼🇸 台湾节点
+      - 🇰🇷 韩国节点
     nodeFilters:
       - .*
-  - name: Direct
+  - name: 🔀 非标端口
+    type: select
+    options:
+      - 🐟 漏网之鱼
+      - 🎯 全球直连
+  - name: 🇭🇰 香港节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇭🇰|港|\bHK(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|hk|Hong Kong|HongKong|hongkong|HONG KONG|HONGKONG|深港|HKG|九龙|Kowloon|新界|沙田|荃湾|葵涌)
+  - name: 🇺🇸 美国节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇺🇸|美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|纽约|纽纽|亚特兰大|迈阿密|华盛顿|\bUS(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|United States|UnitedStates|UNITED STATES|USA|America|AMERICA|JFK|EWR|IAD|ATL|ORD|MIA|NYC|LAX|SFO|SEA|DFW|SJC)
+  - name: 🇯🇵 日本节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇯🇵|日本|川日|东京|大阪|泉日|埼玉|沪日|深日|(?<!尼|-)日|\bJP(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Japan|JAPAN|JPN|NRT|HND|KIX|TYO|OSA|关西|Kansai|KANSAI)
+    timeout: 5
+  - name: 🇸🇬 新加坡节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇸🇬|新加坡|坡|狮城|\bSG(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Singapore|SINGAPORE|SIN)
+    tolerance: 50
+    timeout: 5
+  - name: 🇼🇸 台湾节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇹🇼|🇼🇸|台|新北|彰化|\bTW(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Taiwan|TAIWAN|TWN|TPE|ROC)
+  - name: 🇰🇷 韩国节点
+    type: url-test
+    options: []
+    nodeFilters:
+      - (🇰🇷|\bKR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Korea|KOREA|KOR|首尔|韩|韓|春川|Chuncheon|ICN)
+  - name: 🎯 全球直连
     type: select
     options:
       - DIRECT
 ruleSets:
-  - id: private-geosite-private
-    policy: Direct
+  - id: private
+    policy: 🎯 全球直连
     source:
       type: geosite
       value: private
-  - id: custom-direct-provider-custom-direct-domain
-    policy: Direct
+    section: 本地地址和域名直连
+  - id: geoip-private
+    policy: 🎯 全球直连
+    source:
+      type: geoip
+      value: private
+    section: 本地地址和域名直连
+  - id: Custom_Direct_Domain
+    policy: 🎯 全球直连
     source:
       type: rule-provider
       behavior: domain
       file: Custom_Direct_Domain.yaml
-  - id: custom-proxy-provider-custom-proxy-domain
-    policy: Proxy
+    section: 本项目收录的直连规则
+  - id: Custom_Direct_Classical_IP
+    policy: 🎯 全球直连
+    source:
+      type: rule-provider
+      behavior: classical
+      file: Custom_Direct_Classical_IP.yaml
+    section: 本项目收录的直连规则
+  - id: Custom_Proxy_Domain
+    policy: 🚀 手动选择
     source:
       type: rule-provider
       behavior: domain
       file: Custom_Proxy_Domain.yaml
-  - id: ai-provider-ai-domain
-    policy: AI
+    section: 本项目收录的代理规则
+  - id: Custom_Proxy_Classical_IP
+    policy: 🚀 手动选择
+    source:
+      type: rule-provider
+      behavior: classical
+      file: Custom_Proxy_Classical_IP.yaml
+    section: 本项目收录的代理规则
+  - id: google-cn
+    policy: 🎯 全球直连
     source:
       type: rule-provider
       behavior: domain
-      file: AI_Domain.yaml
-  - id: ai-geosite-openai
-    policy: AI
+      file: GoogleCN_Domain.yaml
+    section: 谷歌在国内可用的域名直连
+  - id: category-games@cn
+    policy: 🎯 全球直连
+    source:
+      type: rule-provider
+      behavior: domain
+      file: GameDownload_Domain.yaml
+    section: 国内游戏域名直连
+  - id: Steam_CDN_Classical
+    policy: 🎯 全球直连
+    source:
+      type: rule-provider
+      behavior: classical
+      file: Steam_CDN_Classical.yaml
+    section: Steam 下载 CDN 直连
+  - id: category-game-platforms-download
+    policy: 🎯 全球直连
+    source:
+      type: geosite
+      value: category-game-platforms-download
+    section: 各大游戏平台下载域名直连
+  - id: category-public-tracker
+    policy: 🎯 全球直连
+    source:
+      type: geosite
+      value: category-public-tracker
+    section: BT Tracker 相关域名直连
+  - id: category-communication
+    policy: 💬 即时通讯
+    source:
+      type: geosite
+      value: category-communication
+    section: 即时通讯包括了 Telegram/WhatsApp/Line 等海外主流即时通讯软件域名
+  - id: category-social-media-!cn
+    policy: 🌐 社交媒体
+    source:
+      type: geosite
+      value: category-social-media-!cn
+    section: 社交媒体包括了 Twitter(X)/Facebook/Instagram 等海外主流社交媒体
+  - id: openai
+    policy: 🤖 ChatGPT
     source:
       type: geosite
       value: openai
-  - id: ai-geosite-anthropic
-    policy: AI
+  - id: category-ai-!cn
+    policy: 🤖 AI服务
     source:
       type: geosite
-      value: anthropic
-  - id: ai-geosite-google-gemini
-    policy: AI
-    source:
-      type: geosite
-      value: google-gemini
-  - id: ai-geosite-google-deepmind
-    policy: AI
-    source:
-      type: geosite
-      value: google-deepmind
-  - id: ai-geosite-jetbrains-ai
-    policy: AI
-    source:
-      type: geosite
-      value: jetbrains-ai
-  - id: ai-geosite-github-copilot
-    policy: AI
-    source:
-      type: geosite
-      value: github-copilot
-  - id: developer-provider-developer-domain
-    policy: Tech
-    source:
-      type: rule-provider
-      behavior: domain
-      file: Developer_Domain.yaml
-  - id: developer-geosite-github
-    policy: Tech
+      value: category-ai-!cn
+  - id: github
+    policy: 🚀 GitHub
     source:
       type: geosite
       value: github
-  - id: developer-geosite-gitlab
-    policy: Tech
+  - id: category-speedtest
+    policy: 🚀 测速工具
     source:
       type: geosite
-      value: gitlab
-  - id: developer-geosite-npmjs
-    policy: Tech
-    source:
-      type: geosite
-      value: npmjs
-  - id: developer-geosite-nodejs
-    policy: Tech
-    source:
-      type: geosite
-      value: nodejs
-  - id: developer-geosite-docker
-    policy: Tech
-    source:
-      type: geosite
-      value: docker
-  - id: developer-geosite-debian
-    policy: Tech
-    source:
-      type: geosite
-      value: debian
-  - id: developer-geosite-ubuntu
-    policy: Tech
-    source:
-      type: geosite
-      value: ubuntu
-  - id: developer-geosite-python
-    policy: Tech
-    source:
-      type: geosite
-      value: python
-  - id: developer-geosite-golang
-    policy: Tech
-    source:
-      type: geosite
-      value: golang
-  - id: developer-geosite-rust
-    policy: Tech
-    source:
-      type: geosite
-      value: rust
-  - id: developer-geosite-jetbrains
-    policy: Tech
-    source:
-      type: geosite
-      value: jetbrains
-  - id: developer-geosite-sourceforge
-    policy: Tech
-    source:
-      type: geosite
-      value: sourceforge
-  - id: crypto-provider-crypto-domain
-    policy: Crypto
-    source:
-      type: rule-provider
-      behavior: domain
-      file: Crypto_Domain.yaml
-  - id: crypto-geosite-binance
-    policy: Crypto
-    source:
-      type: geosite
-      value: binance
-  - id: crypto-geosite-okx
-    policy: Crypto
-    source:
-      type: geosite
-      value: okx
-  - id: crypto-geosite-bybit
-    policy: Crypto
-    source:
-      type: geosite
-      value: bybit
-  - id: microsoft-provider-microsoft-domain
-    policy: Microsoft
-    source:
-      type: rule-provider
-      behavior: domain
-      file: Microsoft_Domain.yaml
-  - id: microsoft-geosite-microsoft-dev
-    policy: Microsoft
-    source:
-      type: geosite
-      value: microsoft-dev
-  - id: microsoft-geosite-microsoft
-    policy: Microsoft
-    source:
-      type: geosite
-      value: microsoft
-  - id: streaming-geosite-youtube
-    enabled: false
-    policy: Streaming
-    source:
-      type: geosite
-      value: youtube
-  - id: streaming-geosite-netflix
-    enabled: false
-    policy: Streaming
-    source:
-      type: geosite
-      value: netflix
-  - id: streaming-geosite-disney
-    enabled: false
-    policy: Streaming
-    source:
-      type: geosite
-      value: disney
-  - id: games-geosite-steam
-    enabled: false
-    policy: Games
+      value: category-speedtest
+    section: 测速工具包括 SpeedTest 等主流测速工具域名
+  - id: steam
+    policy: 🎮 Steam
     source:
       type: geosite
       value: steam
-  - id: games-geosite-epicgames
-    enabled: false
-    policy: Games
+  - id: youtube
+    policy: 📹 YouTube
     source:
       type: geosite
-      value: epicgames
-  - id: global-proxy-geosite-geolocation-not-cn
-    policy: Proxy
+      value: youtube
+  - id: apple-tvplus
+    policy: 🎥 AppleTV+
     source:
       type: geosite
-      value: geolocation-!cn
-  - id: china-geosite-geolocation-cn
-    policy: Direct
+      value: apple-tvplus
+  - id: apple
+    policy: 🍎 苹果服务
     source:
       type: geosite
-      value: geolocation-cn
-  - id: china-geosite-cn
-    policy: Direct
+      value: apple
+  - id: microsoft
+    policy: Ⓜ️ 微软服务
+    source:
+      type: geosite
+      value: microsoft
+  - id: googlefcm
+    policy: 📢 谷歌FCM
+    source:
+      type: geosite
+      value: googlefcm
+  - id: google
+    policy: 🇬 谷歌服务
+    source:
+      type: geosite
+      value: google
+  - id: tiktok
+    policy: 🎶 TikTok
+    source:
+      type: geosite
+      value: tiktok
+  - id: netflix
+    policy: 🎥 Netflix
+    source:
+      type: geosite
+      value: netflix
+  - id: disney
+    policy: 🎥 DisneyPlus
+    source:
+      type: geosite
+      value: disney
+  - id: hbo
+    policy: 🎥 HBO
+    source:
+      type: geosite
+      value: hbo
+  - id: primevideo
+    policy: 🎥 PrimeVideo
+    source:
+      type: geosite
+      value: primevideo
+  - id: category-emby
+    policy: 🎥 Emby
+    source:
+      type: geosite
+      value: category-emby
+    section: Emby 包括主流 Emby 服务相关域名
+  - id: spotify
+    policy: 🎻 Spotify
+    source:
+      type: geosite
+      value: spotify
+  - id: bahamut
+    policy: 📺 Bahamut
+    source:
+      type: geosite
+      value: bahamut
+  - id: category-games
+    policy: 🎮 游戏平台
+    source:
+      type: geosite
+      value: category-games
+  - id: category-entertainment
+    policy: 🌎 国外媒体
+    source:
+      type: geosite
+      value: category-entertainment
+  - id: category-ecommerce
+    policy: 🛒 国外电商
+    source:
+      type: geosite
+      value: category-ecommerce
+  - id: gfw
+    policy: 🚀 手动选择
+    source:
+      type: rule-provider
+      behavior: domain
+      file: ProxyGFWlist_Domain.yaml
+  - id: geoip-telegram
+    policy: 💬 即时通讯
+    source:
+      type: geoip
+      value: telegram
+  - id: geoip-twitter
+    policy: 🌐 社交媒体
+    source:
+      type: geoip
+      value: twitter
+  - id: geoip-facebook
+    policy: 🌐 社交媒体
+    source:
+      type: geoip
+      value: facebook
+  - id: geoip-google
+    policy: 🇬 谷歌服务
+    source:
+      type: geoip
+      value: google
+  - id: geoip-netflix
+    policy: 🎥 Netflix
+    source:
+      type: geoip
+      value: netflix
+  - id: cn
+    policy: 🎯 全球直连
     source:
       type: geosite
       value: cn
-  - id: china-geoip-cn
-    policy: Direct
+    section: 由于 OpenClash 使用的大陆白名单收录不全，此处留有 geosite:cn 作为国内域名兜底
+  - id: geoip-cn
+    policy: 🎯 全球直连
     source:
       type: geoip
       value: cn
-      noResolve: true
+    section: 由于 OpenClash 使用的大陆白名单收录不全，此处留有 geoip:cn 作为国内 IP 兜底
+  - id: Custom_Port_Direct
+    policy: 🔀 非标端口
+    source:
+      type: rule-provider
+      behavior: classical
+      file: Custom_Port_Direct.yaml
+    section: PT/BT 优化开启会使 80/443 以外端口的流量直连
   - id: final
     policy: 🐟 漏网之鱼
     source:
       type: final
+    section: 漏网之鱼直连时，无法通过 DNS 泄露测试，但是并不存在泄露
 ruleProviders:
   - name: Custom_Direct
     output: Custom_Direct_Domain.yaml
@@ -319,13 +696,37 @@ ruleProviders:
       - name: LocalProxy
         type: clash-list
         path: config/rules/Custom_Proxy_Domain.list
+  - name: GoogleCN
+    output: GoogleCN_Domain.yaml
+    behavior: domain
+    sources:
+      - name: ACL4SSR_GoogleCN
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/GoogleCN.list
+  - name: GameDownload
+    output: GameDownload_Domain.yaml
+    behavior: domain
+    sources:
+      - name: ACL4SSR_GameDownload
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/GameDownload.list
+  - name: ProxyGFWlist
+    output: ProxyGFWlist_Domain.yaml
+    behavior: domain
+    sources:
+      - name: ACL4SSR_ProxyGFWlist
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/ProxyGFWlist.list
   - name: AI
     output: AI_Domain.yaml
     behavior: domain
     sources:
       - name: DlerRules_AI_Suite
         type: clash-provider
-        basePath: vendor/Rules
+        basePath: vendor/dler-io
         path: Clash/Provider/AI Suite.yaml
       - name: DLC_openai
         type: domain-list-community
@@ -416,7 +817,7 @@ ruleProviders:
     sources:
       - name: DlerRules_Crypto
         type: clash-provider
-        basePath: vendor/Rules
+        basePath: vendor/dler-io
         path: Clash/Provider/Crypto.yaml
       - name: DLC_binance
         type: domain-list-community
@@ -430,19 +831,19 @@ ruleProviders:
         type: domain-list-community
         entry: bybit
         basePath: vendor/domain-list-community/data
-  - name: Microsoft
-    output: Microsoft_Domain.yaml
-    behavior: domain
-    sources:
-      - name: DlerRules_Microsoft
-        type: clash-provider
-        basePath: vendor/Rules
-        path: Clash/Provider/Microsoft.yaml
-      - name: DLC_microsoft_dev
-        type: domain-list-community
-        entry: microsoft-dev
-        basePath: vendor/domain-list-community/data
-      - name: DLC_microsoft
-        type: domain-list-community
-        entry: microsoft
-        basePath: vendor/domain-list-community/data
+  - name: Custom_Direct_Classical_IP
+    output: Custom_Direct_Classical_IP.yaml
+    behavior: classical
+    sources: []
+  - name: Custom_Proxy_Classical_IP
+    output: Custom_Proxy_Classical_IP.yaml
+    behavior: classical
+    sources: []
+  - name: Steam_CDN_Classical
+    output: Steam_CDN_Classical.yaml
+    behavior: classical
+    sources: []
+  - name: Custom_Port_Direct
+    output: Custom_Port_Direct.yaml
+    behavior: classical
+    sources: []

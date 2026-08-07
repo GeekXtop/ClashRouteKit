@@ -16,7 +16,7 @@ const config: RouteKitProjectConfig = {
   ruleProviders: [],
 };
 
-it("renders the three publish sections", async () => {
+it("renders the stacked publish sections", async () => {
   const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({}) }) as unknown as Response);
   render(
     <AppProviders>
@@ -28,7 +28,8 @@ it("renders the three publish sections", async () => {
       />
     </AppProviders>,
   );
-  await waitFor(() => expect(screen.getByText(/模板与发布/)).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("本机 · 实时")).toBeTruthy());
+  expect(screen.getByText(/发布到 GitHub/)).toBeTruthy();
   expect(screen.getByText(/构建并推送/)).toBeTruthy();
   expect(screen.getByText("生成 config.yaml")).toBeTruthy();
 });

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
@@ -43,6 +43,7 @@ type RunCommand = (command: string, args: string[], cwd: string) => Promise<stri
 type ReadDirectory = (directory: string) => Promise<string[]>;
 type ReadText = (filePath: string) => Promise<string>;
 type WriteText = (filePath: string, text: string) => Promise<void>;
+type RemovePath = (filePath: string) => Promise<void>;
 
 export interface ProjectConfigFileOptions extends ProgramOptions {
   readText?: ReadText;
@@ -76,9 +77,18 @@ export interface WriteProjectRuleFileOptions extends ProgramOptions {
   writeText?: WriteText;
 }
 
+export interface DeleteProjectRuleFileOptions extends ProgramOptions {
+  file: string;
+  removePath?: RemovePath;
+}
+
 export interface ProjectRuleFileResult {
   file: string;
   text: string;
+}
+
+export interface DeleteProjectRuleFileResult {
+  file: string;
 }
 
 function projectConfigPath(options: ProgramOptions): string {
@@ -160,6 +170,14 @@ export async function writeProjectRuleFile(
   };
 }
 
+export async function deleteProjectRuleFile(
+  options: DeleteProjectRuleFileOptions,
+): Promise<DeleteProjectRuleFileResult> {
+  const removePath = options.removePath ?? ((filePath: string) => rm(filePath, { force: true }));
+  await removePath(resolveRuleFile(options, options.file));
+  return { file: options.file };
+}
+
 interface CatalogOriginDef {
   id: string;
   label: string;
@@ -209,9 +227,20 @@ export interface CatalogSourcesOptions extends ProgramOptions {
 }
 
 export function catalogOriginsFromConfig(config: RouteKitProjectConfig): CatalogOriginDef[] {
-  const fromConfig = config.vendorRepos
-    .filter((repo) => repo.catalog)
-    .map((repo) => ({ id: repo.name, label: repo.name, kind: repo.catalog!.kind, dir: repo.catalog!.dir }));
+  const fromConfig: CatalogOriginDef[] = [];
+  for (const repo of config.vendorRepos) {
+    if (repo.catalog) {
+      fromConfig.push({ id: repo.name, label: repo.name, kind: repo.catalog.kind, dir: repo.catalog.dir });
+    }
+    if (repo.templateDir) {
+      fromConfig.push({
+        id: `${repo.name}::templates`,
+        label: `${repo.name} · 模板`,
+        kind: "ini-template",
+        dir: repo.templateDir,
+      });
+    }
+  }
   return fromConfig.length > 0 ? fromConfig : CATALOG_ORIGINS;
 }
 
@@ -249,6 +278,20 @@ function parseProviderPayload(text: string): string[] {
     .filter((line) => line.length > 0 && !line.startsWith("#"));
 }
 
+/** Run `fn` over `items` with a bounded number of in-flight promises (avoids EMFILE on huge dirs). */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await fn(items[index]!);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(Math.max(limit, 1), items.length) }, worker));
+  return results;
+}
+
 export async function listCatalogEntries(options: CatalogEntriesOptions): Promise<string[]> {
   const def = catalogOrigin(options.origin, options.origins);
   const readDirectory = options.readDirectory ?? ((directory: string) => readdir(directory));
@@ -283,6 +326,8 @@ export async function listCatalogEntries(options: CatalogEntriesOptions): Promis
 export interface CatalogEntryMeta {
   name: string;
   hasChildren: boolean;
+  /** Not referenced by any other entry's include: — i.e. a top of the include graph. */
+  root: boolean;
 }
 
 export async function listCatalogEntriesWithMeta(
@@ -291,20 +336,30 @@ export async function listCatalogEntriesWithMeta(
   const def = catalogOrigin(options.origin, options.origins);
   const names = await listCatalogEntries(options);
   if (def.kind !== "domain-list") {
-    return names.map((name) => ({ name, hasChildren: false }));
+    return names.map((name) => ({ name, hasChildren: false, root: true }));
   }
   const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
   const dir = catalogDataDir(options, options.origin);
-  return Promise.all(
-    names.map(async (name) => {
-      try {
-        const info = parseDomainListEntry(await readText(path.join(dir, name)));
-        return { name, hasChildren: info.includes.length > 0 };
-      } catch {
-        return { name, hasChildren: false };
-      }
-    }),
-  );
+  // Bounded concurrency: reading ~1500 files via Promise.all can exhaust file handles
+  // on Windows, and failed reads would silently mark entries as childless (breaking nesting).
+  const parsed = await mapWithConcurrency(names, 24, async (name) => {
+    try {
+      return { name, includes: parseDomainListEntry(await readText(path.join(dir, name))).includes };
+    } catch {
+      return { name, includes: [] as string[] };
+    }
+  });
+  // An entry is a "root" only if no other entry pulls it in via include: — so sub-categories
+  // (e.g. category-ads, included by category-ads-all) are nested, never duplicated at top level.
+  const included = new Set<string>();
+  for (const entry of parsed) {
+    for (const name of entry.includes) included.add(name);
+  }
+  return parsed.map((entry) => ({
+    name: entry.name,
+    hasChildren: entry.includes.length > 0,
+    root: !included.has(entry.name),
+  }));
 }
 
 export async function readCatalogEntry(
@@ -361,6 +416,176 @@ export async function readCatalogTemplate(options: CatalogEntryOptions): Promise
   const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
   const ini = await readText(path.join(dir, `${options.name}.ini`));
   return { name: options.name, ini };
+}
+
+// ---- catalog search: match entry name + the entry's own domains (reverse lookup) ----
+
+export interface CatalogSearchHit {
+  name: string;
+  matchedDomains: string[];
+}
+
+interface CatalogIndexRow {
+  name: string;
+  domains: string[];
+}
+
+const catalogIndexCache = new Map<string, CatalogIndexRow[]>();
+const catalogGraphCache = new Map<string, CatalogGraph>();
+
+/** Drop cached search indexes / include graphs (call after sync / vendor changes). */
+export function clearCatalogIndexCache(origin?: string): void {
+  if (origin) {
+    catalogIndexCache.delete(origin);
+    catalogGraphCache.delete(origin);
+  } else {
+    catalogIndexCache.clear();
+    catalogGraphCache.clear();
+  }
+}
+
+/** The entry's own domain tokens, WITHOUT expanding include: (cheap, what the file itself lists). */
+function domainListOwnTokens(content: string): string[] {
+  const tokens: string[] = [];
+  for (const rawLine of content.replace(/\r\n?/g, "\n").split("\n")) {
+    const trimmed = rawLine.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const head = trimmed.split(/\s+/)[0]!;
+    if (head.startsWith("include:") || head.startsWith("regexp:")) continue;
+    if (head.startsWith("full:")) tokens.push(head.slice("full:".length));
+    else if (head.startsWith("domain:")) tokens.push(head.slice("domain:".length));
+    else if (head.startsWith("keyword:")) tokens.push(head.slice("keyword:".length));
+    else if (!head.includes(":")) tokens.push(head);
+  }
+  return tokens;
+}
+
+async function entryOwnTokens(
+  def: CatalogOriginDef,
+  dir: string,
+  name: string,
+  readText: ReadText,
+): Promise<string[]> {
+  if (def.kind === "list-dir") {
+    return listRules(await readText(path.join(dir, `${name}.list`))).map((rule) => rule.split(",").pop() ?? rule);
+  }
+  if (def.kind === "provider-yaml") {
+    return parseProviderPayload(await readText(path.join(dir, `${name}.yaml`)));
+  }
+  if (def.kind === "domain-list") {
+    return domainListOwnTokens(await readText(path.join(dir, name)));
+  }
+  return [];
+}
+
+async function buildCatalogIndex(
+  options: CatalogEntriesOptions & { readText?: ReadText },
+): Promise<CatalogIndexRow[]> {
+  const def = catalogOrigin(options.origin, options.origins);
+  const names = await listCatalogEntries(options);
+  const dir = catalogDataDir(options, options.origin);
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  return mapWithConcurrency(names, 24, async (name) => {
+    try {
+      return { name, domains: (await entryOwnTokens(def, dir, name, readText)).map((token) => token.toLowerCase()) };
+    } catch {
+      return { name, domains: [] as string[] };
+    }
+  });
+}
+
+export interface CatalogSearchOptions extends CatalogEntriesOptions {
+  query: string;
+  readText?: ReadText;
+  limit?: number;
+  cache?: Map<string, CatalogIndexRow[]>;
+}
+
+export async function searchCatalog(options: CatalogSearchOptions): Promise<CatalogSearchHit[]> {
+  const query = options.query.trim().toLowerCase();
+  if (!query) return [];
+  const cache = options.cache ?? catalogIndexCache;
+  let index = cache.get(options.origin);
+  if (!index) {
+    index = await buildCatalogIndex(options);
+    cache.set(options.origin, index);
+  }
+  const limit = options.limit ?? 200;
+  const hits: CatalogSearchHit[] = [];
+  for (const row of index) {
+    const matchedDomains = row.domains.filter((domain) => domain.includes(query)).slice(0, 5);
+    if (row.name.toLowerCase().includes(query) || matchedDomains.length > 0) {
+      hits.push({ name: row.name, matchedDomains });
+      if (hits.length >= limit) break;
+    }
+  }
+  return hits;
+}
+
+// ---- include graph: locate an entry's ancestry path from a root category ----
+
+interface CatalogGraph {
+  includes: Map<string, string[]>;
+  roots: string[];
+}
+
+async function buildCatalogGraph(
+  options: CatalogEntriesOptions & { readText?: ReadText },
+): Promise<CatalogGraph> {
+  const def = catalogOrigin(options.origin, options.origins);
+  const names = await listCatalogEntries(options);
+  if (def.kind !== "domain-list") {
+    return { includes: new Map(), roots: names };
+  }
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  const dir = catalogDataDir(options, options.origin);
+  const parsed = await mapWithConcurrency(names, 24, async (name) => {
+    try {
+      return { name, includes: parseDomainListEntry(await readText(path.join(dir, name))).includes };
+    } catch {
+      return { name, includes: [] as string[] };
+    }
+  });
+  const includes = new Map<string, string[]>();
+  const included = new Set<string>();
+  for (const entry of parsed) {
+    includes.set(entry.name, entry.includes);
+    for (const name of entry.includes) included.add(name);
+  }
+  return { includes, roots: parsed.filter((entry) => !included.has(entry.name)).map((entry) => entry.name) };
+}
+
+export interface CatalogPathOptions extends CatalogEntriesOptions {
+  name: string;
+  readText?: ReadText;
+  graphCache?: Map<string, CatalogGraph>;
+}
+
+/**
+ * Shortest include path from a top-level (`category-*`) root to `name`, inclusive.
+ * Returns [] when the entry is not reachable from any category root (e.g. an orphan list).
+ */
+export async function findCatalogPath(options: CatalogPathOptions): Promise<string[]> {
+  const cache = options.graphCache ?? catalogGraphCache;
+  let graph = cache.get(options.origin);
+  if (!graph) {
+    graph = await buildCatalogGraph(options);
+    cache.set(options.origin, graph);
+  }
+  const sources = graph.roots.filter((root) => root.startsWith("category-"));
+  const queue: string[][] = sources.map((root) => [root]);
+  const visited = new Set<string>(sources);
+  while (queue.length > 0) {
+    const trail = queue.shift()!;
+    const last = trail[trail.length - 1]!;
+    if (last === options.name) return trail;
+    for (const include of graph.includes.get(last) ?? []) {
+      if (visited.has(include)) continue;
+      visited.add(include);
+      queue.push([...trail, include]);
+    }
+  }
+  return [];
 }
 
 export async function listCatalogSources(options: CatalogSourcesOptions): Promise<CatalogSourceInfo[]> {
@@ -422,7 +647,10 @@ export interface VendorRepoInput {
   name: string;
   url: string;
   branch?: string;
+  /** Local clone folder under vendor/; defaults to the repo name when omitted. */
+  folder?: string;
   catalog?: { reldir: string; kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template" };
+  templateReldir?: string;
 }
 
 export function normalizeVendorRepoInput(input: VendorRepoInput): VendorRepoConfig {
@@ -430,13 +658,20 @@ export function normalizeVendorRepoInput(input: VendorRepoInput): VendorRepoConf
   if (!name) {
     throw new Error("vendor repo name is required");
   }
-  const repo: VendorRepoConfig = { name, url: input.url.trim(), path: `vendor/${name}` };
+  // The local folder (where git clones to) is decoupled from the display name;
+  // relative dirs are resolved against vendor/<folder>/, not vendor/<name>/.
+  const folder = input.folder?.trim().replace(/^\/+|\/+$/g, "") || name;
+  const repo: VendorRepoConfig = { name, url: input.url.trim(), path: `vendor/${folder}` };
   if (input.branch?.trim()) {
     repo.branch = input.branch.trim();
   }
   const reldir = input.catalog?.reldir.trim().replace(/^\/+|\/+$/g, "");
   if (input.catalog && reldir) {
-    repo.catalog = { dir: `vendor/${name}/${reldir}`, kind: input.catalog.kind };
+    repo.catalog = { dir: `vendor/${folder}/${reldir}`, kind: input.catalog.kind };
+  }
+  const templateReldir = input.templateReldir?.trim().replace(/^\/+|\/+$/g, "");
+  if (templateReldir) {
+    repo.templateDir = `vendor/${folder}/${templateReldir}`;
   }
   return repo;
 }
@@ -445,6 +680,21 @@ export interface VendorRepoMutationOptions extends ProgramOptions {
   readText?: ReadText;
   writeText?: WriteText;
   statMtime?: (filePath: string) => Promise<number>;
+  removePath?: (filePath: string) => Promise<void>;
+}
+
+/** Delete a directory under vendor/, refusing anything outside it (or vendor/ itself). */
+async function clearVendorDirectory(
+  options: ProgramOptions & { removePath?: (filePath: string) => Promise<void> },
+  relPath: string,
+): Promise<void> {
+  const vendorRoot = path.resolve(options.root, "vendor");
+  const target = path.resolve(options.root, relPath);
+  if (target === vendorRoot || !target.startsWith(`${vendorRoot}${path.sep}`)) {
+    throw new Error(`Refusing to clear path outside vendor/: ${relPath}`);
+  }
+  const removePath = options.removePath ?? ((filePath: string) => rm(filePath, { recursive: true, force: true }));
+  await removePath(target);
 }
 
 export async function addProjectVendorRepo(
@@ -454,14 +704,29 @@ export async function addProjectVendorRepo(
   return writeProjectConfigFile({ ...options, config: addVendorRepo(config, normalizeVendorRepoInput(options.input)) });
 }
 
+export interface VendorRepoUpdateResult extends ProjectConfigFileResult {
+  /** True when the clone source/location changed and the old vendor dir was cleared (caller should re-sync). */
+  resync: boolean;
+}
+
 export async function updateProjectVendorRepo(
   options: VendorRepoMutationOptions & { name: string; input: VendorRepoInput },
-): Promise<ProjectConfigFileResult> {
+): Promise<VendorRepoUpdateResult> {
   const { config } = await readProjectConfigFile(options);
-  return writeProjectConfigFile({
-    ...options,
-    config: updateVendorRepo(config, options.name, normalizeVendorRepoInput(options.input)),
-  });
+  const previous = config.vendorRepos.find((repo) => repo.name === options.name);
+  const next = normalizeVendorRepoInput(options.input);
+  const result = await writeProjectConfigFile({ ...options, config: updateVendorRepo(config, options.name, next) });
+  const resync = Boolean(
+    previous &&
+      (previous.path !== next.path ||
+        previous.url !== next.url ||
+        (previous.branch ?? "") !== (next.branch ?? "")),
+  );
+  if (resync && previous) {
+    // Clear the old clone so the next sync re-clones from the new source/folder.
+    await clearVendorDirectory(options, previous.path);
+  }
+  return { ...result, resync };
 }
 
 export async function removeProjectVendorRepo(
@@ -475,11 +740,11 @@ function formatGenerateOutput(result: GenerateResult): string {
   const lines = [`[generate] template: ${result.templatePath}`];
   for (const provider of result.providers) {
     const sources = provider.sources
-      .map((source) => `${source.name}:${source.domainRules}/${source.inputRules}`)
+      .map((source) => `${source.name}:${source.outputRules}/${source.inputRules}`)
       .join(", ");
     lines.push(`[generate] rules: ${provider.path}`);
     lines.push(
-      `[generate] summary: ${provider.name} output=${provider.outputRules} domain=${provider.domainRules} excluded=${provider.excludedRules} sources=[${sources}]`,
+      `[generate] summary: ${provider.name} output=${provider.outputRules} excluded=${provider.excludedRules} sources=[${sources}]`,
     );
   }
   const duplicateRuleCount = result.duplicates.reduce((count, provider) => count + provider.rules.length, 0);
@@ -506,6 +771,7 @@ export async function runRouteKitAction(
 
   if (action === "sync-vendor") {
     const results = await syncVendor(options);
+    clearCatalogIndexCache();
     const lines = results.map((result) =>
       result.action === "error"
         ? `[sync-vendor] error: ${result.name} -> ${result.error ?? "unknown error"}`
@@ -668,6 +934,18 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
         return;
       }
 
+      if (request.method === "DELETE") {
+        void deleteProjectRuleFile({ ...options, file })
+          .then((result) => writeJson(response, 200, result))
+          .catch((error: unknown) => {
+            writeJson(response, 400, {
+              ok: false,
+              output: error instanceof Error ? error.message : String(error),
+            });
+          });
+        return;
+      }
+
       writeJson(response, 405, { ok: false, output: "Method not allowed" });
       return;
     }
@@ -735,6 +1013,34 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
       return;
     }
 
+    if (url.pathname === "/api/catalog/search") {
+      const origin = url.searchParams.get("origin") ?? "";
+      const query = url.searchParams.get("q") ?? "";
+      void readProjectConfigFile(options)
+        .then(({ config }) =>
+          searchCatalog({ ...options, origin, query, origins: catalogOriginsFromConfig(config) }),
+        )
+        .then((hits) => writeJson(response, 200, { hits }))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
+    if (url.pathname === "/api/catalog/path") {
+      const origin = url.searchParams.get("origin") ?? "";
+      const name = url.searchParams.get("name") ?? "";
+      void readProjectConfigFile(options)
+        .then(({ config }) =>
+          findCatalogPath({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
+        )
+        .then((catalogPath) => writeJson(response, 200, { path: catalogPath }))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
     if (url.pathname === "/api/vendor/add" || url.pathname === "/api/vendor/update") {
       if (request.method !== "POST") {
         writeJson(response, 405, { ok: false, output: "Method not allowed" });
@@ -760,7 +1066,10 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
             }
             return addProjectVendorRepo({ ...options, input: payload.input });
           })
-          .then((result) => writeJson(response, 200, result))
+          .then((result) => {
+            clearCatalogIndexCache();
+            writeJson(response, 200, result);
+          })
           .catch((error: unknown) => {
             writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) });
           });
@@ -786,7 +1095,10 @@ export function createRouteKitApiHandler(options: ProgramOptions) {
             }
             return removeProjectVendorRepo({ ...options, name: payload.name });
           })
-          .then((result) => writeJson(response, 200, result))
+          .then((result) => {
+            clearCatalogIndexCache();
+            writeJson(response, 200, result);
+          })
           .catch((error: unknown) => {
             writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) });
           });

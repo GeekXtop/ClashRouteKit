@@ -1,7 +1,7 @@
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { Button } from "antd";
 import { Plus } from "lucide-react";
-import type { RuleSet } from "@clash-route-kit/core";
+import type { RouteKitDefaults, RuleSet } from "@clash-route-kit/core";
 import { policyTone } from "../proxyGroups.js";
 import { ruleSetSourceText } from "../routeSummary.js";
 import { RuleRow } from "./RuleRow.js";
@@ -10,9 +10,12 @@ export function RuleStream(props: {
   ruleSets: RuleSet[];
   selectedGroup: string | null;
   selectedRuleSetId: string;
+  incompleteProviderOutputs?: Set<string>;
+  emptyDescription?: ReactNode;
+  defaults?: RouteKitDefaults;
   onSelectRuleSet: (id: string) => void;
   onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
+  onEditRule: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   allOrderedIds: string[];
   onAddRule: () => void;
@@ -56,12 +59,16 @@ export function RuleStream(props: {
               <RuleRow
                 key={ruleSet.id}
                 ruleSet={ruleSet}
-                sourceText={ruleSetSourceText(ruleSet)}
+                sourceText={ruleSetSourceText(ruleSet, props.defaults)}
                 tone={ruleSet.source.type === "final" ? "fin" : policyTone(ruleSet.policy)}
                 selected={ruleSet.id === props.selectedRuleSetId}
+                incompleteProvider={
+                  ruleSet.source.type === "rule-provider" &&
+                  Boolean(props.incompleteProviderOutputs?.has(ruleSet.source.file))
+                }
                 onSelect={() => props.onSelectRuleSet(ruleSet.id)}
                 onToggle={() => props.onToggle(ruleSet.id)}
-                onDelete={() => props.onDelete(ruleSet.id)}
+                onEdit={() => props.onEditRule(ruleSet.id)}
                 dragHandlers={{
                   draggable: true,
                   onDragStart: () => (dragId.current = ruleSet.id),
@@ -72,7 +79,9 @@ export function RuleStream(props: {
             ))}
           </div>
         ))}
-        {props.ruleSets.length === 0 ? <div className="rk-empty">没有匹配规则</div> : null}
+        {props.ruleSets.length === 0 ? (
+          <div className="rk-empty">{props.emptyDescription ?? "没有匹配规则"}</div>
+        ) : null}
       </div>
     </div>
   );

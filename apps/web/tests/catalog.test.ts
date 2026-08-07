@@ -15,14 +15,19 @@ describe("catalog client", () => {
   it("fetches catalog entries with hasChildren for an origin", async () => {
     const fetcher = vi.fn(async () =>
       new Response(
-        JSON.stringify({ entries: [{ name: "category-acg", hasChildren: true }, { name: "openai", hasChildren: false }] }),
+        JSON.stringify({
+          entries: [
+            { name: "category-ads-all", hasChildren: true, root: true },
+            { name: "category-ads", hasChildren: true, root: false },
+          ],
+        }),
         { status: 200 },
       ),
     );
 
     await expect(fetchCatalogEntries("domain-list-community", fetcher)).resolves.toEqual([
-      { name: "category-acg", hasChildren: true },
-      { name: "openai", hasChildren: false },
+      { name: "category-ads-all", hasChildren: true, root: true },
+      { name: "category-ads", hasChildren: true, root: false },
     ]);
     expect(fetcher).toHaveBeenCalledWith("/api/catalog/entries?origin=domain-list-community");
   });

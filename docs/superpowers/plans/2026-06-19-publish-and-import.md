@@ -2,20 +2,33 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 实现单栏「发布」页（模板 → 发布模板 Git → 装配 config.yaml）与统一「导入」流程（模板库 .ini / 粘贴 INI → 预览 → 替换/合并）。订阅本地存储、二维码导设备、git 构建推送、OpenClash 对照填写。
+**Goal:** 实现单栏「发布」页（模板 → 发布模板 Git → 装配 config.yaml）与统一「导入」流程（模板库 .ini / 粘贴 INI → 预览 → 替换/合并）。订阅在页面内填写、不落盘，支持二维码导设备、git 构建推送、OpenClash 对照填写。
 
-**Architecture:** 复用 `subscriptions.ts`(buildSubconverterUrl)、`publishWorkflow.ts`(fetchGitRemote/createRawUrlTemplates/action states)、`actions.ts`(requestLocalAction)、`configMutations.ts`(parseIniToConfig 经 draftActions.importIni/importTemplate)。新增 subscriptions 本地存储客户端（对齐计划 1 `/api/subscriptions`）。页面单栏竖排三块；导入是 Modal。
+**Architecture:** 复用 `subscriptions.ts`(buildSubconverterUrl)、`publishWorkflow.ts`(fetchGitRemote/createRawUrlTemplates/action states)、`actions.ts`(requestLocalAction)、`configMutations.ts`(parseIniToConfig 经 draftActions.importIni/importTemplate)。订阅链接只存在发布页组件 state 中，不写 `routes.yaml`、不写本地文件、不发布。页面单栏竖排三块；导入是 Modal。
 
 **Tech Stack:** React 19、AntD（Collapse/Form/Input/Select/Switch/List/Button/Modal/Segmented/QRCode 或 qrcode 包）、vitest。
+
+> 2026-06-23 完成状态：发布页主体、构建推送入口、内存订阅装配 config.yaml、二维码、模板导入弹窗已落地；`PublishTemplateSection`/`GitPublishSection` 被合并进 `PublishLeftPanel`。未完整覆盖原计划的导入双模式与 git 状态/diff 展示已迁移到 `docs/superpowers/plans/2026-06-23-web-console-followups.md`。
+
+## 2026-06-23 状态总览
+
+- [x] 发布模板 URL、本机 LAN URL、GitHub raw URL 解析已在 `PublishLeftPanel` 中落地。
+- [x] 构建并推送入口已串行调用 `generate`、`git-commit`、`git-push`。
+- [x] `ConfigYamlSection` 已实现会话内多订阅、SubConverter 参数、下载链接和二维码。
+- [x] `PublishPage` 已接线发布页单栏流程。
+- [x] `fetchCatalogTemplate` 与模板/粘贴导入弹窗已实现。
+- [x] 当前验证：`pnpm typecheck`、`pnpm test`、`pnpm check`、`pnpm --filter @clash-route-kit/core build` 已通过。
+- [ ] 剩余功能：`ImportModal` 替换/合并双模式、发布页 git status/diff 展示，已迁移到 `2026-06-23-web-console-followups.md`。
+- [ ] 非功能历史项：逐步提交记录、手动 `pnpm dev` 全流程走查、旧 `subscriptions.ts` 未用导出清理未追溯。
 
 ## Global Constraints
 
 - ESM/NodeNext：相对 import 带 `.js`。
 - 组件测试首行 `// @vitest-environment jsdom`，AntD 用 `AppProviders` 包裹。
 - 错误/成功走 `notify`（计划 2）。
-- 依赖前置：计划 1（`/api/subscriptions`、`LocalSubscription`、catalog template）、计划 2（骨架）、计划 4（已删 SubscribeAssembler? 否——本计划删）。
+- 依赖前置：计划 1（catalog template）、计划 2（骨架）、计划 4（已删 SubscribeAssembler? 否——本计划删）。
 - 视觉参照：`publish-page-v5.html`（单栏）。
-- 删除旧组件（Task 5/6）：`PublishPanel.tsx`、`SubscribeAssembler.tsx`、`PreviewWorkspace.tsx`、`TemplateImportWizard.tsx` 及测试。
+- 删除旧组件（Task 4/5）：`PublishPanel.tsx`、`SubscribeAssembler.tsx`、`PreviewWorkspace.tsx`、`TemplateImportWizard.tsx` 及测试。
 - 二维码：保留 `qrcode` 依赖；编码 `clash://install-config?url=<subconverter URL>`。
 
 ---
@@ -24,7 +37,6 @@
 
 | 文件 | 责任 | 动作 |
 |---|---|---|
-| `apps/web/src/subscriptionsStore.ts` | `/api/subscriptions` 读写客户端 | 新建 |
 | `apps/web/src/catalog.ts` | 加 `fetchCatalogTemplate` | 修改 |
 | `apps/web/src/components/PublishTemplateSection.tsx` | 顶部：模板 + 校验 + URL | 新建 |
 | `apps/web/src/components/GitPublishSection.tsx` | ① 发布模板（构建/推送/diff/OpenClash 对照） | 新建 |
@@ -36,85 +48,7 @@
 
 ---
 
-## Task 1: 订阅本地存储客户端
-
-**Files:**
-- Create: `apps/web/src/subscriptionsStore.ts`
-- Test: `apps/web/tests/subscriptionsStore.test.ts`
-
-**Interfaces:**
-- Consumes: `LocalSubscription`（core，计划 1）。
-- Produces:
-  - `fetchSubscriptions(fetcher?): Promise<LocalSubscription[]>`（GET `/api/subscriptions`）
-  - `saveSubscriptions(subscriptions: LocalSubscription[], fetcher?): Promise<LocalSubscription[]>`（PUT）
-
-- [ ] **Step 1: 写失败测试**
-
-```ts
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchSubscriptions, saveSubscriptions } from "../src/subscriptionsStore.js";
-
-it("fetches subscriptions", async () => {
-  const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ subscriptions: [{ id: "a", name: "A", url: "u", enabled: true }] }) }) as unknown as Response);
-  expect(await fetchSubscriptions(fetcher)).toEqual([{ id: "a", name: "A", url: "u", enabled: true }]);
-});
-
-it("saves subscriptions via PUT", async () => {
-  const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ subscriptions: [] }) }) as unknown as Response);
-  await saveSubscriptions([], fetcher);
-  expect((fetcher.mock.calls[0]![1] as RequestInit).method).toBe("PUT");
-});
-```
-
-- [ ] **Step 2: 确认失败** — `pnpm exec vitest run apps/web/tests/subscriptionsStore.test.ts`（FAIL）
-
-- [ ] **Step 3: 实现**
-
-`apps/web/src/subscriptionsStore.ts`：
-
-```ts
-import type { LocalSubscription } from "@clash-route-kit/core";
-
-type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
-export async function fetchSubscriptions(fetcher: Fetcher = globalThis.fetch): Promise<LocalSubscription[]> {
-  const response = await fetcher("/api/subscriptions");
-  const payload = (await response.json()) as { subscriptions?: unknown };
-  if (!response.ok || !Array.isArray(payload.subscriptions)) {
-    throw new Error("Invalid subscriptions response");
-  }
-  return payload.subscriptions as LocalSubscription[];
-}
-
-export async function saveSubscriptions(
-  subscriptions: LocalSubscription[],
-  fetcher: Fetcher = globalThis.fetch,
-): Promise<LocalSubscription[]> {
-  const response = await fetcher("/api/subscriptions", {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ subscriptions }),
-  });
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { output?: string };
-    throw new Error(payload.output ?? "保存订阅失败");
-  }
-  return subscriptions;
-}
-```
-
-- [ ] **Step 4: 通过 + 提交**
-
-Run: `pnpm exec vitest run apps/web/tests/subscriptionsStore.test.ts`（PASS）
-
-```bash
-git add apps/web/src/subscriptionsStore.ts apps/web/tests/subscriptionsStore.test.ts
-git commit -m "feat(web): local subscriptions store client"
-```
-
----
-
-## Task 2: `PublishTemplateSection`（顶部：模板 + 校验 + URL）
+## Task 1: `PublishTemplateSection`（顶部：模板 + 校验 + URL）
 
 **Files:**
 - Create: `apps/web/src/components/PublishTemplateSection.tsx`
@@ -167,7 +101,7 @@ git commit -m "feat(web): publish template section with local/raw urls"
 
 ---
 
-## Task 3: `GitPublishSection`（构建/推送/diff/OpenClash 对照）
+## Task 2: `GitPublishSection`（构建/推送/diff/OpenClash 对照）
 
 **Files:**
 - Create: `apps/web/src/components/GitPublishSection.tsx`
@@ -220,7 +154,7 @@ git commit -m "feat(web): git publish section (build+push, openclash hints)"
 
 ---
 
-## Task 4: `ConfigYamlSection`（多订阅 + 下载/二维码）
+## Task 3: `ConfigYamlSection`（多订阅 + 下载/二维码）
 
 **Files:**
 - Create: `apps/web/src/components/ConfigYamlSection.tsx`
@@ -232,40 +166,36 @@ ConfigYamlSection(props: {
   publishBaseUrl: string;
   templateOutput: string;
   subconverterUrl: string;       // config.subconverterUrl ?? 默认
-  fetcher?: Fetcher;
 }): JSX.Element
 ```
-- 多订阅列表（`fetchSubscriptions` 载入；行：名称 Input + URL Input + 启用 Switch + 删除；「＋ 添加订阅」）；变更 `saveSubscriptions`（debounce 或失焦保存）。
+- 多订阅列表存在组件 state 中（行：名称 Input + URL Input + 启用 Switch + 删除；「＋ 添加订阅」），刷新页面即丢弃，不调用后端、不写本地文件。
 - subconverter 端点 Input。
 - 「生成 config.yaml」：`buildSubconverterUrl({ providers: subscriptions(过滤 enabled), publishBaseUrl, templateOutput, subconverterUrl })` → 得 URL；
   - 下载：`<a href={url} download="config.yaml">` 或 `Button` 包 `<a>`。
   - 二维码：`QRCode.toDataURL(`clash://install-config?url=${encodeURIComponent(url)}`)` → `<img>`。
-- 提示：订阅含 token，仅本地、不发布。
+- 提示：订阅含 token，仅本次会话、不落盘、不发布。
 
-- [ ] **Step 1-3: TDD**
+- [x] **Step 1-3: TDD**
 
-测试要点：载入订阅后渲染行；填端点 + 至少一条启用订阅后「生成」产生包含 `config=`/`url=` 的链接（断言 `<a download>` 的 href 含 subconverter 域）。
+测试要点：在页面添加一条订阅；填端点 + 至少一条启用订阅后「生成」产生包含 `config=`/`url=` 的链接（断言 `<a download>` 的 href 含 subconverter 域）。
 
 ```tsx
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { ConfigYamlSection } from "../src/components/ConfigYamlSection.js";
 afterEach(cleanup);
-it("builds a subconverter download url from subscriptions", async () => {
-  const fetcher = vi.fn(async (input: RequestInfo | URL) => {
-    if (String(input).includes("/api/subscriptions")) return ({ ok: true, json: async () => ({ subscriptions: [{ id: "a", name: "A", url: "https://air/sub", enabled: true }] }) }) as unknown as Response;
-    return ({ ok: true, json: async () => ({}) }) as unknown as Response;
-  });
-  render(<AppProviders><ConfigYamlSection publishBaseUrl="http://127.0.0.1:8787" templateOutput="Custom_Clash.ini" subconverterUrl="http://10.0.0.3:25500/sub" fetcher={fetcher} /></AppProviders>);
-  await waitFor(() => expect(screen.getByDisplayValue("https://air/sub")).toBeTruthy());
+it("builds a subconverter download url from in-memory subscriptions", async () => {
+  render(<AppProviders><ConfigYamlSection publishBaseUrl="http://127.0.0.1:8787" templateOutput="Custom_Clash.ini" subconverterUrl="http://10.0.0.3:25500/sub" /></AppProviders>);
+  fireEvent.click(screen.getByText("添加订阅"));
+  fireEvent.change(screen.getByPlaceholderText("订阅 URL"), { target: { value: "https://air/sub" } });
   fireEvent.click(screen.getByText("生成 config.yaml"));
   await waitFor(() => expect(screen.getByText("下载").closest("a")?.getAttribute("href")).toContain("10.0.0.3:25500/sub"));
 });
 ```
 
-实现：`LocalSubscription` 结构与 `buildSubconverterUrl` 的 `ProviderSubscription` 兼容（`{id,name,url,enabled}`），可直接传 `providers`。完整按 Interfaces + 线框。
+实现：使用 `subscriptions.ts` 的 `ProviderSubscription` 结构（`{id,name,url,enabled}`），可直接传 `providers`。完整按 Interfaces + 线框。
 
 - [ ] **Step 4: 通过 + 提交**
 
@@ -276,7 +206,7 @@ git commit -m "feat(web): assemble config.yaml from native multi-subscription"
 
 ---
 
-## Task 5: `PublishPage` 容器 + App 接线 + 删旧
+## Task 4: `PublishPage` 容器 + App 接线 + 删旧
 
 **Files:**
 - Rewrite: `apps/web/src/components/PublishPage.tsx`
@@ -297,9 +227,9 @@ PublishPage(props: {
 - `subconverterUrl` 取 `config.subconverterUrl ?? "http://10.0.0.3:25500/sub"`。
 - raw URL 在 `PublishTemplateSection` 内解析；传给 `GitPublishSection` 作 OpenClash 对照（容器层提一个 `rawTemplateUrl` state，由 template section 回调上抛，或各自 `fetchGitRemote`——择一，避免重复请求建议容器提升）。
 
-- [ ] **Step 1-3: TDD**（渲染 PublishPage，mock fetcher，断言三块标志文案存在：模板 URL、构建并推送、生成 config.yaml）
+- [x] **Step 1-3: TDD**（渲染 PublishPage，mock fetcher，断言三块标志文案存在：模板 URL、构建并推送、生成 config.yaml）
 
-- [ ] **Step 4: App 接线**：`view==="publish"` 渲染 `PublishPage`，传 `config`、`project.validation`、`onRunCheck`(=`runLocalRouteKitAction("check")`，需把该函数从旧 App 逻辑保留/恢复)。
+- [x] **Step 4: App 接线**：`view==="publish"` 渲染 `PublishPage`，传 `config`、`project.validation`、`onRunCheck`(=`runLocalRouteKitAction("check")`，需把该函数从旧 App 逻辑保留/恢复)。
 
 - [ ] **Step 5: 删旧 + 提交**
 
@@ -318,7 +248,7 @@ git commit -m "feat(web): single-column publish page"
 
 ---
 
-## Task 6: 统一导入流程 `ImportModal` + 入口
+## Task 5: 统一导入流程 `ImportModal` + 入口
 
 **Files:**
 - Modify: `apps/web/src/catalog.ts`（加 `fetchCatalogTemplate`）
@@ -406,7 +336,7 @@ git commit -m "feat(web): unified import (template library + paste ini)"
 
 ---
 
-## 收尾校验（全计划 1-5 完成后）
+## 收尾校验（全计划完成后）
 
 - [ ] Run: `pnpm typecheck`　Expected: 无错误
 - [ ] Run: `pnpm test`　Expected: 全绿
@@ -417,6 +347,6 @@ git commit -m "feat(web): unified import (template library + paste ini)"
 
 ## Self-Review 记录
 
-- **Spec 覆盖**：spec §7（发布单栏：模板/Git/config.yaml）、§7② 订阅本地存储、§8（导入合并 + 空状态前置）、§9（通知）。OpenClash 对照与 Use Rule Provider 说明在 `GitPublishSection`。
+- **Spec 覆盖**：spec §7（发布单栏：模板/Git/config.yaml）、§8（导入合并 + 空状态前置）、§9（通知）。OpenClash 对照与 Use Rule Provider 说明在 `GitPublishSection`。
 - **占位符**：客户端/各 section 关键逻辑给完整代码与测试；容器/弹窗版面以契约 + 线框 + 关键代码描述。
-- **类型一致性**：`LocalSubscription` 结构兼容 `buildSubconverterUrl` 的 `ProviderSubscription`；`fetchCatalogTemplate`、subscriptions 客户端、各 section props 前后一致；导入接 `draftActions.importIni/importTemplate`（已存在）。
+- **类型一致性**：`ProviderSubscription` 结构直接供 `buildSubconverterUrl` 使用；`fetchCatalogTemplate`、各 section props 前后一致；导入接 `draftActions.importIni/importTemplate`（已存在）。

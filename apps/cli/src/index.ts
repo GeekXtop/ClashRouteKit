@@ -20,11 +20,11 @@ async function main(): Promise<void> {
     console.log(`[generate] template: ${result.templatePath}`);
     for (const provider of result.providers) {
       const sources = provider.sources
-        .map((source) => `${source.name}:${source.domainRules}/${source.inputRules}`)
+        .map((source) => `${source.name}:${source.outputRules}/${source.inputRules}`)
         .join(", ");
       console.log(`[generate] rules: ${provider.path}`);
       console.log(
-        `[generate] summary: ${provider.name} output=${provider.outputRules} domain=${provider.domainRules} excluded=${provider.excludedRules} sources=[${sources}]`,
+        `[generate] summary: ${provider.name} output=${provider.outputRules} excluded=${provider.excludedRules} sources=[${sources}]`,
       );
     }
     const duplicateRuleCount = result.duplicates.reduce((count, provider) => count + provider.rules.length, 0);

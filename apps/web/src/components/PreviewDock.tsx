@@ -5,7 +5,17 @@ export function PreviewDock({ ini }: { ini: string }) {
     <Collapse
       className="rk-preview-dock"
       size="small"
-      items={[{ key: "ini", label: "INI 预览", children: <pre className="rk-ini">{ini}</pre> }]}
+      items={[
+        {
+          key: "ini",
+          label: "INI 预览",
+          children: (
+            <pre data-testid="ini-preview" className="rk-ini rk-ini-scroll">
+              {ini}
+            </pre>
+          ),
+        },
+      ]}
     />
   );
 }

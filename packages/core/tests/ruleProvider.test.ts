@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { convertDomainListCommunity, generateDomainProvider, summarizeDomainProvider } from "../src/index.js";
+import {
+  convertDomainListCommunity,
+  generateClassicalProvider,
+  generateDomainProvider,
+  generateIpcidrProvider,
+  generateRuleProvider,
+  summarizeDomainProvider,
+  summarizeRuleProvider,
+} from "../src/index.js";
 
 describe("domain-list-community conversion", () => {
   it("converts rules and expands includes with stable de-duplication", async () => {
@@ -82,6 +90,65 @@ describe("generateDomainProvider", () => {
       domainRules: 3,
       excludedRules: 1,
       outputRules: 2,
+    });
+  });
+});
+
+describe("generateClassicalProvider", () => {
+  it("keeps complete supported rule lines with dedupe, sorting, and excludes", () => {
+    const yaml = generateClassicalProvider({
+      source: "config/rules/Mixed.list",
+      rules: [
+        "DOMAIN-SUFFIX,example.com",
+        "IP-CIDR,192.0.2.0/24,no-resolve",
+        "PROCESS-NAME,Telegram.exe",
+        "domain-suffix,example.com",
+      ],
+      exclude: ["PROCESS-NAME,Telegram.exe"],
+    });
+
+    expect(yaml).toContain("# 生成自 config/rules/Mixed.list");
+    expect(yaml).toContain("# 总数: 2");
+    expect(yaml).toContain("  - 'DOMAIN-SUFFIX,example.com'");
+    expect(yaml).toContain("  - 'IP-CIDR,192.0.2.0/24,no-resolve'");
+    expect(yaml).not.toContain("Telegram.exe");
+  });
+});
+
+describe("generateIpcidrProvider", () => {
+  it("keeps only IP-CIDR and IP-CIDR6 values with dedupe, sorting, and excludes", () => {
+    const yaml = generateIpcidrProvider({
+      source: "config/rules/IP.list",
+      rules: [
+        "DOMAIN-SUFFIX,ignored.example",
+        "IP-CIDR,192.0.2.0/24,no-resolve",
+        "IP-CIDR6,2001:db8::/32,no-resolve",
+        "ip-cidr,192.0.2.0/24",
+        "IP-CIDR,198.51.100.0/24",
+      ],
+      exclude: ["198.51.100.0/24"],
+    });
+
+    expect(yaml).toContain("# 总数: 2");
+    expect(yaml).toContain("  - '192.0.2.0/24'");
+    expect(yaml).toContain("  - '2001:db8::/32'");
+    expect(yaml).not.toContain("ignored.example");
+    expect(yaml).not.toContain("198.51.100.0/24");
+  });
+
+  it("dispatches provider generation and summaries by behavior", () => {
+    const input = {
+      source: "config/rules/Mixed.list",
+      rules: ["DOMAIN-SUFFIX,example.com", "IP-CIDR,192.0.2.0/24,no-resolve"],
+    };
+
+    expect(generateRuleProvider("domain", input)).toContain("'+.example.com'");
+    expect(generateRuleProvider("classical", input)).toContain("'IP-CIDR,192.0.2.0/24,no-resolve'");
+    expect(generateRuleProvider("ipcidr", input)).toContain("'192.0.2.0/24'");
+    expect(summarizeRuleProvider("ipcidr", input)).toEqual({
+      inputRules: 2,
+      outputRules: 1,
+      excludedRules: 0,
     });
   });
 });

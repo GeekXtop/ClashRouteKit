@@ -4,6 +4,8 @@ import type { RouteKitProjectConfig, VendorRepoConfig } from "@clash-route-kit/c
 import {
   addProjectVendorRepo,
   catalogOriginsFromConfig,
+  clearCatalogIndexCache,
+  findCatalogPath,
   listCatalogEntries,
   listCatalogEntriesWithMeta,
   listCatalogSources,
@@ -15,8 +17,10 @@ import {
   readGitRemote,
   readProjectConfigFile,
   readProjectRuleFile,
+  deleteProjectRuleFile,
   removeProjectVendorRepo,
   runRouteKitAction,
+  searchCatalog,
   updateProjectVendorRepo,
   writeProjectConfigFile,
   writeProjectRuleFile,
@@ -50,6 +54,26 @@ describe("catalogOriginsFromConfig", () => {
 
   it("falls back to builtin origins when no vendorRepo declares catalog meta", () => {
     expect(catalogOriginsFromConfig(projectConfig()).map((origin) => origin.id)).toContain("dler-io");
+  });
+
+  it("emits an extra ini-template origin for a repo's templateDir", () => {
+    const origins = catalogOriginsFromConfig(
+      projectConfig({
+        vendorRepos: [
+          {
+            name: "ACL4SSR",
+            url: "u",
+            path: "p",
+            catalog: { dir: "vendor/ACL4SSR/Clash", kind: "list-dir" },
+            templateDir: "vendor/ACL4SSR/Clash/config",
+          },
+        ],
+      }),
+    );
+    expect(origins).toEqual([
+      { id: "ACL4SSR", label: "ACL4SSR", kind: "list-dir", dir: "vendor/ACL4SSR/Clash" },
+      { id: "ACL4SSR::templates", label: "ACL4SSR · 模板", kind: "ini-template", dir: "vendor/ACL4SSR/Clash/config" },
+    ]);
   });
 });
 
@@ -197,12 +221,12 @@ describe("routeKitApi", () => {
             name: "AI",
             output: "AI_Domain.yaml",
             path: "E:/repo/output/rules/AI_Domain.yaml",
-            source: "AI",
             inputRules: 9,
-            domainRules: 7,
             outputRules: 6,
             excludedRules: 1,
-            sources: [],
+            sources: [
+              { name: "Local", type: "clash-list", inputRules: 9, outputRules: 6 },
+            ],
           },
         ],
         duplicates: [{ provider: "AI", rules: [{ rule: "DOMAIN,example.com", sources: ["a", "b"] }] }],
@@ -213,7 +237,7 @@ describe("routeKitApi", () => {
     expect(result.ok).toBe(true);
     expect(result.output).toContain("[generate] template: E:/repo/output/templates/Custom_Clash.ini");
     expect(result.output).toContain("[generate] rules: E:/repo/output/rules/AI_Domain.yaml");
-    expect(result.output).toContain("[generate] summary: AI output=6 domain=7 excluded=1");
+    expect(result.output).toContain("[generate] summary: AI output=6 excluded=1 sources=[Local:6/9]");
     expect(result.output).toContain("[generate] duplicates: providers=1 rules=1");
     expect(result.output).toContain("[generate] overlaps: rules=1");
     expect(result.output).toContain("[generate] report: E:/repo/output/reports/rule-report.json");
@@ -380,6 +404,21 @@ describe("project rule file helpers", () => {
     });
   });
 
+  it("deletes rule files under config/rules", async () => {
+    const removed: string[] = [];
+    const result = await deleteProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "AI.list",
+      removePath: async (filePath) => {
+        removed.push(filePath);
+      },
+    });
+
+    expect(result).toEqual({ file: "AI.list" });
+    expect(removed).toEqual([path.resolve(root, "config/rules/AI.list")]);
+  });
+
   it("rejects path traversal and non-list rule files", async () => {
     await expect(readProjectRuleFile({
       root,
@@ -394,6 +433,13 @@ describe("project rule file helpers", () => {
       file: "AI.yaml",
       text: "",
       writeText: async () => {},
+    })).rejects.toThrow("Invalid rule file");
+
+    await expect(deleteProjectRuleFile({
+      root,
+      configFile: "config/routes.yaml",
+      file: "../routes.yaml",
+      removePath: async () => {},
     })).rejects.toThrow("Invalid rule file");
   });
 });
@@ -432,6 +478,66 @@ describe("catalog browse helpers", () => {
   });
 });
 
+describe("catalog search (name + own-domain reverse lookup)", () => {
+  const root = path.resolve("fixture-repo");
+  const files: Record<string, string> = {
+    openai: "openai.com\nfull:api.openai.com\n",
+    "category-ai-!cn": "include:openai\nxai.com\n",
+    google: "domain:google.com\n",
+  };
+  const base = {
+    root,
+    configFile: "config/routes.yaml",
+    origin: "domain-list-community",
+    readDirectory: async () => Object.keys(files),
+    readText: async (filePath: string) => {
+      const name = path.basename(filePath);
+      if (!(name in files)) throw new Error(`missing ${name}`);
+      return files[name]!;
+    },
+  };
+
+  it("matches an owned domain without expanding includes", async () => {
+    const hits = await searchCatalog({ ...base, query: "openai.com", cache: new Map() });
+    // category-ai-!cn only `include:openai` — it does not own the domain, so it is not a hit
+    expect(hits.map((hit) => hit.name)).toEqual(["openai"]);
+    expect(hits[0]?.matchedDomains).toContain("openai.com");
+  });
+
+  it("matches by entry name as well as domain", async () => {
+    const hits = await searchCatalog({ ...base, query: "google", cache: new Map() });
+    expect(hits.map((hit) => hit.name)).toEqual(["google"]);
+  });
+
+  it("caps results at the given limit", async () => {
+    const hits = await searchCatalog({ ...base, query: ".com", limit: 2, cache: new Map() });
+    expect(hits).toHaveLength(2);
+  });
+
+  it("caches the index and rebuilds after clearCatalogIndexCache", async () => {
+    let reads = 0;
+    const opts = {
+      root,
+      configFile: "config/routes.yaml",
+      origin: "search-cache-test",
+      origins: [{ id: "search-cache-test", label: "t", kind: "domain-list" as const, dir: "vendor/t/data" }],
+      readDirectory: async () => Object.keys(files),
+      readText: async (filePath: string) => {
+        reads += 1;
+        return files[path.basename(filePath)] ?? "";
+      },
+    };
+    clearCatalogIndexCache();
+    await searchCatalog({ ...opts, query: "openai" });
+    const afterFirst = reads;
+    await searchCatalog({ ...opts, query: "google" });
+    expect(reads).toBe(afterFirst); // served from the in-memory index, no re-read
+    clearCatalogIndexCache();
+    await searchCatalog({ ...opts, query: "google" });
+    expect(reads).toBeGreaterThan(afterFirst);
+  });
+});
+
 describe("vendor repo mutations over project config", () => {
   const root = path.resolve("fixture-repo");
   const configFile = "config/routes.yaml";
@@ -467,6 +573,39 @@ describe("vendor repo mutations over project config", () => {
     expect(repo).toEqual<VendorRepoConfig>({ name: "Bare", url: "https://x.git", path: "vendor/Bare" });
   });
 
+  it("maps templateReldir into a repo-relative templateDir", () => {
+    const repo = normalizeVendorRepoInput({
+      name: "ACL4SSR",
+      url: "https://x.git",
+      catalog: { reldir: "Clash", kind: "list-dir" },
+      templateReldir: "/Clash/config/",
+    });
+    expect(repo).toEqual<VendorRepoConfig>({
+      name: "ACL4SSR",
+      url: "https://x.git",
+      path: "vendor/ACL4SSR",
+      catalog: { dir: "vendor/ACL4SSR/Clash", kind: "list-dir" },
+      templateDir: "vendor/ACL4SSR/Clash/config",
+    });
+  });
+
+  it("resolves dirs against an explicit folder decoupled from the name", () => {
+    const repo = normalizeVendorRepoInput({
+      name: "Aethersailor",
+      url: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git",
+      folder: "Custom_OpenClash_Rules",
+      catalog: { reldir: "rule", kind: "list-dir" },
+      templateReldir: "cfg",
+    });
+    expect(repo).toEqual<VendorRepoConfig>({
+      name: "Aethersailor",
+      url: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git",
+      path: "vendor/Custom_OpenClash_Rules",
+      catalog: { dir: "vendor/Custom_OpenClash_Rules/rule", kind: "list-dir" },
+      templateDir: "vendor/Custom_OpenClash_Rules/cfg",
+    });
+  });
+
   it("adds a repo by writing the serialized config", async () => {
     let written = "";
     const result = await addProjectVendorRepo({
@@ -483,7 +622,8 @@ describe("vendor repo mutations over project config", () => {
     expect(written).toContain("GeekX");
   });
 
-  it("updates an existing repo url", async () => {
+  it("updates an existing repo url and clears the old clone for re-sync", async () => {
+    const removed: string[] = [];
     const result = await updateProjectVendorRepo({
       root,
       configFile,
@@ -494,9 +634,54 @@ describe("vendor repo mutations over project config", () => {
           ["vendorRepos:", "  - name: Custom", "    url: https://old.git", "    path: vendor/Custom"].join("\n"),
         ),
       writeText: async () => {},
+      removePath: async (p) => {
+        removed.push(p);
+      },
     });
     expect(result.config.vendorRepos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
     expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
+    expect(result.resync).toBe(true);
+    expect(removed).toEqual([path.resolve(root, "vendor/Custom")]);
+  });
+
+  it("moves the clone and clears the old folder when the folder changes", async () => {
+    const removed: string[] = [];
+    const result = await updateProjectVendorRepo({
+      root,
+      configFile,
+      name: "Aethersailor",
+      input: { name: "Aethersailor", url: "https://x.git", folder: "Custom_OpenClash_Rules", catalog: { reldir: "rule", kind: "list-dir" }, templateReldir: "cfg" },
+      readText: async () =>
+        yamlWith(["vendorRepos:", "  - name: Aethersailor", "    url: https://x.git", "    path: vendor/Aethersailor"].join("\n")),
+      writeText: async () => {},
+      removePath: async (p) => {
+        removed.push(p);
+      },
+    });
+    expect(result.config.vendorRepos[0]?.path).toBe("vendor/Custom_OpenClash_Rules");
+    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom_OpenClash_Rules/rule");
+    expect(result.config.vendorRepos[0]?.templateDir).toBe("vendor/Custom_OpenClash_Rules/cfg");
+    expect(result.resync).toBe(true);
+    expect(removed).toEqual([path.resolve(root, "vendor/Aethersailor")]);
+  });
+
+  it("does not clear or resync when only the display name or dirs change", async () => {
+    const removed: string[] = [];
+    const result = await updateProjectVendorRepo({
+      root,
+      configFile,
+      name: "Custom",
+      input: { name: "Renamed", url: "https://x.git", folder: "Custom", catalog: { reldir: "Clash", kind: "list-dir" } },
+      readText: async () =>
+        yamlWith(["vendorRepos:", "  - name: Custom", "    url: https://x.git", "    path: vendor/Custom"].join("\n")),
+      writeText: async () => {},
+      removePath: async (p) => {
+        removed.push(p);
+      },
+    });
+    expect(result.config.vendorRepos[0]?.name).toBe("Renamed");
+    expect(result.resync).toBe(false);
+    expect(removed).toEqual([]);
   });
 
   it("removes a repo by name", async () => {
@@ -533,6 +718,11 @@ describe("catalog entries with hasChildren", () => {
     expect(byName["acg-cn"]).toBe(false);
     expect(byName["openai"]).toBe(false);
     expect(byName["README.md"]).toBeUndefined();
+    // acg-cn is pulled in by category-acg → not a root; the others are roots
+    const rootByName = Object.fromEntries(entries.map((e) => [e.name, e.root]));
+    expect(rootByName["category-acg"]).toBe(true);
+    expect(rootByName["acg-cn"]).toBe(false);
+    expect(rootByName["openai"]).toBe(true);
   });
 
   it("marks list-dir entries hasChildren=false without reading files", async () => {
@@ -546,8 +736,40 @@ describe("catalog entries with hasChildren", () => {
       },
     });
     expect(entries).toEqual([
-      { name: "Apple", hasChildren: false },
-      { name: "BanAD", hasChildren: false },
+      { name: "Apple", hasChildren: false, root: true },
+      { name: "BanAD", hasChildren: false, root: true },
     ]);
+  });
+});
+
+describe("findCatalogPath (ancestry from a category root)", () => {
+  const root = path.resolve("fixture-repo");
+  const files: Record<string, string> = {
+    "category-ads-all": "include:category-ads\nadjust.com\n",
+    "category-ads": "include:adblock\nads.com\n",
+    adblock: "ad.example\n",
+    "category-games": "steam.com\n",
+  };
+  const base = {
+    root,
+    configFile: "config/routes.yaml",
+    origin: "domain-list-community",
+    readDirectory: async () => Object.keys(files),
+    readText: async (filePath: string) => files[path.basename(filePath)] ?? "",
+  };
+
+  it("returns the include path from a category root down to a nested entry", async () => {
+    const trail = await findCatalogPath({ ...base, name: "adblock", graphCache: new Map() });
+    expect(trail).toEqual(["category-ads-all", "category-ads", "adblock"]);
+  });
+
+  it("returns just the entry when it is itself a category root", async () => {
+    const trail = await findCatalogPath({ ...base, name: "category-ads-all", graphCache: new Map() });
+    expect(trail).toEqual(["category-ads-all"]);
+  });
+
+  it("returns empty when the entry is not reachable from any category root", async () => {
+    const trail = await findCatalogPath({ ...base, name: "not-in-graph", graphCache: new Map() });
+    expect(trail).toEqual([]);
   });
 });

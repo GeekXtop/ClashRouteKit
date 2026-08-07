@@ -43,15 +43,22 @@ function parseProxyGroupLine(body: string, warnings: string[]): CustomProxyGroup
 
   let url: string | undefined;
   let interval: number | undefined;
-  let tolerance: number | undefined;
+  let timeout: number | null | undefined;
+  let tolerance: number | null | undefined;
   let refsAndFilters = rest;
   if (groupType !== "select" && rest.length >= 2) {
     const intervalSpec = rest[rest.length - 1];
     url = rest[rest.length - 2];
     refsAndFilters = rest.slice(0, rest.length - 2);
     const segments = intervalSpec.split(",");
+    timeout = null;
+    tolerance = null;
     const parsedInterval = Number(segments[0]);
     if (!Number.isNaN(parsedInterval)) interval = parsedInterval;
+    if (segments[1] !== undefined && segments[1] !== "") {
+      const parsedTimeout = Number(segments[1]);
+      if (!Number.isNaN(parsedTimeout)) timeout = parsedTimeout;
+    }
     if (segments[2] !== undefined && segments[2] !== "") {
       const parsedTolerance = Number(segments[2]);
       if (!Number.isNaN(parsedTolerance)) tolerance = parsedTolerance;
@@ -69,6 +76,7 @@ function parseProxyGroupLine(body: string, warnings: string[]): CustomProxyGroup
   if (nodeFilters.length > 0) group.nodeFilters = nodeFilters;
   if (url) group.url = url;
   if (interval !== undefined) group.interval = interval;
+  if (timeout !== undefined) group.timeout = timeout;
   if (tolerance !== undefined) group.tolerance = tolerance;
   return group;
 }
@@ -125,6 +133,7 @@ export function parseIniToConfig(ini: string): ImportedConfig {
       const ruleSet: RuleSet = { id: uniqueId(base), policy, source: parsed };
       if (currentSection) ruleSet.section = currentSection;
       ruleSets.push(ruleSet);
+      currentSection = undefined;
     } else if (key === "custom_proxy_group") {
       const group = parseProxyGroupLine(value, warnings);
       if (group) customProxyGroups.push(group);

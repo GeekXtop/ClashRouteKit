@@ -8,6 +8,8 @@
 
 **Tech Stack:** TypeScript 5.8、React 19、Ant Design 5、Vite 7、Vitest 3、Testing Library、pnpm workspace。
 
+> **Execution Status (2026-08-07): Complete.** 实现、自动化门禁和真实浏览器烟测均已完成。由于目标文件与大量既有未提交修改重叠，条件性实现提交经审计判定不安全，因此按计划保留为未暂存工作树。
+
 ## Global Constraints
 
 - 仅策略组、RuleSet、项目默认值三个抽屉改为显式保存；不引入全局手动保存。
@@ -83,7 +85,7 @@
 - Produces: `nodeFiltersToText(filters)` and `nodeFiltersFromText(text)`.
 - Produces: `replaceCustomProxyGroup(config, originalName, nextGroup)` and `replaceRuleSet(config, originalId, nextRuleSet)`.
 
-- [ ] **Step 1: Write failing node-filter and default-draft tests**
+- [x] **Step 1: Write failing node-filter and default-draft tests**
 
 Add `apps/web/tests/drawerDrafts.test.ts` with these exact behaviors:
 
@@ -118,7 +120,7 @@ describe("drawer draft helpers", () => {
 });
 ```
 
-- [ ] **Step 2: Write failing editable-number validation tests**
+- [x] **Step 2: Write failing editable-number validation tests**
 
 Extend the same file:
 
@@ -166,7 +168,7 @@ it("rejects a blank custom Rule Provider interval", () => {
 });
 ```
 
-- [ ] **Step 3: Run the helper tests and verify RED**
+- [x] **Step 3: Run the helper tests and verify RED**
 
 Run:
 
@@ -176,7 +178,7 @@ pnpm exec vitest run apps/web/tests/drawerDrafts.test.ts
 
 Expected: FAIL because `apps/web/src/drawerDrafts.ts` does not exist.
 
-- [ ] **Step 4: Implement the draft helper types and conversions**
+- [x] **Step 4: Implement the draft helper types and conversions**
 
 Create `apps/web/src/drawerDrafts.ts` with these public type shapes:
 
@@ -239,7 +241,7 @@ ruleSets: {
 
 `finalizeProjectDefaultsDraft` must compact empty proxy-group branches but always retain `ruleSets.geoipNoResolve`. Validate the compact result with `validateDefaultAwareConfig` using an otherwise empty `RouteKitConfig`; return the first diagnostic as `error`.
 
-- [ ] **Step 5: Implement entity finalizers**
+- [x] **Step 5: Implement entity finalizers**
 
 `finalizeCustomProxyGroupDraft` must:
 
@@ -260,7 +262,7 @@ ruleSets: {
 5. Reject `null`, zero, negative, or fractional Rule Provider interval.
 6. Convert an empty section string to `undefined` and clone the source object.
 
-- [ ] **Step 6: Run helper tests and verify GREEN**
+- [x] **Step 6: Run helper tests and verify GREEN**
 
 Run:
 
@@ -270,7 +272,7 @@ pnpm exec vitest run apps/web/tests/drawerDrafts.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 7: Write failing atomic-mutation tests**
+- [x] **Step 7: Write failing atomic-mutation tests**
 
 Add to `apps/web/tests/configMutations.test.ts`:
 
@@ -322,7 +324,7 @@ it("atomically replaces a RuleSet and keeps its index", () => {
 });
 ```
 
-- [ ] **Step 8: Run mutation tests and verify RED**
+- [x] **Step 8: Run mutation tests and verify RED**
 
 Run:
 
@@ -332,7 +334,7 @@ pnpm exec vitest run apps/web/tests/configMutations.test.ts
 
 Expected: FAIL because both complete replacement functions are missing.
 
-- [ ] **Step 9: Implement atomic replacement functions**
+- [x] **Step 9: Implement atomic replacement functions**
 
 Add to `apps/web/src/configMutations.ts`:
 
@@ -377,7 +379,7 @@ export function replaceRuleSet(
 }
 ```
 
-- [ ] **Step 10: Run focused tests and typecheck**
+- [x] **Step 10: Run focused tests and typecheck**
 
 Run:
 
@@ -388,7 +390,7 @@ pnpm --filter @clash-route-kit/web typecheck
 
 Expected: PASS.
 
-- [ ] **Step 11: Review the scoped diff**
+- [x] **Step 11: Review the scoped diff**
 
 Run:
 
@@ -415,7 +417,7 @@ Expected: only Task 1 behavior is added; pre-existing unrelated hunks remain unt
 - Changes: `InheritedNumberSetting.onChange` continues accepting `number | null | undefined` so drawers can represent custom blank inputs.
 - Removes: `allowEmpty` and the “明确留空” option.
 
-- [ ] **Step 1: Replace the three-state tests with failing two-state tests**
+- [x] **Step 1: Replace the three-state tests with failing two-state tests**
 
 Update `apps/web/tests/inheritedSettingField.test.tsx`:
 
@@ -465,7 +467,7 @@ it("emits null when a custom number input is cleared", () => {
 });
 ```
 
-- [ ] **Step 2: Run the inherited-field test and verify RED**
+- [x] **Step 2: Run the inherited-field test and verify RED**
 
 Run:
 
@@ -475,7 +477,7 @@ pnpm exec vitest run apps/web/tests/inheritedSettingField.test.tsx
 
 Expected: FAIL because `null` still maps to `empty` and the third option still renders.
 
-- [ ] **Step 3: Implement the two-state control**
+- [x] **Step 3: Implement the two-state control**
 
 Make these exact semantic changes:
 
@@ -506,7 +508,7 @@ onChange={(value) => props.onChange(value)}
 
 Ant Design supplies `null` when the field is cleared. Keep the custom input visible because `modeForValue(null)` is `custom`. For an effective resolver source of `empty`, render the caption as `当前使用单项覆盖：未设置`; do not render “明确留空”.
 
-- [ ] **Step 4: Run tests and typecheck**
+- [x] **Step 4: Run tests and typecheck**
 
 Run:
 
@@ -517,7 +519,7 @@ pnpm --filter @clash-route-kit/web typecheck
 
 Expected: PASS after downstream call sites are adjusted to remove `allowEmpty`; if typecheck identifies those two props in `GroupDrawer`, remove them without changing drawer behavior yet.
 
-- [ ] **Step 5: Review the scoped diff**
+- [x] **Step 5: Review the scoped diff**
 
 Run:
 
@@ -546,7 +548,7 @@ Expected: only the mode simplification and necessary prop removal are present.
 - `GroupDrawer.onCancel()` is used by the Drawer close control and footer cancel button.
 - `useProjectDraftActions.saveCustomProxyGroup(originalName, nextGroup)` performs one state mutation.
 
-- [ ] **Step 1: Write failing transactional GroupDrawer tests**
+- [x] **Step 1: Write failing transactional GroupDrawer tests**
 
 Replace immediate-update assertions in `apps/web/tests/groupDrawer.test.tsx` with:
 
@@ -665,7 +667,7 @@ it("keeps duplicate-name validation inside the Drawer", () => {
 });
 ```
 
-- [ ] **Step 2: Run GroupDrawer tests and verify RED**
+- [x] **Step 2: Run GroupDrawer tests and verify RED**
 
 Run:
 
@@ -675,7 +677,7 @@ pnpm exec vitest run apps/web/tests/groupDrawer.test.tsx
 
 Expected: FAIL because the Drawer still emits field-level callbacks and node filters still use `Select mode="tags"`.
 
-- [ ] **Step 3: Implement GroupDrawer local state**
+- [x] **Step 3: Implement GroupDrawer local state**
 
 Use one state object plus one error string:
 
@@ -710,7 +712,7 @@ All controls must read and update `draft.group`; no field handler may call a par
 
 Resolve effective health-check captions from the local draft. For the temporary invalid `interval: null`, pass `undefined` to the Core resolver while leaving the editor value as `null`.
 
-- [ ] **Step 4: Add footer Save/Cancel and local validation**
+- [x] **Step 4: Add footer Save/Cancel and local validation**
 
 Use Drawer footer actions:
 
@@ -725,7 +727,7 @@ footer={(
 
 `onClose` must call `props.onCancel`. `handleSave` must call `finalizeCustomProxyGroupDraft`; on failure set the local error and keep the Drawer open, and on success call `props.onSave(result.value)` exactly once. Render the error with `Alert type="error" showIcon` above the footer content.
 
-- [ ] **Step 5: Add the complete draft action**
+- [x] **Step 5: Add the complete draft action**
 
 In `apps/web/src/useProjectDraftActions.ts`, import `replaceCustomProxyGroup` and add:
 
@@ -753,7 +755,7 @@ saveCustomProxyGroup(originalName: string, nextGroup: CustomProxyGroup) {
 
 Remove the now-unused drawer-facing actions `renameCustomProxyGroup`, `setCustomProxyGroupListField`, and `updateCustomProxyGroup` from the hook return object and imports. Keep their pure mutation exports because existing tests and non-hook code still cover them.
 
-- [ ] **Step 6: Wire GroupDrawer in RoutingPage**
+- [x] **Step 6: Wire GroupDrawer in RoutingPage**
 
 Replace three field callbacks with:
 
@@ -769,7 +771,7 @@ onCancel={() => setDrawerGroup(null)}
 
 Keep delete immediate. `onJumpToRule` must close the Drawer and discard any local edits.
 
-- [ ] **Step 7: Add RoutingPage save-wiring assertions**
+- [x] **Step 7: Add RoutingPage save-wiring assertions**
 
 In `apps/web/tests/routingPage.test.tsx`, add this helper:
 
@@ -811,7 +813,7 @@ it("commits a complete strategy group only after Drawer Save", async () => {
 });
 ```
 
-- [ ] **Step 8: Run focused tests and typecheck**
+- [x] **Step 8: Run focused tests and typecheck**
 
 Run:
 
@@ -822,7 +824,7 @@ pnpm --filter @clash-route-kit/web typecheck
 
 Expected: PASS.
 
-- [ ] **Step 9: Review the scoped diff**
+- [x] **Step 9: Review the scoped diff**
 
 Run:
 
@@ -852,7 +854,7 @@ Expected: strategy-group editing is the only behavior changed in this task.
 - Add prop `ruleSetIds: string[]` for duplicate validation.
 - `useProjectDraftActions.saveRuleSet(originalId, nextRuleSet)` performs one atomic state mutation.
 
-- [ ] **Step 1: Write failing local-edit and complete-save tests**
+- [x] **Step 1: Write failing local-edit and complete-save tests**
 
 Replace the immediate `onUpdate` expectations in `apps/web/tests/ruleDrawer.test.tsx`:
 
@@ -986,7 +988,7 @@ it("keeps inherit, enabled and disabled for per-rule GEOIP no-resolve", async ()
 });
 ```
 
-- [ ] **Step 2: Run RuleDrawer tests and verify RED**
+- [x] **Step 2: Run RuleDrawer tests and verify RED**
 
 Run:
 
@@ -996,7 +998,7 @@ pnpm exec vitest run apps/web/tests/ruleDrawer.test.tsx
 
 Expected: FAIL because RuleDrawer still calls `onUpdate` on every field change.
 
-- [ ] **Step 3: Implement local EditableRuleSet state**
+- [x] **Step 3: Implement local EditableRuleSet state**
 
 Initialize and reset with:
 
@@ -1026,7 +1028,7 @@ All ID, source, policy, section and enabled controls must update `draft`. Preser
 
 Rule Provider interval clearing must remain `null` in the editable source until Save validation rejects it or the user chooses inherit.
 
-- [ ] **Step 4: Add footer Save/Cancel and validation**
+- [x] **Step 4: Add footer Save/Cancel and validation**
 
 Use this footer and save handler shape:
 
@@ -1047,7 +1049,7 @@ const result = finalizeRuleSetDraft(draft, props.ruleSetIds, props.ruleSet.id);
 
 On failure show an in-drawer `Alert`; on success call `props.onSave(result.value)` once. Close button and Cancel call `props.onCancel` without saving.
 
-- [ ] **Step 5: Add saveRuleSet draft action**
+- [x] **Step 5: Add saveRuleSet draft action**
 
 In `apps/web/src/useProjectDraftActions.ts`:
 
@@ -1075,7 +1077,7 @@ saveRuleSet(originalId: string, nextRuleSet: RuleSet) {
 
 Remove the hook's drawer-facing `updateRuleSet` method; keep the pure `updateRuleSet` import because `toggleRuleSet` in `configMutations.ts` still uses it internally, not through this hook.
 
-- [ ] **Step 6: Wire RuleDrawer in RoutingPage**
+- [x] **Step 6: Wire RuleDrawer in RoutingPage**
 
 Pass `ruleSetIds={config.ruleSets.map((ruleSet) => ruleSet.id)}` and replace `onUpdate` with:
 
@@ -1090,7 +1092,7 @@ onCancel={() => setEditRuleId(null)}
 
 Delete remains immediate and closes the Drawer.
 
-- [ ] **Step 7: Add RoutingPage RuleSet wiring test**
+- [x] **Step 7: Add RoutingPage RuleSet wiring test**
 
 Add:
 
@@ -1119,7 +1121,7 @@ it("commits a complete RuleSet only after Drawer Save", async () => {
 });
 ```
 
-- [ ] **Step 8: Run focused tests and typecheck**
+- [x] **Step 8: Run focused tests and typecheck**
 
 Run:
 
@@ -1130,7 +1132,7 @@ pnpm --filter @clash-route-kit/web typecheck
 
 Expected: PASS.
 
-- [ ] **Step 9: Review the scoped diff**
+- [x] **Step 9: Review the scoped diff**
 
 Run:
 
@@ -1160,7 +1162,7 @@ Expected: RuleSet drawer editing is the only new behavior in this task.
 - `ProjectDefaultsDrawer.onCancel()` handles close and footer cancel.
 - Project GEOIP Select has only `enabled` and `disabled`.
 
-- [ ] **Step 1: Write failing default-drawer transaction tests**
+- [x] **Step 1: Write failing default-drawer transaction tests**
 
 Update `apps/web/tests/projectDefaultsDrawer.test.tsx`:
 
@@ -1253,7 +1255,7 @@ it("keeps an invalid project URL inside the Drawer", () => {
 });
 ```
 
-- [ ] **Step 2: Run ProjectDefaultsDrawer tests and verify RED**
+- [x] **Step 2: Run ProjectDefaultsDrawer tests and verify RED**
 
 Run:
 
@@ -1263,7 +1265,7 @@ pnpm exec vitest run apps/web/tests/projectDefaultsDrawer.test.tsx
 
 Expected: FAIL because controls still call `onChange` immediately and the third GEOIP option still exists.
 
-- [ ] **Step 3: Implement local defaults draft**
+- [x] **Step 3: Implement local defaults draft**
 
 Replace direct use of `props.defaults` with:
 
@@ -1293,11 +1295,11 @@ options={[
 onChange={(value) => updateRuleSets({ geoipNoResolve: value === "enabled" })}
 ```
 
-- [ ] **Step 4: Add footer Save/Cancel and validation**
+- [x] **Step 4: Add footer Save/Cancel and validation**
 
 `handleSave` calls `finalizeProjectDefaultsDraft(draft)`. On failure render an error Alert and remain open; on success call `props.onSave(result.value)` once. Drawer close and Cancel call `props.onCancel`.
 
-- [ ] **Step 5: Wire the defaults Drawer on both pages**
+- [x] **Step 5: Wire the defaults Drawer on both pages**
 
 RoutingPage and LibraryPage use:
 
@@ -1311,7 +1313,7 @@ onCancel={() => setDefaultsSection(null)}
 
 No changes are needed to `setProjectDefaults`; it remains one project mutation and existing auto-save then writes the complete config.
 
-- [ ] **Step 6: Add page-level integration tests**
+- [x] **Step 6: Add page-level integration tests**
 
 Add to `apps/web/tests/routingPage.test.tsx`:
 
@@ -1369,7 +1371,7 @@ it("cancels local rule-default edits without committing", async () => {
 });
 ```
 
-- [ ] **Step 7: Run focused tests and typecheck**
+- [x] **Step 7: Run focused tests and typecheck**
 
 Run:
 
@@ -1380,7 +1382,7 @@ pnpm --filter @clash-route-kit/web typecheck
 
 Expected: PASS.
 
-- [ ] **Step 8: Review the scoped diff**
+- [x] **Step 8: Review the scoped diff**
 
 Run:
 
@@ -1406,7 +1408,7 @@ Expected: both defaults entry points share the same explicit-save behavior.
 - Produces: `createConfigWatchIgnore(projectRoot, configFile): (watchedPath: string) => boolean`.
 - `server.watch.ignored` receives the matcher returned by `createConfigWatchIgnore`.
 
-- [ ] **Step 1: Write failing path and matcher tests**
+- [x] **Step 1: Write failing path and matcher tests**
 
 Create `apps/web/tests/viteConfig.test.ts`:
 
@@ -1441,7 +1443,7 @@ describe("Vite project config watch ignore", () => {
 });
 ```
 
-- [ ] **Step 2: Run the Vite config test and verify RED**
+- [x] **Step 2: Run the Vite config test and verify RED**
 
 Run:
 
@@ -1451,7 +1453,7 @@ pnpm exec vitest run apps/web/tests/viteConfig.test.ts
 
 Expected: FAIL because the path helpers are not exported and no watcher ignore exists.
 
-- [ ] **Step 3: Implement the exact matcher**
+- [x] **Step 3: Implement the exact matcher**
 
 In `apps/web/vite.config.ts`:
 
@@ -1486,7 +1488,7 @@ server: {
 
 The local API plugin must use `{ root: projectRoot, configFile }` so both components refer to the same physical file.
 
-- [ ] **Step 4: Run focused tests and build**
+- [x] **Step 4: Run focused tests and build**
 
 Run:
 
@@ -1498,7 +1500,7 @@ pnpm --filter @clash-route-kit/web build
 
 Expected: PASS. If Vite's watcher type requires a two-argument matcher, use `(watchedPath: string) => boolean` unchanged because functions with fewer parameters are assignable; do not broaden the ignore to the whole `config/` directory.
 
-- [ ] **Step 5: Review the scoped diff**
+- [x] **Step 5: Review the scoped diff**
 
 Run:
 
@@ -1523,7 +1525,7 @@ Expected: only the single actual config file is ignored.
 - Consumes: all previous tasks.
 - Produces: evidence that drawer edits are transactional, other actions still auto-save, and configuration writes no longer reload the page.
 
-- [ ] **Step 1: Run all focused Web tests**
+- [x] **Step 1: Run all focused Web tests**
 
 Run:
 
@@ -1533,7 +1535,7 @@ pnpm exec vitest run apps/web/tests/drawerDrafts.test.ts apps/web/tests/configMu
 
 Expected: PASS with no new React state-update or Ant Design errors.
 
-- [ ] **Step 2: Run the full repository gates**
+- [x] **Step 2: Run the full repository gates**
 
 Run:
 
@@ -1547,7 +1549,7 @@ pnpm generate
 
 Expected: every command PASS. Existing documented Ant Design deprecation warnings may remain non-blocking; no new warnings are accepted.
 
-- [ ] **Step 3: Start a dev server against a temporary config copy**
+- [x] **Step 3: Start a dev server against a temporary config copy**
 
 Create a task-specific temporary directory with PowerShell `New-Item`, copy `config/routes.yaml` into it, and record the exact resolved path. Start `pnpm dev` with:
 
@@ -1558,7 +1560,7 @@ pnpm dev
 
 When launched through `Start-Process`, use `-WindowStyle Hidden`. Record the listener PID so cleanup targets only this process tree.
 
-- [ ] **Step 4: Verify the original failure path in a real browser**
+- [x] **Step 4: Verify the original failure path in a real browser**
 
 Perform these exact checks:
 
@@ -1583,11 +1585,11 @@ Then perform these additional checks:
 7. Open an individual GEOIP RuleSet and confirm it still has “继承项目默认值 / 开启 / 关闭”.
 8. For each of the three Drawers, make one local change and close it with the top-right close button; reopen and confirm the change was discarded and the temporary YAML hash did not change.
 
-- [ ] **Step 5: Verify an existing non-drawer operation still auto-saves**
+- [x] **Step 5: Verify an existing non-drawer operation still auto-saves**
 
 Toggle an ordinary RuleSet enabled switch outside the Drawer, wait for the debounce, and confirm the temporary YAML changes without requiring a Save button. Restore the toggle through the same UI action.
 
-- [ ] **Step 6: Clean up the temporary server and files safely**
+- [x] **Step 6: Clean up the temporary server and files safely**
 
 Stop only the recorded process tree, then validate and remove the exact temporary directory:
 
@@ -1605,7 +1607,7 @@ if ($resolvedTaskTempDir -ne [IO.Path]::GetFullPath($taskTempDir)) {
 Remove-Item -LiteralPath $resolvedTaskTempDir -Recurse
 ```
 
-- [ ] **Step 7: Audit the final diff**
+- [x] **Step 7: Audit the final diff**
 
 Run:
 
@@ -1617,7 +1619,7 @@ git diff -- apps/web/src apps/web/tests apps/web/vite.config.ts .agents/active.m
 
 Expected: every new hunk maps to this plan; unrelated pre-existing changes remain preserved; no production config was changed by browser verification.
 
-- [ ] **Step 8: Update project memory**
+- [x] **Step 8: Update project memory**
 
 Update `.agents/active.md` with the specification link, plan link, focused/full test results and browser result. Append one dated milestone to `.agents/progress.md` covering:
 
@@ -1627,7 +1629,7 @@ Update `.agents/active.md` with the specification link, plan link, focused/full 
 - Vite config-file watch ignore;
 - exact verification commands.
 
-- [ ] **Step 9: Create an implementation commit only if isolation is safe**
+- [x] **Step 9: Create an implementation commit only if isolation is safe**
 
 Inspect the complete staged patch before committing. Because most target files already contain pre-existing user changes, do not stage whole files if that would absorb unrelated work. If all task-owned hunks can be isolated safely, use:
 
@@ -1636,3 +1638,12 @@ git commit -m "fix(web): save route drawers explicitly"
 ```
 
 Otherwise leave implementation changes unstaged and report the verified file list. Never reset, checkout, or discard the user's existing modifications.
+
+## Closure Notes
+
+- 三个 Drawer 已改为本地草稿与显式保存；取消和右上关闭均丢弃草稿，其他页面操作继续自动保存。
+- `nodeFilters` 已改为多行文本；nullable 数值只保留“继承项目默认值 / 自定义”，自定义空值保存为 `null`；项目 GEOIP 默认值明确物化为 `true`。
+- Vite watcher 仅忽略当前实际配置文件，配置 API 写盘不再把页面重载回首页。
+- 自动验证：聚焦测试 9 个文件 / 67 个测试；完整测试 51 个文件 / 298 个测试；`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 均通过。
+- 真实浏览器已覆盖三个 Drawer 的保存、取消、右上关闭、普通 RuleSet 开关即时保存及页面不跳转；临时服务、进程和配置副本已清理。
+- 条件性实现提交未创建：当前工作树包含 70+ 个混合修改文件，无法在不吸收用户既有改动的前提下安全隔离完整实现。

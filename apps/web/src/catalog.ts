@@ -3,6 +3,7 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 export interface CatalogEntry {
   name: string;
   hasChildren: boolean;
+  root: boolean;
 }
 
 export interface CatalogEntryDetail {
@@ -30,6 +31,7 @@ export async function fetchCatalogEntries(
   return (payload.entries as CatalogEntry[]).map((entry) => ({
     name: entry.name,
     hasChildren: Boolean(entry.hasChildren),
+    root: entry.root !== false,
   }));
 }
 
@@ -80,6 +82,50 @@ export function formatDomainRule(rule: string): string {
   return rule;
 }
 
+export interface CatalogSearchHit {
+  name: string;
+  matchedDomains: string[];
+}
+
+export async function searchCatalogEntries(
+  origin: string,
+  query: string,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<CatalogSearchHit[]> {
+  const response = await fetcher(
+    `/api/catalog/search?origin=${encodeURIComponent(origin)}&q=${encodeURIComponent(query)}`,
+  );
+  const payload = (await response.json()) as { hits?: unknown };
+  if (
+    !response.ok ||
+    !Array.isArray(payload.hits) ||
+    !payload.hits.every(
+      (hit) => typeof hit === "object" && hit !== null && typeof (hit as CatalogSearchHit).name === "string",
+    )
+  ) {
+    throw new Error("Invalid catalog search response");
+  }
+  return (payload.hits as CatalogSearchHit[]).map((hit) => ({
+    name: hit.name,
+    matchedDomains: Array.isArray(hit.matchedDomains) ? hit.matchedDomains : [],
+  }));
+}
+
+export async function fetchCatalogPath(
+  origin: string,
+  name: string,
+  fetcher: Fetcher = globalThis.fetch,
+): Promise<string[]> {
+  const response = await fetcher(
+    `/api/catalog/path?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
+  );
+  const payload = (await response.json()) as { path?: unknown };
+  if (!response.ok || !Array.isArray(payload.path) || !payload.path.every((part) => typeof part === "string")) {
+    throw new Error("Invalid catalog path response");
+  }
+  return payload.path as string[];
+}
+
 export interface CatalogSourceInfo {
   id: string;
   label: string;
@@ -120,7 +166,10 @@ export interface VendorRepoInput {
   name: string;
   url: string;
   branch?: string;
+  /** Local clone folder under vendor/; defaults to the repo name when omitted. */
+  folder?: string;
   catalog?: { reldir: string; kind: "domain-list" | "list-dir" | "provider-yaml" | "ini-template" };
+  templateReldir?: string;
 }
 
 async function postJson(url: string, body: unknown, fetcher: Fetcher, failMsg: string): Promise<void> {
@@ -139,12 +188,21 @@ export function addVendorRepoRequest(input: VendorRepoInput, fetcher: Fetcher = 
   return postJson("/api/vendor/add", { input }, fetcher, "添加上游仓库失败");
 }
 
-export function updateVendorRepoRequest(
+export async function updateVendorRepoRequest(
   name: string,
   input: VendorRepoInput,
   fetcher: Fetcher = globalThis.fetch,
-): Promise<void> {
-  return postJson("/api/vendor/update", { name, input }, fetcher, "更新上游仓库失败");
+): Promise<{ resync: boolean }> {
+  const response = await fetcher("/api/vendor/update", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, input }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { resync?: boolean; output?: string };
+  if (!response.ok) {
+    throw new Error(payload.output ?? "更新上游仓库失败");
+  }
+  return { resync: Boolean(payload.resync) };
 }
 
 export function removeVendorRepoRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
