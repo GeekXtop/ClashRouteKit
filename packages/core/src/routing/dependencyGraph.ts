@@ -10,30 +10,29 @@ function canonicalCycle(cycle: readonly string[]): string[] {
 }
 
 export function findDependencyCycles(graph: DependencyGraph): string[][] {
-  const state = new Map<string, 0 | 1 | 2>();
-  const stack: string[] = [];
   const found = new Map<string, string[]>();
 
-  function visit(node: string): void {
-    state.set(node, 1);
-    stack.push(node);
-    for (const child of graph[node] ?? []) {
-      if (!(child in graph)) continue;
-      const childState = state.get(child) ?? 0;
-      if (childState === 0) {
-        visit(child);
-      } else if (childState === 1) {
-        const start = stack.lastIndexOf(child);
-        const cycle = canonicalCycle(stack.slice(start));
-        found.set(cycle.join("\u0000"), cycle);
-      }
-    }
-    stack.pop();
-    state.set(node, 2);
-  }
+  for (const start of Object.keys(graph)) {
+    const path: string[] = [];
+    const visited = new Set<string>();
 
-  for (const node of Object.keys(graph)) {
-    if ((state.get(node) ?? 0) === 0) visit(node);
+    function visit(node: string): void {
+      path.push(node);
+      visited.add(node);
+      for (const child of graph[node] ?? []) {
+        if (!Object.hasOwn(graph, child)) continue;
+        if (child === start) {
+          const cycle = canonicalCycle(path);
+          found.set(cycle.join("\u0000"), cycle);
+        } else if (!visited.has(child)) {
+          visit(child);
+        }
+      }
+      visited.delete(node);
+      path.pop();
+    }
+
+    visit(start);
   }
   return [...found.values()].sort((left, right) =>
     left.join("\u0000").localeCompare(right.join("\u0000")),
