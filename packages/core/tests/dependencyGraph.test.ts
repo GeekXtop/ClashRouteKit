@@ -13,6 +13,18 @@ describe("findDependencyCycles", () => {
     expect(findDependencyCycles(graph)).toEqual([["a", "b", "c"]]);
   });
 
+  it("canonicalizes collation-equivalent Unicode node names once", () => {
+    const composed = "\u00e9";
+    const decomposed = "e\u0301";
+
+    expect(
+      findDependencyCycles({
+        [composed]: [decomposed],
+        [decomposed]: [composed],
+      }),
+    ).toEqual([[decomposed, composed]]);
+  });
+
   it("returns every canonical cycle when cycles share nodes", () => {
     const expected = [
       ["a", "b", "c"],
@@ -25,6 +37,20 @@ describe("findDependencyCycles", () => {
     expect(
       findDependencyCycles({ a: ["c", "b"], b: ["c"], c: ["a"] }),
     ).toEqual(expected);
+  });
+
+  it("keeps distinct cycles when node names contain null characters", () => {
+    const graph: DependencyGraph = {
+      "a\u0000b": ["c"],
+      c: ["a\u0000b"],
+      a: ["b\u0000c"],
+      "b\u0000c": ["a"],
+    };
+
+    expect(findDependencyCycles(graph)).toEqual([
+      ["a", "b\u0000c"],
+      ["a\u0000b", "c"],
+    ]);
   });
 
   it("ignores edges to external nodes and returns an empty array for a DAG", () => {

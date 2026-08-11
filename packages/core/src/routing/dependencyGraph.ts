@@ -1,11 +1,25 @@
 export type DependencyGraph = Readonly<Record<string, readonly string[]>>;
 
+function compareCycles(
+  left: readonly string[],
+  right: readonly string[],
+): number {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftNode = left[index]!;
+    const rightNode = right[index]!;
+    if (leftNode < rightNode) return -1;
+    if (leftNode > rightNode) return 1;
+  }
+  return left.length - right.length;
+}
+
 function canonicalCycle(cycle: readonly string[]): string[] {
   const rotations = cycle.map((_node, index) => [
     ...cycle.slice(index),
     ...cycle.slice(0, index),
   ]);
-  rotations.sort((left, right) => left.join("\u0000").localeCompare(right.join("\u0000")));
+  rotations.sort(compareCycles);
   return rotations[0] ?? [];
 }
 
@@ -23,7 +37,7 @@ export function findDependencyCycles(graph: DependencyGraph): string[][] {
         if (!Object.hasOwn(graph, child)) continue;
         if (child === start) {
           const cycle = canonicalCycle(path);
-          found.set(cycle.join("\u0000"), cycle);
+          found.set(JSON.stringify(cycle), cycle);
         } else if (!visited.has(child)) {
           visit(child);
         }
@@ -34,7 +48,5 @@ export function findDependencyCycles(graph: DependencyGraph): string[][] {
 
     visit(start);
   }
-  return [...found.values()].sort((left, right) =>
-    left.join("\u0000").localeCompare(right.join("\u0000")),
-  );
+  return [...found.values()].sort(compareCycles);
 }
