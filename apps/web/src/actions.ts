@@ -1,9 +1,12 @@
+import type { Diagnostic } from "@clash-route-kit/core";
+
 export type LocalRouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
 
 export interface LocalActionResponse {
   action: LocalRouteKitAction;
   ok: boolean;
   output: string;
+  diagnostics?: Diagnostic[];
 }
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -14,7 +17,8 @@ function isLocalActionResponse(value: unknown): value is LocalActionResponse {
   return (
     actions.includes(candidate?.action) &&
     typeof candidate.ok === "boolean" &&
-    typeof candidate.output === "string"
+    typeof candidate.output === "string" &&
+    (candidate.diagnostics === undefined || Array.isArray(candidate.diagnostics))
   );
 }
 

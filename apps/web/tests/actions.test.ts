@@ -19,12 +19,19 @@ describe("requestLocalAction", () => {
   });
 
   it("keeps command output for failed API actions", async () => {
+    const diagnostics = [{
+      code: "route.policy.missing",
+      severity: "error",
+      path: "ruleSets[0].policy",
+      message: "RuleSet ai 引用了不存在的策略组",
+    }];
     const fetcher = vi.fn(async () =>
       new Response(
         JSON.stringify({
           action: "check",
           ok: false,
           output: "[check] Module ai references missing policy group: AI",
+          diagnostics,
         }),
         {
           headers: { "content-type": "application/json" },
@@ -37,6 +44,7 @@ describe("requestLocalAction", () => {
       action: "check",
       ok: false,
       output: "[check] Module ai references missing policy group: AI",
+      diagnostics,
     });
   });
 
@@ -44,6 +52,19 @@ describe("requestLocalAction", () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
     await expect(requestLocalAction("generate", fetcher)).rejects.toThrow("Invalid local action response");
+  });
+
+  it("throws when diagnostics is present but is not an array", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({
+        action: "check",
+        ok: true,
+        output: "[check] ok",
+        diagnostics: "not-an-array",
+      }), { status: 200 }),
+    );
+
+    await expect(requestLocalAction("check", fetcher)).rejects.toThrow("Invalid local action response");
   });
 
   it("posts to the local git status endpoint", async () => {

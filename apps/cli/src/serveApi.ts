@@ -4,10 +4,15 @@ import { readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
+  ConfigDiagnosticError,
   convertDomainListCommunity,
+  formatDiagnostic,
+  hasDiagnosticErrors,
   parseDomainListEntry,
   parseRouteKitConfig,
   serializeRouteKitConfig,
+  validateLegacyProjectConfig,
+  type Diagnostic,
   type DomainListEntryInfo,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
@@ -29,6 +34,7 @@ export interface RouteKitActionResult {
   action: RouteKitAction;
   ok: boolean;
   output: string;
+  diagnostics?: Diagnostic[];
 }
 
 interface RouteKitActionDependencies {
@@ -133,6 +139,10 @@ export async function writeProjectConfigFile(
   const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
   const statMtime =
     options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
+  const diagnostics = validateLegacyProjectConfig(options.config);
+  if (hasDiagnosticErrors(diagnostics)) {
+    throw new ConfigDiagnosticError(diagnostics);
+  }
   const yaml = serializeRouteKitConfig(options.config);
   const configPath = projectConfigPath(options);
   await writeText(configPath, yaml);
@@ -754,6 +764,12 @@ function formatGenerateOutput(result: GenerateResult): string {
   return lines.join("\n");
 }
 
+function formatCheckOutput(diagnostics: readonly Diagnostic[]): string {
+  return diagnostics.length === 0
+    ? "[check] ok"
+    : diagnostics.map((diagnostic) => `[check] ${formatDiagnostic(diagnostic)}`).join("\n");
+}
+
 export async function runRouteKitAction(
   action: RouteKitAction,
   options: RouteKitActionOptions,
@@ -764,8 +780,9 @@ export async function runRouteKitAction(
     const diagnostics = await (options.checkConfig ?? checkConfig)(options);
     return {
       action,
-      ok: diagnostics.length === 0,
-      output: diagnostics.length === 0 ? "[check] ok" : diagnostics.map((item) => `[check] ${item}`).join("\n"),
+      ok: !hasDiagnosticErrors(diagnostics),
+      output: formatCheckOutput(diagnostics),
+      diagnostics,
     };
   }
 
@@ -800,11 +817,21 @@ export async function runRouteKitAction(
   }
 
   if (action === "git-push") {
+    const diagnostics = await (options.checkConfig ?? checkConfig)(options);
+    if (hasDiagnosticErrors(diagnostics)) {
+      return {
+        action,
+        ok: false,
+        output: formatCheckOutput(diagnostics),
+        diagnostics,
+      };
+    }
     const output = await runCommand("git", ["push"], options.root);
     return {
       action,
       ok: true,
       output: output || "[git] pushed current branch",
+      diagnostics,
     };
   }
 

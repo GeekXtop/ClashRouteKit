@@ -93,7 +93,22 @@ describe("routeKitApi", () => {
       action: "check",
       ok: true,
       output: "[check] ok",
+      diagnostics: [],
     });
+  });
+
+  it("returns structured diagnostics from check actions", async () => {
+    const diagnostic = {
+      code: "workspace.geosite.missing",
+      severity: "warning" as const,
+      message: "Catalog 中未找到 gfw",
+    };
+    const result = await runRouteKitAction("check", {
+      ...baseOptions,
+      checkConfig: async () => [diagnostic],
+    });
+    expect(result).toMatchObject({ ok: true, diagnostics: [diagnostic] });
+    expect(result.output).toContain("[workspace.geosite.missing]");
   });
 
   it("reads the origin git remote url with a trimmed output", async () => {
@@ -197,15 +212,23 @@ describe("routeKitApi", () => {
   });
 
   it("returns diagnostics for a failed check action", async () => {
+    const diagnostic = {
+      code: "route.policy.missing",
+      severity: "error" as const,
+      path: "ruleSets[0].policy",
+      message: "RuleSet ai 引用了不存在的 custom_proxy_group：AI",
+      related: ["AI"],
+    };
     const result = await runRouteKitAction("check", {
       ...baseOptions,
-      checkConfig: async () => ["RuleSet ai references missing custom_proxy_group: AI"],
+      checkConfig: async () => [diagnostic],
     });
 
     expect(result).toEqual({
       action: "check",
       ok: false,
-      output: "[check] RuleSet ai references missing custom_proxy_group: AI",
+      output: "[check] [route.policy.missing] ruleSets[0].policy: RuleSet ai 引用了不存在的 custom_proxy_group：AI",
+      diagnostics: [diagnostic],
     });
   });
 
@@ -312,6 +335,43 @@ describe("project config file helpers", () => {
     expect(writes[0]?.text).toContain("ruleSets:");
     expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
   });
+
+  it("rejects project saves with Core errors before writing", async () => {
+    const writes: string[] = [];
+    await expect(writeProjectConfigFile({
+      root: "E:/repo",
+      configFile: "config/routes.yaml",
+      config: projectConfig({
+        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+        ruleSets: [{ id: "bad", policy: "Missing", source: { type: "final" } }],
+      }),
+      writeText: async (filePath) => { writes.push(filePath); },
+    })).rejects.toMatchObject({ name: "ConfigDiagnosticError" });
+    expect(writes).toEqual([]);
+  });
+
+  it("saves project configs that only have warnings", async () => {
+    const writes: string[] = [];
+    const result = await writeProjectConfigFile({
+      root: "E:/repo",
+      configFile: "config/routes.yaml",
+      config: projectConfig({
+        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
+        ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
+        ruleProviders: [{
+          name: "Placeholder",
+          output: "Placeholder.mrs",
+          behavior: "domain",
+          enabled: false,
+          sources: [],
+        }],
+      }),
+      writeText: async (filePath) => { writes.push(filePath); },
+    });
+
+    expect(writes).toEqual([path.resolve("E:/repo", "config/routes.yaml")]);
+    expect(result.config.ruleProviders?.[0]?.enabled).toBe(false);
+  });
 });
 
 describe("git route kit actions", () => {
@@ -354,6 +414,52 @@ describe("git route kit actions", () => {
     ]);
     expect(result.ok).toBe(true);
     expect(result.output).toContain("[git] committed route config");
+  });
+
+  it("blocks an independent git push when check diagnostics contain errors", async () => {
+    const commands: string[] = [];
+    const diagnostic = {
+      code: "route.final.missing",
+      severity: "error" as const,
+      path: "ruleSets",
+      message: "ruleSets 需要包含一条 FINAL 兜底规则",
+    };
+    const result = await runRouteKitAction("git-push", {
+      ...baseOptions,
+      checkConfig: async () => [diagnostic],
+      runCommand: async (command, args) => {
+        commands.push([command, ...args].join(" "));
+        return "pushed";
+      },
+    });
+
+    expect(result).toMatchObject({ action: "git-push", ok: false, diagnostics: [diagnostic] });
+    expect(commands).toEqual([]);
+  });
+
+  it("allows an independent git push when check diagnostics only contain warnings", async () => {
+    const commands: string[] = [];
+    const diagnostic = {
+      code: "workspace.geosite.missing",
+      severity: "warning" as const,
+      message: "Catalog 中未找到 gfw",
+    };
+    const result = await runRouteKitAction("git-push", {
+      ...baseOptions,
+      checkConfig: async () => [diagnostic],
+      runCommand: async (command, args) => {
+        commands.push([command, ...args].join(" "));
+        return "pushed";
+      },
+    });
+
+    expect(commands).toEqual(["git push"]);
+    expect(result).toMatchObject({
+      action: "git-push",
+      ok: true,
+      output: "pushed",
+      diagnostics: [diagnostic],
+    });
   });
 });
 
@@ -547,8 +653,16 @@ describe("vendor repo mutations over project config", () => {
       "template:",
       "  output: Custom_Clash.ini",
       repos,
-      "customProxyGroups: []",
-      "ruleSets: []",
+      "customProxyGroups:",
+      "  - name: Proxy",
+      "    type: select",
+      "    options:",
+      "      - DIRECT",
+      "ruleSets:",
+      "  - id: final",
+      "    policy: Proxy",
+      "    source:",
+      "      type: final",
       "",
     ].join("\n");
 

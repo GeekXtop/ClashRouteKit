@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import {
   checkConfig,
   generateOutputs,
   previewRules,
+  readConfig,
   resolveProjectRoot,
   syncVendor,
 } from "../src/program.js";
@@ -64,6 +65,10 @@ ruleProviders:
         type: clash-list
         path: config/rules/Developer.list
 `;
+
+function configWithVendorRepos(entries: string): string {
+  return `${sampleConfig}\nvendorRepos:\n${entries.trimEnd()}\n`;
+}
 
 describe("CLI program", () => {
   it("generates INI and provider outputs from routes config", async () => {
@@ -268,7 +273,7 @@ ruleProviders:
     ]);
   });
 
-  it("generates classical, ipcidr, and empty placeholder provider outputs", async () => {
+  it("generates classical and ipcidr outputs while skipping disabled providers", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await mkdir(path.join(root, "config/rules"), { recursive: true });
     await writeFile(
@@ -312,9 +317,10 @@ ruleProviders:
         "      - name: Mixed",
         "        type: clash-list",
         "        path: config/rules/Mixed.list",
-        "  - name: Placeholder",
+        "  - name: DisabledPlaceholder",
         "    output: Placeholder_Classical.yaml",
         "    behavior: classical",
+        "    enabled: false",
         "    sources: []",
         "",
       ].join("\n"),
@@ -325,13 +331,12 @@ ruleProviders:
 
     const classical = await readFile(path.join(root, "output/rules/Mixed_Classical.yaml"), "utf8");
     const ipcidr = await readFile(path.join(root, "output/rules/Mixed_IP.yaml"), "utf8");
-    const placeholder = await readFile(path.join(root, "output/rules/Placeholder_Classical.yaml"), "utf8");
     expect(classical).toContain("'DOMAIN-SUFFIX,example.com'");
     expect(classical).toContain("'PROCESS-NAME,Telegram.exe'");
     expect(ipcidr).toContain("'192.0.2.0/24'");
     expect(ipcidr).not.toContain("example.com");
-    expect(placeholder).toContain("payload:");
-    expect(placeholder).toContain("# 总数: 0");
+    await expect(access(path.join(root, "output/rules/Placeholder_Classical.yaml"))).rejects.toThrow();
+    expect(result.providers.some((provider) => provider.name === "DisabledPlaceholder")).toBe(false);
     expect(result.providers.find((provider) => provider.name === "MixedIP")?.outputRules).toBe(1);
   });
 
@@ -460,15 +465,12 @@ ruleProviders:
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-vendorRepos:
-  - name: custom-rules
+      configWithVendorRepos(`  - name: custom-rules
     url: https://example.com/custom-rules.git
     path: vendor/custom-rules
   - name: existing-rules
     url: https://example.com/existing-rules.git
-    path: vendor/existing-rules
-`,
+    path: vendor/existing-rules`),
       "utf8",
     );
     await mkdir(path.join(root, "vendor/existing-rules/.git"), { recursive: true });
@@ -500,13 +502,10 @@ vendorRepos:
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-vendorRepos:
-  - name: branched
+      configWithVendorRepos(`  - name: branched
     url: https://example.com/branched.git
     path: vendor/branched
-    branch: main
-`,
+    branch: main`),
       "utf8",
     );
     await mkdir(path.join(root, "vendor/branched/.git"), { recursive: true });
@@ -526,15 +525,12 @@ vendorRepos:
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-vendorRepos:
-  - name: alpha
+      configWithVendorRepos(`  - name: alpha
     url: https://example.com/alpha.git
     path: vendor/alpha
   - name: beta
     url: https://example.com/beta.git
-    path: vendor/beta
-`,
+    path: vendor/beta`),
       "utf8",
     );
     await mkdir(path.join(root, "vendor/alpha/.git"), { recursive: true });
@@ -554,15 +550,12 @@ vendorRepos:
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-vendorRepos:
-  - name: gone
+      configWithVendorRepos(`  - name: gone
     url: https://example.com/gone.git
     path: vendor/gone
   - name: beta
     url: https://example.com/beta.git
-    path: vendor/beta
-`,
+    path: vendor/beta`),
       "utf8",
     );
     await mkdir(path.join(root, "vendor/gone/.git"), { recursive: true });
@@ -581,18 +574,27 @@ vendorRepos:
     expect(result.find((item) => item.name === "beta")?.action).toBe("pull");
   });
 
-  it("requires vendor repositories to be declared in the project config", async () => {
+  it("treats an omitted vendor repository list as empty", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
-    await expect(syncVendor({ root, configFile: "routes.yaml" })).rejects.toThrow(
-      "Missing vendorRepos in routes.yaml",
+    await expect(syncVendor({ root, configFile: "routes.yaml" })).resolves.toEqual([]);
+  });
+
+  it("uses the strict parser when reading project config", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "routes.yaml"), `${sampleConfig}\nunknownField: true\n`, "utf8");
+
+    await expect(readConfig({ root, configFile: "routes.yaml" })).rejects.toThrow(
+      "config.unknownField: unknown field",
     );
   });
 
   it("previews rule order and checks missing policy groups", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
+    await mkdir(path.join(root, "config/rules"), { recursive: true });
+    await writeFile(path.join(root, "config/rules/Developer.list"), "DOMAIN-SUFFIX,example.com\n", "utf8");
 
     expect((await previewRules({ root, configFile: "routes.yaml" })).join("\n")).toContain(
       "GEOSITE github -> 💻 Tech",
@@ -629,9 +631,65 @@ ruleSets:
       "utf8",
     );
 
-    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([
-      "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
-    ]);
+    await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toContainEqual(
+      expect.objectContaining({
+        code: "defaults.health-check.timeout",
+        severity: "error",
+        path: "defaults.proxyGroups.healthCheck.timeout",
+      }),
+    );
+  });
+
+  it("returns warnings without failing check semantics", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      sampleConfig.replace("value: github", "value: missing-catalog"),
+      "utf8",
+    );
+    await mkdir(path.join(root, "vendor/domain-list-community/data"), { recursive: true });
+    await mkdir(path.join(root, "config/rules"), { recursive: true });
+    await writeFile(path.join(root, "config/rules/Developer.list"), "DOMAIN-SUFFIX,example.com\n", "utf8");
+
+    const diagnostics = await checkConfig({ root, configFile: "routes.yaml" });
+    expect(diagnostics).toContainEqual(expect.objectContaining({
+      code: "workspace.geosite.missing",
+      severity: "warning",
+    }));
+    expect(diagnostics.some((diagnostic) => diagnostic.severity === "error")).toBe(false);
+  });
+
+  it("stops generation before writing output when Core validation has errors", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(
+      path.join(root, "routes.yaml"),
+      sampleConfig.replace(
+        "options:\n      - 🎯 全球直连",
+        "options:\n      - 🎯 全球直连\n    nodeFilters:\n      - https://probe.example/204",
+      ),
+      "utf8",
+    );
+
+    await expect(generateOutputs({ root, configFile: "routes.yaml" })).rejects.toMatchObject({
+      name: "ConfigDiagnosticError",
+    });
+    await expect(access(path.join(root, "output"))).rejects.toThrow();
+  });
+
+  it("stops generation before writing output when workspace validation has errors", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
+    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
+
+    await expect(generateOutputs({ root, configFile: "routes.yaml" })).rejects.toMatchObject({
+      name: "ConfigDiagnosticError",
+      diagnostics: [
+        expect.objectContaining({
+          code: "workspace.provider-source.missing",
+          severity: "error",
+        }),
+      ],
+    });
+    await expect(access(path.join(root, "output"))).rejects.toThrow();
   });
 
   it("checks geosite tags when local domain-list-community data is available", async () => {
@@ -669,7 +727,11 @@ ruleSets:
     );
 
     await expect(checkConfig({ root, configFile: "routes.yaml" })).resolves.toEqual([
-      "RuleSet tech-geosite-missing-tag references missing geosite tag: missing-tag",
+      expect.objectContaining({
+        code: "workspace.geosite.missing",
+        severity: "warning",
+        related: ["missing-tag"],
+      }),
     ]);
   });
 
