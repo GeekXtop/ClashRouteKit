@@ -319,7 +319,7 @@ interface ImportedProviderDrafts {
 
 function importedProviderDrafts(
   config: RouteKitProjectConfig,
-  imported: ImportedConfig,
+  ruleSets: readonly RuleSet[],
 ): ImportedProviderDrafts {
   const existingProviders = (config.ruleProviders ?? []).map(cloneRuleProvider);
   const existingOutputs = new Set(existingProviders.map((provider) => provider.output));
@@ -327,7 +327,7 @@ function importedProviderDrafts(
   const placeholders: RuleProviderConfig[] = [];
   const placeholderOutputs = new Set<string>();
 
-  for (const ruleSet of imported.ruleSets) {
+  for (const ruleSet of ruleSets) {
     const source = ruleSet.source;
     if (source.type !== "rule-provider") continue;
     const output = source.file.trim();
@@ -357,7 +357,7 @@ function disablePlaceholderRuleSets(
 ): RuleSet[] {
   return ruleSets.map((ruleSet) => cloneRuleSet({
     ...ruleSet,
-    ...(ruleSet.source.type === "rule-provider" && placeholderOutputs.has(ruleSet.source.file)
+    ...(ruleSet.source.type === "rule-provider" && placeholderOutputs.has(ruleSet.source.file.trim())
       ? { enabled: false }
       : {}),
   }));
@@ -518,10 +518,11 @@ export function mergeImportedConfig(
 
   const existingIds = new Set(config.ruleSets.map((ruleSet) => ruleSet.id));
   const hasFinal = config.ruleSets.some((ruleSet) => ruleSet.source.type === "final");
-  const providerDrafts = importedProviderDrafts(config, imported);
-  const incoming = disablePlaceholderRuleSets(imported.ruleSets, providerDrafts.placeholderOutputs).filter(
+  const acceptedRuleSets = imported.ruleSets.filter(
     (ruleSet) => !existingIds.has(ruleSet.id) && !(hasFinal && ruleSet.source.type === "final"),
   );
+  const providerDrafts = importedProviderDrafts(config, acceptedRuleSets);
+  const incoming = disablePlaceholderRuleSets(acceptedRuleSets, providerDrafts.placeholderOutputs);
   const finalIndex = config.ruleSets.findIndex((ruleSet) => ruleSet.source.type === "final");
   const insertAt = finalIndex === -1 ? config.ruleSets.length : finalIndex;
   const ruleSets = [
@@ -542,7 +543,7 @@ export function replaceImportedConfig(
   config: RouteKitProjectConfig,
   imported: ImportedConfig,
 ): RouteKitProjectConfig {
-  const providerDrafts = importedProviderDrafts(config, imported);
+  const providerDrafts = importedProviderDrafts(config, imported.ruleSets);
   return {
     ...config,
     customProxyGroups: imported.customProxyGroups.map((group) => ({
