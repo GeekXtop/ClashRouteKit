@@ -208,9 +208,50 @@ export function appendDefaultValueDiagnostics(
   }
 }
 
+function formatLegacyDefaultDiagnostic(
+  config: RouteKitConfig,
+  diagnostic: Diagnostic,
+): string {
+  switch (diagnostic.code) {
+    case "defaults.health-check.url":
+      return diagnostic.path
+        ? `${diagnostic.path} 必须是 HTTP/HTTPS URL`
+        : diagnostic.message;
+    case "defaults.health-check.interval":
+    case "defaults.health-check.timeout":
+    case "defaults.route.interval":
+      return diagnostic.path
+        ? `${diagnostic.path} 必须为正整数`
+        : diagnostic.message;
+    case "defaults.url-test.tolerance":
+      return diagnostic.path
+        ? `${diagnostic.path} 必须为非负整数`
+        : diagnostic.message;
+    case "group.health-check.url":
+    case "group.health-check.interval":
+    case "group.health-check.timeout":
+    case "group.health-check.tolerance": {
+      const match = diagnostic.path?.match(/^customProxyGroups\[(\d+)]\./);
+      const group = match ? config.customProxyGroups[Number(match[1])] : undefined;
+      if (!group) return diagnostic.message;
+      const field = diagnostic.code.slice("group.health-check.".length);
+      const requirement = field === "url"
+        ? "必须是 HTTP/HTTPS URL"
+        : field === "tolerance"
+          ? "必须为非负整数"
+          : "必须为正整数";
+      return `custom_proxy_group ${group.name} 的 ${field} ${requirement}`;
+    }
+    default:
+      return diagnostic.message;
+  }
+}
+
 /** @deprecated Use validateLegacyProjectConfig. */
 export function validateDefaultAwareConfig(config: RouteKitConfig): string[] {
   const diagnostics: Diagnostic[] = [];
   appendDefaultValueDiagnostics(config, diagnostics);
-  return diagnostics.map((diagnostic) => diagnostic.message);
+  return diagnostics.map((diagnostic) => (
+    formatLegacyDefaultDiagnostic(config, diagnostic)
+  ));
 }

@@ -114,6 +114,34 @@ describe("validateLegacyProjectConfig", () => {
     ]);
   });
 
+  it("keeps disabled invalid policy and source references as warnings", () => {
+    const diagnostics = validateLegacyProjectConfig(project({
+      ruleSets: [
+        {
+          id: "disabled-draft",
+          enabled: false,
+          policy: "Missing",
+          source: { type: "geosite", value: "" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+    }));
+
+    expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).toEqual([]);
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: "route.policy.missing",
+        severity: "warning",
+        related: ["Missing"],
+      }),
+      expect.objectContaining({
+        code: "route.geosite.empty",
+        severity: "warning",
+        path: "ruleSets[0].source.value",
+      }),
+    ]);
+  });
+
   it("does not block disabled providers with an empty output placeholder", () => {
     const diagnostics = validateLegacyProjectConfig(project({
       ruleProviders: [

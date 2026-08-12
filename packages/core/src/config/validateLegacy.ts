@@ -288,6 +288,7 @@ export function validateLegacyProjectConfig(
   const enabledFinalRuleIds: string[] = [];
   for (const [index, ruleSet] of config.ruleSets.entries()) {
     const base = `ruleSets[${index}]`;
+    const referenceSeverity = ruleSet.enabled === false ? "warning" : "error";
     if (!ruleSet.id.trim()) {
       diagnostics.push({
         code: "route.id.empty",
@@ -299,7 +300,7 @@ export function validateLegacyProjectConfig(
     if (!ruleSet.policy.trim()) {
       diagnostics.push({
         code: "route.policy.empty",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.policy`,
         message: `RuleSet ${ruleSet.id} 的目标 custom_proxy_group 不能为空`,
       });
@@ -309,7 +310,7 @@ export function validateLegacyProjectConfig(
     ) {
       diagnostics.push({
         code: "route.policy.missing",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.policy`,
         message: `RuleSet ${ruleSet.id} 引用了不存在的 custom_proxy_group：${ruleSet.policy}`,
         related: [ruleSet.policy],
@@ -320,14 +321,14 @@ export function validateLegacyProjectConfig(
     if (source.type === "geosite" && !source.value.trim()) {
       diagnostics.push({
         code: "route.geosite.empty",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.source.value`,
         message: `RuleSet ${ruleSet.id} 的 GEOSITE 不能为空`,
       });
     } else if (source.type === "geoip" && !source.value.trim()) {
       diagnostics.push({
         code: "route.geoip.empty",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.source.value`,
         message: `RuleSet ${ruleSet.id} 的 GEOIP 不能为空`,
       });

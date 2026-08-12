@@ -139,15 +139,15 @@ describe("project defaults", () => {
         ],
       }),
     ).toEqual([
-      "健康检查 URL 必须是 HTTP/HTTPS URL",
-      "健康检查 interval 必须为正整数",
-      "健康检查 timeout 必须为正整数",
-      "url-test tolerance 必须为非负整数",
-      "RuleSet interval 必须为正整数",
-      "策略组 Auto 的 URL 必须是 HTTP/HTTPS URL",
-      "策略组 Auto 的 interval 必须为正整数",
-      "策略组 Auto 的 timeout 必须为正整数",
-      "策略组 Auto 的 tolerance 必须为非负整数",
+      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
+      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
+      "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
+      "defaults.proxyGroups.urlTest.tolerance 必须为非负整数",
+      "defaults.ruleSets.ruleProviderInterval 必须为正整数",
+      "custom_proxy_group Auto 的 url 必须是 HTTP/HTTPS URL",
+      "custom_proxy_group Auto 的 interval 必须为正整数",
+      "custom_proxy_group Auto 的 timeout 必须为正整数",
+      "custom_proxy_group Auto 的 tolerance 必须为非负整数",
       "RuleSet provider 的 interval 必须为正整数",
     ]);
   });
@@ -205,8 +205,8 @@ describe("project defaults", () => {
       },
     ]);
     expect(validateDefaultAwareConfig(config)).toEqual([
-      "健康检查 URL 必须是 HTTP/HTTPS URL",
-      "健康检查 interval 必须为正整数",
+      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
+      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
     ]);
   });
 });
