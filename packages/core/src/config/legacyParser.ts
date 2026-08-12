@@ -391,9 +391,10 @@ export function parseLegacyProjectConfig(value: unknown): RouteKitProjectConfig 
       ? {}
       : { defaults: parseDefaults(project.defaults, "defaults") }),
     template: parseTemplate(project.template, "template"),
-    vendorRepos: readArray(project.vendorRepos ?? [], "vendorRepos").map(
-      (item, index) => parseVendorRepo(item, `vendorRepos[${index}]`),
-    ),
+    vendorRepos: readArray(
+      project.vendorRepos === undefined ? [] : project.vendorRepos,
+      "vendorRepos",
+    ).map((item, index) => parseVendorRepo(item, `vendorRepos[${index}]`)),
     ...(project.globalRemove === undefined
       ? {}
       : {
@@ -405,8 +406,9 @@ export function parseLegacyProjectConfig(value: unknown): RouteKitProjectConfig 
     ruleSets: readArray(project.ruleSets, "ruleSets").map((item, index) =>
       parseRuleSet(item, `ruleSets[${index}]`),
     ),
-    ruleProviders: readArray(project.ruleProviders ?? [], "ruleProviders").map(
-      (item, index) => parseRuleProvider(item, `ruleProviders[${index}]`),
-    ),
+    ruleProviders: readArray(
+      project.ruleProviders === undefined ? [] : project.ruleProviders,
+      "ruleProviders",
+    ).map((item, index) => parseRuleProvider(item, `ruleProviders[${index}]`)),
   };
 }

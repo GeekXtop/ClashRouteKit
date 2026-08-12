@@ -254,4 +254,29 @@ describe("config document utilities", () => {
       "ruleSets[0].source.interval: expected number",
     );
   });
+
+  it("rejects null vendor repositories instead of treating them as missing", () => {
+    expect(() => parseRouteKitConfig(base.replace(
+      "vendorRepos: []",
+      "vendorRepos: null",
+    ))).toThrow("vendorRepos: expected array");
+  });
+
+  it("rejects null rule providers instead of treating them as missing", () => {
+    expect(() => parseRouteKitConfig(base.replace(
+      "ruleProviders: []",
+      "ruleProviders: null",
+    ))).toThrow("ruleProviders: expected array");
+  });
+
+  it("defaults missing optional project collections to empty arrays", () => {
+    const config = parseRouteKitConfig(
+      base
+        .replace("vendorRepos: []\n", "")
+        .replace("ruleProviders: []\n", ""),
+    );
+
+    expect(config.vendorRepos).toEqual([]);
+    expect(config.ruleProviders).toEqual([]);
+  });
 });
