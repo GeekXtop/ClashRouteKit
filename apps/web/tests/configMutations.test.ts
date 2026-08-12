@@ -74,6 +74,66 @@ describe("mergeImportedConfig", () => {
       "final",
     ]);
   });
+
+  it("creates provider placeholders and their unresolved routes as disabled drafts", () => {
+    const baseConfig = createConfig();
+    const imported = {
+      customProxyGroups: [],
+      ruleSets: [
+        {
+          id: "legacy",
+          policy: "Proxy",
+          source: { type: "rule-provider" as const, behavior: "domain" as const, file: "Legacy.mrs" },
+        },
+      ],
+      warnings: [],
+    };
+
+    const next = mergeImportedConfig(baseConfig, imported);
+    expect(next.ruleProviders).toContainEqual(expect.objectContaining({
+      output: "Legacy.mrs",
+      enabled: false,
+      sources: [],
+    }));
+    expect(next.ruleSets.find((ruleSet) => ruleSet.source.type === "rule-provider")).toMatchObject({
+      enabled: false,
+    });
+  });
+
+  it("keeps imported routes enabled when their provider already resolves enabled", () => {
+    const baseConfig: RouteKitProjectConfig = {
+      ...createConfig(),
+      ruleProviders: [
+        {
+          name: "Existing",
+          output: "Existing.yaml",
+          behavior: "domain",
+          sources: [{ name: "Existing", type: "clash-list", path: "config/rules/Existing.list" }],
+        },
+      ],
+    };
+    const imported: ImportedConfig = {
+      customProxyGroups: [],
+      ruleSets: [
+        {
+          id: "existing-provider",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "Existing.yaml" },
+        },
+        {
+          id: "missing-provider",
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "Missing.yaml" },
+        },
+      ],
+      warnings: [],
+    };
+
+    const next = mergeImportedConfig(baseConfig, imported);
+
+    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "existing-provider")?.enabled).not.toBe(false);
+    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "missing-provider")?.enabled).toBe(false);
+  });
 });
 
 describe("config mutation helpers", () => {
@@ -326,12 +386,14 @@ describe("config mutation helpers", () => {
       name: "Provider",
       output: "Provider_Domain.yaml",
       behavior: "domain",
+      enabled: false,
       sources: [],
     });
     expect(updated.ruleProviders?.at(-1)).toEqual({
       name: "Provider",
       output: "Policy_Domain.yaml",
       behavior: "domain",
+      enabled: false,
       sources,
     });
     expect(config.ruleProviders).toEqual([]);
@@ -519,9 +581,13 @@ describe("config mutation helpers", () => {
       name: "Custom_Direct_Classical_IP",
       output: "Custom_Direct_Classical_IP.yaml",
       behavior: "classical",
+      enabled: false,
       sources: [],
     });
     expect(next.ruleProviders?.find((provider) => provider.output === "Custom_IP.yaml")?.behavior).toBe("ipcidr");
+    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "ai")?.enabled).not.toBe(false);
+    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "custom-classical-ip")?.enabled).toBe(false);
+    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "custom-ipcidr")?.enabled).toBe(false);
   });
 });
 

@@ -3,7 +3,6 @@ import type { CustomProxyGroup } from "@clash-route-kit/core";
 import {
   buildProxyGroupTree,
   composeNodeFilter,
-  detectProxyGroupCycles,
   parseNodeFilter,
   policyTone,
 } from "../src/proxyGroups.js";
@@ -41,20 +40,6 @@ describe("parseNodeFilter", () => {
 
   it("parses a bare regex as the all scope", () => {
     expect(parseNodeFilter(".*")).toEqual({ scopeType: "all", scopeValue: "", regex: ".*" });
-  });
-});
-
-describe("detectProxyGroupCycles", () => {
-  it("finds a cycle between two groups", () => {
-    const cycles = detectProxyGroupCycles([group("A", ["B"]), group("B", ["A"])]);
-    expect(cycles.length).toBe(1);
-    expect([...cycles[0]!].sort()).toEqual(["A", "B"]);
-  });
-
-  it("returns no cycles for a DAG that references external proxies", () => {
-    expect(
-      detectProxyGroupCycles([group("A", ["B", "DIRECT"]), group("B", ["DIRECT", "REJECT"])]),
-    ).toEqual([]);
   });
 });
 

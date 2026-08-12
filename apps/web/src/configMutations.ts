@@ -312,14 +312,20 @@ function providerNameFromOutput(output: string): string {
   );
 }
 
-function importedProviderPlaceholders(
+interface ImportedProviderDrafts {
+  ruleProviders: RuleProviderConfig[];
+  placeholderOutputs: Set<string>;
+}
+
+function importedProviderDrafts(
   config: RouteKitProjectConfig,
   imported: ImportedConfig,
-): RuleProviderConfig[] {
+): ImportedProviderDrafts {
   const existingProviders = (config.ruleProviders ?? []).map(cloneRuleProvider);
   const existingOutputs = new Set(existingProviders.map((provider) => provider.output));
   const names = existingProviders.map((provider) => provider.name);
   const placeholders: RuleProviderConfig[] = [];
+  const placeholderOutputs = new Set<string>();
 
   for (const ruleSet of imported.ruleSets) {
     const source = ruleSet.source;
@@ -327,17 +333,34 @@ function importedProviderPlaceholders(
     const output = source.file.trim();
     if (!output || existingOutputs.has(output)) continue;
     existingOutputs.add(output);
+    placeholderOutputs.add(output);
     const name = nextName(names, providerNameFromOutput(output));
     names.push(name);
     placeholders.push({
       name,
       output,
       behavior: source.behavior,
+      enabled: false,
       sources: [],
     });
   }
 
-  return [...existingProviders, ...placeholders];
+  return {
+    ruleProviders: [...existingProviders, ...placeholders],
+    placeholderOutputs,
+  };
+}
+
+function disablePlaceholderRuleSets(
+  ruleSets: readonly RuleSet[],
+  placeholderOutputs: ReadonlySet<string>,
+): RuleSet[] {
+  return ruleSets.map((ruleSet) => cloneRuleSet({
+    ...ruleSet,
+    ...(ruleSet.source.type === "rule-provider" && placeholderOutputs.has(ruleSet.source.file)
+      ? { enabled: false }
+      : {}),
+  }));
 }
 
 export function createRuleProvider(config: RouteKitProjectConfig): RuleProviderConfig {
@@ -346,6 +369,7 @@ export function createRuleProvider(config: RouteKitProjectConfig): RuleProviderC
     name,
     output: `${name}_Domain.yaml`,
     behavior: "domain",
+    enabled: false,
     sources: [],
   };
 }
@@ -494,7 +518,8 @@ export function mergeImportedConfig(
 
   const existingIds = new Set(config.ruleSets.map((ruleSet) => ruleSet.id));
   const hasFinal = config.ruleSets.some((ruleSet) => ruleSet.source.type === "final");
-  const incoming = imported.ruleSets.filter(
+  const providerDrafts = importedProviderDrafts(config, imported);
+  const incoming = disablePlaceholderRuleSets(imported.ruleSets, providerDrafts.placeholderOutputs).filter(
     (ruleSet) => !existingIds.has(ruleSet.id) && !(hasFinal && ruleSet.source.type === "final"),
   );
   const finalIndex = config.ruleSets.findIndex((ruleSet) => ruleSet.source.type === "final");
@@ -505,13 +530,19 @@ export function mergeImportedConfig(
     ...config.ruleSets.slice(insertAt),
   ];
 
-  return { ...config, customProxyGroups, ruleSets };
+  return {
+    ...config,
+    customProxyGroups,
+    ruleSets,
+    ruleProviders: providerDrafts.ruleProviders,
+  };
 }
 
 export function replaceImportedConfig(
   config: RouteKitProjectConfig,
   imported: ImportedConfig,
 ): RouteKitProjectConfig {
+  const providerDrafts = importedProviderDrafts(config, imported);
   return {
     ...config,
     customProxyGroups: imported.customProxyGroups.map((group) => ({
@@ -519,7 +550,7 @@ export function replaceImportedConfig(
       options: [...group.options],
       nodeFilters: group.nodeFilters ? [...group.nodeFilters] : undefined,
     })),
-    ruleSets: imported.ruleSets.map((ruleSet) => ({ ...ruleSet, source: { ...ruleSet.source } })),
-    ruleProviders: importedProviderPlaceholders(config, imported),
+    ruleSets: disablePlaceholderRuleSets(imported.ruleSets, providerDrafts.placeholderOutputs),
+    ruleProviders: providerDrafts.ruleProviders,
   };
 }

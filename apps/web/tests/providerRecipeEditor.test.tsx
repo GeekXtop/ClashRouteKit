@@ -24,3 +24,50 @@ it("updates output on blur", () => {
   fireEvent.blur(output);
   expect(onUpdate).toHaveBeenCalledWith({ output: "AI2.yaml" });
 });
+
+it("exposes the provider enabled state", () => {
+  const onUpdate = vi.fn();
+  render(
+    <AppProviders>
+      <ProviderRecipeEditor
+        provider={{
+          name: "Draft",
+          output: "Draft.yaml",
+          behavior: "domain",
+          enabled: false,
+          sources: [],
+        }}
+        onUpdate={onUpdate}
+        onSetSources={() => {}}
+        onSetListField={() => {}}
+        onDelete={() => {}}
+        fetcher={vi.fn()}
+      />
+    </AppProviders>,
+  );
+  fireEvent.click(screen.getByRole("switch", { name: "启用规则源" }));
+  expect(onUpdate).toHaveBeenCalledWith({ enabled: true });
+});
+
+it("blocks enabled providers that have no sources", () => {
+  render(
+    <AppProviders>
+      <ProviderRecipeEditor
+        provider={{
+          name: "Draft",
+          output: "Draft.yaml",
+          behavior: "domain",
+          enabled: true,
+          sources: [],
+        }}
+        onUpdate={() => {}}
+        onSetSources={() => {}}
+        onSetListField={() => {}}
+        onDelete={() => {}}
+        fetcher={vi.fn()}
+      />
+    </AppProviders>,
+  );
+
+  expect(screen.getByText("启用前至少添加一个数据源")).toBeTruthy();
+});
