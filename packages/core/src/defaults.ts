@@ -5,6 +5,7 @@ import type {
   RouteKitDefaults,
   RuleProviderRuleSetSource,
 } from "./types.js";
+import type { Diagnostic } from "./config/diagnostics.js";
 
 export const LEGACY_HEALTH_CHECK_URL = "https://cp.cloudflare.com/generate_204";
 export const LEGACY_HEALTH_CHECK_INTERVAL = 300;
@@ -105,83 +106,111 @@ function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
-function validateOptionalUrl(value: unknown, label: string, diagnostics: string[]): void {
-  if (value !== undefined && !isHttpUrl(value)) {
-    diagnostics.push(`${label} 必须是 HTTP/HTTPS URL`);
-  }
-}
-
-function validateOptionalPositiveInteger(
-  value: unknown,
-  label: string,
-  diagnostics: string[],
+function pushInvalid(
+  diagnostics: Diagnostic[],
+  code: string,
+  path: string,
+  message: string,
+  invalid: boolean,
 ): void {
-  if (value !== undefined && !isPositiveInteger(value)) {
-    diagnostics.push(`${label} 必须为正整数`);
-  }
+  if (invalid) diagnostics.push({ code, severity: "error", path, message });
 }
 
-function validateOptionalNonNegativeInteger(
-  value: unknown,
-  label: string,
-  diagnostics: string[],
+export function appendDefaultValueDiagnostics(
+  config: RouteKitConfig,
+  diagnostics: Diagnostic[],
 ): void {
-  if (value !== undefined && !isNonNegativeInteger(value)) {
-    diagnostics.push(`${label} 必须为非负整数`);
-  }
-}
-
-export function validateDefaultAwareConfig(config: RouteKitConfig): string[] {
-  const diagnostics: string[] = [];
-  const healthCheck = config.defaults?.proxyGroups?.healthCheck;
-
-  validateOptionalUrl(
-    healthCheck?.url,
+  const health = config.defaults?.proxyGroups?.healthCheck;
+  pushInvalid(
+    diagnostics,
+    "defaults.health-check.url",
     "defaults.proxyGroups.healthCheck.url",
-    diagnostics,
+    "健康检查 URL 必须是 HTTP/HTTPS URL",
+    health?.url !== undefined && !isHttpUrl(health.url),
   );
-  validateOptionalPositiveInteger(
-    healthCheck?.interval,
+  pushInvalid(
+    diagnostics,
+    "defaults.health-check.interval",
     "defaults.proxyGroups.healthCheck.interval",
-    diagnostics,
+    "健康检查 interval 必须为正整数",
+    health?.interval !== undefined && !isPositiveInteger(health.interval),
   );
-  validateOptionalPositiveInteger(
-    healthCheck?.timeout,
+  pushInvalid(
+    diagnostics,
+    "defaults.health-check.timeout",
     "defaults.proxyGroups.healthCheck.timeout",
-    diagnostics,
+    "健康检查 timeout 必须为正整数",
+    health?.timeout !== undefined && !isPositiveInteger(health.timeout),
   );
-  validateOptionalNonNegativeInteger(
-    config.defaults?.proxyGroups?.urlTest?.tolerance,
+  const defaultTolerance = config.defaults?.proxyGroups?.urlTest?.tolerance;
+  pushInvalid(
+    diagnostics,
+    "defaults.url-test.tolerance",
     "defaults.proxyGroups.urlTest.tolerance",
-    diagnostics,
+    "url-test tolerance 必须为非负整数",
+    defaultTolerance !== undefined && !isNonNegativeInteger(defaultTolerance),
   );
-  validateOptionalPositiveInteger(
-    config.defaults?.ruleSets?.ruleProviderInterval,
+  const defaultInterval = config.defaults?.ruleSets?.ruleProviderInterval;
+  pushInvalid(
+    diagnostics,
+    "defaults.route.interval",
     "defaults.ruleSets.ruleProviderInterval",
-    diagnostics,
+    "RuleSet interval 必须为正整数",
+    defaultInterval !== undefined && !isPositiveInteger(defaultInterval),
   );
 
-  for (const group of config.customProxyGroups) {
-    const label = `custom_proxy_group ${group.name}`;
-    validateOptionalUrl(group.url, `${label} 的 url`, diagnostics);
-    validateOptionalPositiveInteger(group.interval, `${label} 的 interval`, diagnostics);
-    if (group.timeout !== null) {
-      validateOptionalPositiveInteger(group.timeout, `${label} 的 timeout`, diagnostics);
-    }
-    if (group.tolerance !== null) {
-      validateOptionalNonNegativeInteger(group.tolerance, `${label} 的 tolerance`, diagnostics);
-    }
+  for (const [index, group] of config.customProxyGroups.entries()) {
+    const base = `customProxyGroups[${index}]`;
+    pushInvalid(
+      diagnostics,
+      "group.health-check.url",
+      `${base}.url`,
+      `策略组 ${group.name} 的 URL 必须是 HTTP/HTTPS URL`,
+      group.url !== undefined && !isHttpUrl(group.url),
+    );
+    pushInvalid(
+      diagnostics,
+      "group.health-check.interval",
+      `${base}.interval`,
+      `策略组 ${group.name} 的 interval 必须为正整数`,
+      group.interval !== undefined && !isPositiveInteger(group.interval),
+    );
+    pushInvalid(
+      diagnostics,
+      "group.health-check.timeout",
+      `${base}.timeout`,
+      `策略组 ${group.name} 的 timeout 必须为正整数`,
+      group.timeout !== undefined
+        && group.timeout !== null
+        && !isPositiveInteger(group.timeout),
+    );
+    pushInvalid(
+      diagnostics,
+      "group.health-check.tolerance",
+      `${base}.tolerance`,
+      `策略组 ${group.name} 的 tolerance 必须为非负整数`,
+      group.tolerance !== undefined
+        && group.tolerance !== null
+        && !isNonNegativeInteger(group.tolerance),
+    );
   }
 
-  for (const ruleSet of config.ruleSets) {
-    if (ruleSet.source.type === "rule-provider") {
-      validateOptionalPositiveInteger(
-        ruleSet.source.interval,
-        `RuleSet ${ruleSet.id} 的 interval`,
-        diagnostics,
-      );
-    }
+  for (const [index, ruleSet] of config.ruleSets.entries()) {
+    if (ruleSet.source.type !== "rule-provider") continue;
+    pushInvalid(
+      diagnostics,
+      "route.interval",
+      `ruleSets[${index}].source.interval`,
+      `RuleSet ${ruleSet.id} 的 interval 必须为正整数`,
+      ruleSet.source.interval !== undefined
+        && !isPositiveInteger(ruleSet.source.interval),
+    );
   }
+}
 
-  return diagnostics;
+/** @deprecated Use validateLegacyProjectConfig. */
+export function validateDefaultAwareConfig(config: RouteKitConfig): string[] {
+  const diagnostics: Diagnostic[] = [];
+  appendDefaultValueDiagnostics(config, diagnostics);
+  return diagnostics.map((diagnostic) => diagnostic.message);
 }

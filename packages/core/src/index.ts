@@ -11,6 +11,10 @@ export type {
   Diagnostic,
   DiagnosticSeverity,
 } from "./config/diagnostics.js";
+export {
+  createLegacyProxyGroupGraph,
+  validateLegacyProjectConfig,
+} from "./config/validateLegacy.js";
 export { renderIni } from "./ini.js";
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 export { parseIniToConfig } from "./import.js";

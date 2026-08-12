@@ -4,6 +4,7 @@ import {
   resolveProxyGroupHealthCheck,
   resolveRuleProviderInterval,
   validateDefaultAwareConfig,
+  validateLegacyProjectConfig,
 } from "../src/index.js";
 
 describe("project defaults", () => {
@@ -138,15 +139,15 @@ describe("project defaults", () => {
         ],
       }),
     ).toEqual([
-      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
-      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
-      "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
-      "defaults.proxyGroups.urlTest.tolerance 必须为非负整数",
-      "defaults.ruleSets.ruleProviderInterval 必须为正整数",
-      "custom_proxy_group Auto 的 url 必须是 HTTP/HTTPS URL",
-      "custom_proxy_group Auto 的 interval 必须为正整数",
-      "custom_proxy_group Auto 的 timeout 必须为正整数",
-      "custom_proxy_group Auto 的 tolerance 必须为非负整数",
+      "健康检查 URL 必须是 HTTP/HTTPS URL",
+      "健康检查 interval 必须为正整数",
+      "健康检查 timeout 必须为正整数",
+      "url-test tolerance 必须为非负整数",
+      "RuleSet interval 必须为正整数",
+      "策略组 Auto 的 URL 必须是 HTTP/HTTPS URL",
+      "策略组 Auto 的 interval 必须为正整数",
+      "策略组 Auto 的 timeout 必须为正整数",
+      "策略组 Auto 的 tolerance 必须为非负整数",
       "RuleSet provider 的 interval 必须为正整数",
     ]);
   });
@@ -168,5 +169,44 @@ describe("project defaults", () => {
         ruleSets: [],
       }),
     ).toEqual([]);
+  });
+
+  it("exposes default validation as structured diagnostics while keeping legacy messages", () => {
+    const config = {
+      publishBaseUrl: "https://example.com/publish",
+      template: { output: "Custom_Clash.ini" },
+      vendorRepos: [],
+      defaults: {
+        proxyGroups: {
+          healthCheck: { url: "ftp://probe.example", interval: 0 },
+        },
+      },
+      customProxyGroups: [
+        { name: "Proxy", type: "select" as const, options: ["DIRECT"], timeout: null },
+      ],
+      ruleSets: [
+        { id: "final", policy: "Proxy", source: { type: "final" as const } },
+      ],
+      ruleProviders: [],
+    };
+
+    expect(validateLegacyProjectConfig(config).slice(0, 2)).toEqual([
+      {
+        code: "defaults.health-check.url",
+        severity: "error",
+        path: "defaults.proxyGroups.healthCheck.url",
+        message: "健康检查 URL 必须是 HTTP/HTTPS URL",
+      },
+      {
+        code: "defaults.health-check.interval",
+        severity: "error",
+        path: "defaults.proxyGroups.healthCheck.interval",
+        message: "健康检查 interval 必须为正整数",
+      },
+    ]);
+    expect(validateDefaultAwareConfig(config)).toEqual([
+      "健康检查 URL 必须是 HTTP/HTTPS URL",
+      "健康检查 interval 必须为正整数",
+    ]);
   });
 });
