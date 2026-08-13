@@ -11,6 +11,7 @@ import {
   resolveProjectRoot,
   syncVendor,
 } from "../src/program.js";
+import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 
 const sampleConfig = `
 publishBaseUrl: https://example.com/publish
@@ -71,6 +72,13 @@ function configWithVendorRepos(entries: string): string {
 }
 
 describe("CLI program", () => {
+  it("keeps the repository route config free of executable provider placeholders", async () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const config = await readConfig({ root, configFile: "config/routes.yaml" });
+    const diagnostics = validateLegacyProjectConfig(config);
+    expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).toEqual([]);
+  });
+
   it("generates INI and provider outputs from routes config", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");

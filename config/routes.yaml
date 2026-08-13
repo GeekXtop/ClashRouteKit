@@ -472,9 +472,8 @@ ruleSets:
   - id: google-cn
     policy: 🎯 全球直连
     source:
-      type: rule-provider
-      behavior: domain
-      file: GoogleCN_Domain.yaml
+      type: geosite
+      value: google@cn
     section: 谷歌在国内可用的域名直连
   - id: category-games@cn
     policy: 🎯 全球直连
@@ -834,16 +833,32 @@ ruleProviders:
   - name: Custom_Direct_Classical_IP
     output: Custom_Direct_Classical_IP.yaml
     behavior: classical
-    sources: []
+    sources:
+      - name: Aethersailor_Custom_Direct_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Direct_Classical_IP.yaml
   - name: Custom_Proxy_Classical_IP
     output: Custom_Proxy_Classical_IP.yaml
     behavior: classical
-    sources: []
+    sources:
+      - name: Aethersailor_Custom_Proxy_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Proxy_Classical_IP.yaml
   - name: Steam_CDN_Classical
     output: Steam_CDN_Classical.yaml
     behavior: classical
-    sources: []
+    sources:
+      - name: Aethersailor_Steam_CDN_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Steam_CDN_Classical_IP.yaml
   - name: Custom_Port_Direct
     output: Custom_Port_Direct.yaml
     behavior: classical
-    sources: []
+    sources:
+      - name: Aethersailor_Custom_Port_Direct
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Port_Direct.yaml
