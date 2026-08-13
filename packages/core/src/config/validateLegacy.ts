@@ -64,13 +64,14 @@ function validateProviderSource(
   source: RuleProviderSource,
   providerIndex: number,
   sourceIndex: number,
+  severity: Diagnostic["severity"],
   diagnostics: Diagnostic[],
 ): void {
   const base = `ruleProviders[${providerIndex}].sources[${sourceIndex}]`;
   if (!source.name.trim()) {
     diagnostics.push({
       code: "provider.source.name-empty",
-      severity: "error",
+      severity,
       path: `${base}.name`,
       message: `Rule provider ${provider.name} 的 source 名称不能为空`,
     });
@@ -81,7 +82,7 @@ function validateProviderSource(
   if (!pathValue.trim()) {
     diagnostics.push({
       code: "provider.source.value-empty",
-      severity: "error",
+      severity,
       path: source.type === "domain-list-community"
         ? `${base}.entry`
         : `${base}.path`,
@@ -101,7 +102,7 @@ function validateProviderSource(
     ) {
       diagnostics.push({
         code: "provider.source.path-unsafe",
-        severity: "error",
+        severity,
         path: `${base}.${key}`,
         message: "source 路径必须是项目内安全相对路径",
       });
@@ -226,7 +227,14 @@ function validateProvider(
     });
   }
   for (const [sourceIndex, source] of provider.sources.entries()) {
-    validateProviderSource(provider, source, index, sourceIndex, diagnostics);
+    validateProviderSource(
+      provider,
+      source,
+      index,
+      sourceIndex,
+      enabled ? "error" : "warning",
+      diagnostics,
+    );
   }
 }
 
@@ -334,8 +342,8 @@ export function validateLegacyProjectConfig(
       });
     }
 
-    if (ruleSet.enabled === false) continue;
     if (source.type === "final") {
+      if (ruleSet.enabled === false) continue;
       enabledFinalRuleIds.push(ruleSet.id);
       continue;
     }
@@ -344,7 +352,7 @@ export function validateLegacyProjectConfig(
     if (!source.file.trim()) {
       diagnostics.push({
         code: "route.provider.missing",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.source.file`,
         message: `RuleSet ${ruleSet.id} 的 provider 文件不能为空`,
         related: [source.file],
@@ -356,13 +364,14 @@ export function validateLegacyProjectConfig(
     if (!provider) {
       diagnostics.push({
         code: "route.provider.missing",
-        severity: "error",
+        severity: referenceSeverity,
         path: `${base}.source.file`,
         message: `RuleSet ${ruleSet.id} 引用了不存在的 provider 输出：${source.file}`,
         related: [source.file],
       });
       continue;
     }
+    if (ruleSet.enabled === false) continue;
     if (!providerEnabled(provider)) {
       diagnostics.push({
         code: "route.provider.disabled",

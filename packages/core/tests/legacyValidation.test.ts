@@ -161,6 +161,61 @@ describe("validateLegacyProjectConfig", () => {
     ]);
   });
 
+  it("keeps incomplete sources on disabled providers as warnings", () => {
+    const diagnostics = validateLegacyProjectConfig(project({
+      ruleProviders: [
+        {
+          name: "Draft",
+          output: "Draft.yaml",
+          behavior: "domain",
+          enabled: false,
+          sources: [
+            {
+              name: "",
+              type: "clash-list",
+              path: "",
+            },
+            {
+              name: "Unsafe",
+              type: "clash-list",
+              basePath: "C:\\vendor",
+              path: "../secret.list",
+            },
+          ],
+        },
+      ],
+    }));
+
+    expect(diagnostics.map(({ code, severity }) => ({ code, severity }))).toEqual([
+      { code: "provider.source.name-empty", severity: "warning" },
+      { code: "provider.source.value-empty", severity: "warning" },
+      { code: "provider.source.path-unsafe", severity: "warning" },
+      { code: "provider.source.path-unsafe", severity: "warning" },
+    ]);
+  });
+
+  it("warns when a disabled provider route has an unresolved output", () => {
+    const diagnostics = validateLegacyProjectConfig(project({
+      ruleSets: [
+        {
+          id: "disabled-draft",
+          enabled: false,
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "Missing.yaml" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+    }));
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: "route.provider.missing",
+        severity: "warning",
+        related: ["Missing.yaml"],
+      }),
+    ]);
+  });
+
   it("reports invalid regular expressions without throwing", () => {
     const diagnostics = validateLegacyProjectConfig(project({
       customProxyGroups: [

@@ -170,7 +170,7 @@ describe("project controller", () => {
       config: warningConfig,
     });
 
-    expect(saved.message).toBe("已保存，2 个规则源待补全数据源");
+    expect(saved.message).toBe("已保存，2 条配置警告待处理");
   });
 
   it("keeps view, selected ruleSet, and validation output in controller state", () => {

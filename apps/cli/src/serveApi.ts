@@ -807,12 +807,22 @@ export async function runRouteKitAction(
   }
 
   if (action === "git-commit") {
+    const diagnostics = await (options.checkConfig ?? checkConfig)(options);
+    if (hasDiagnosticErrors(diagnostics)) {
+      return {
+        action,
+        ok: false,
+        output: formatCheckOutput(diagnostics),
+        diagnostics,
+      };
+    }
     await runCommand("git", ["add", "config/routes.yaml", "config/rules"], options.root);
     const output = await runCommand("git", ["commit", "-m", "chore: update route config"], options.root);
     return {
       action,
       ok: true,
       output: output || "[git] committed route config",
+      diagnostics,
     };
   }
 

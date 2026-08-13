@@ -402,6 +402,7 @@ describe("git route kit actions", () => {
     const commands: string[] = [];
     const result = await runRouteKitAction("git-commit", {
       ...baseOptions,
+      checkConfig: async () => [],
       runCommand: async (command, args) => {
         commands.push([command, ...args].join(" "));
         return "";
@@ -414,6 +415,56 @@ describe("git route kit actions", () => {
     ]);
     expect(result.ok).toBe(true);
     expect(result.output).toContain("[git] committed route config");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("blocks an independent git commit when check diagnostics contain errors", async () => {
+    const commands: string[] = [];
+    const diagnostic = {
+      code: "route.final.missing",
+      severity: "error" as const,
+      path: "ruleSets",
+      message: "ruleSets 需要包含一条 FINAL 兜底规则",
+    };
+    const result = await runRouteKitAction("git-commit", {
+      ...baseOptions,
+      checkConfig: async () => [diagnostic],
+      runCommand: async (command, args) => {
+        commands.push([command, ...args].join(" "));
+        return "committed";
+      },
+    });
+
+    expect(result).toMatchObject({ action: "git-commit", ok: false, diagnostics: [diagnostic] });
+    expect(commands).toEqual([]);
+  });
+
+  it("allows an independent git commit when check diagnostics only contain warnings", async () => {
+    const commands: string[] = [];
+    const diagnostic = {
+      code: "workspace.geosite.missing",
+      severity: "warning" as const,
+      message: "Catalog 中未找到 gfw",
+    };
+    const result = await runRouteKitAction("git-commit", {
+      ...baseOptions,
+      checkConfig: async () => [diagnostic],
+      runCommand: async (command, args) => {
+        commands.push([command, ...args].join(" "));
+        return "committed";
+      },
+    });
+
+    expect(commands).toEqual([
+      "git add config/routes.yaml config/rules",
+      "git commit -m chore: update route config",
+    ]);
+    expect(result).toMatchObject({
+      action: "git-commit",
+      ok: true,
+      output: "committed",
+      diagnostics: [diagnostic],
+    });
   });
 
   it("blocks an independent git push when check diagnostics contain errors", async () => {

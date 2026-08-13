@@ -184,7 +184,7 @@ export function markProjectSaved(
     status: "ready",
     message:
       warnings.length > 0
-        ? `已保存，${warnings.length} 个规则源待补全数据源`
+        ? `已保存，${warnings.length} 条配置警告待处理`
         : "已保存 config/routes.yaml，可运行检查、生成和提交",
     selectedRuleSetId: hasSelectedRuleSet(snapshot.config, state.selectedRuleSetId)
       ? state.selectedRuleSetId
