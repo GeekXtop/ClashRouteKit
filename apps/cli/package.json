@@ -11,5 +11,8 @@
   "dependencies": {
     "@clash-route-kit/core": "workspace:*",
     "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2"
   }
 }
