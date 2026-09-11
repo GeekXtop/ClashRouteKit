@@ -2,9 +2,22 @@
 
 ## 当前任务
 
-- 目标：将策略组、RuleSet、项目默认值三个 Drawer 改为事务式显式保存，简化 nullable 覆盖与 GEOIP 默认值交互，并修复配置写盘触发 Vite 整页重载。
-- 状态：已完成并整体提交到 `main`；`redesign/web-console` 已删除，工作树已清洁，尚未 push。
-- 最后更新：2026-08-07
+- 目标：重新梳理 Web 控制台的“项目 → 规则库 → 路由 → 输出”信息架构，消除策略组详情与编辑抽屉的重复信息，并让设备配置与 GitHub 发布符合本地优先的真实依赖。
+- 状态：配置健康门禁阶段已在隔离分支完成并通过独立复审，尚未合并或 push；根工作区现有 `config/routes.yaml` 用户修改未被覆盖。
+- 最后更新：2026-08-13
+
+- 当前规格：`docs/superpowers/specs/2026-08-10-web-console-workflow-redesign-design.md`。
+- 当前计划：`docs/superpowers/plans/2026-08-10-config-health-gates.md` 已完成；分支 `feat/workflow-redesign`，worktree `.worktrees/workflow-redesign`，HEAD `90bddc9`。
+- 当前结论：一级导航为“项目 / 规则库 / 路由 / 输出”；输出页保留同页双标签“设备配置 / GitHub 发布”。配置层继续使用 YAML 和单一逻辑事实源，但升级为 schema v2，增加稳定 ID、memberSets、显式迁移、统一诊断和本地运行设置分层；工程层新增 `packages/local-server` 边界。
+- 当前证据：策略组详情重复展示上游引用、下游成员与规则；导入入口固定在右上角；发布页本地按钮实际推送当前分支，而 `publish` 分支由 GitHub Actions 生成。
+
+## 配置健康门禁阶段
+
+- Core 已提供结构化 `Diagnostic`、严格 v1 parser、依赖环检测和统一 `validateLegacyProjectConfig`。
+- Web 保存、CLI `check`/`generate`、服务端保存、独立 `git-commit`/`git-push` 均以 error 为阻断项，warning 保持可见但不阻断。
+- 禁用 provider / RuleSet 可保留不完整草稿并以 warning 呈现；禁用项不参与生成和执行语义。
+- feature 分支中的 `config/routes.yaml` 已修复 `google@cn` 与四个 classical provider source；根工作区的用户版配置需要后续冲突感知合并，不能整文件覆盖。
+- 独立阶段复审与修复后 scoped re-review 均无 Critical/Important；仅保留低优先级事项：保存 API 的错误响应尚未携带结构化 `diagnostics` 字段。
 
 - 规格：`docs/superpowers/specs/2026-08-07-explicit-drawer-save-design.md`（提交 `725bac4`）。
 - 计划：`docs/superpowers/plans/2026-08-07-explicit-drawer-save.md`（提交 `8e7a528`）。
@@ -42,8 +55,9 @@
 
 ## 下一步
 
-1. 如需同步远端，由用户决定何时 push `main`。
-2. 本次只创建本地提交，未 push、未创建 PR。
+1. 由用户决定：将 `feat/workflow-redesign` 本地合并到 `main`、推送并建 PR，或保留 worktree 继续下一阶段。
+2. 若合并到根工作区，先人工合并根目录现有 `config/routes.yaml` 修改，再在合并结果上重跑完整门禁。
+3. 下一阶段可继续总路线图中的 Schema v2 / 信息架构实现；本阶段未引入 v2 字段。
 
 ## 当前 ADR
 

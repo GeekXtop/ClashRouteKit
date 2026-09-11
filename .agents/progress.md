@@ -113,3 +113,12 @@
 - 已清理：验证通过后删除临时 stash `7384b85`；用户随后明确授权整体提交，96 个文件已统一纳入 `feat: finalize route management console`。
 - 已验证：整体提交前 `pnpm test`、`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 和 staged `git diff --check` 均通过。
 - 下一步：工作树已清洁；本次未 push，由用户决定何时同步 `main` 到远端。
+
+## 2026-08-13 - v1 配置健康门禁阶段完成
+
+- 已完成：Core 统一结构化诊断、严格 v1 parser、依赖图与循环检测；Web、CLI、local API 和 Git 提交/推送动作共享 error 门禁。
+- 已完成：禁用 provider / RuleSet 草稿语义统一，禁用项不参与生成；当前 feature baseline 的 `config/routes.yaml` 补齐四个 classical provider source，并将 `google-cn` 数据源修正为 `google@cn`。
+- 已复审：阶段整体独立复审发现 2 个 Important（独立 `git-commit` 绕过门禁、禁用 provider 半成品 source 被阻断），提交 `90bddc9` 修复后 scoped re-review 无 Critical/Important。
+- 已验证：`pnpm test` 55 个文件、343 个测试通过；`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 全部通过；仅保留既有 Ant Design 弃用与 Vite chunk-size 非阻断提示。
+- 当前载体：分支 `feat/workflow-redesign`，worktree `.worktrees/workflow-redesign`，HEAD `90bddc9`；尚未 merge、push 或创建 PR。
+- 下一步：由用户选择本地合并、推送 PR 或保留分支；根工作区用户修改的 `config/routes.yaml` 必须冲突感知合并，不能直接覆盖。
