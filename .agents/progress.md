@@ -132,3 +132,13 @@
 - 已验证：合并后与 untrack 后分别全量门禁通过：`pnpm test` 55 文件 345 测试、`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate`；无本地配置时 Web 构建回退验证通过。
 - 已提交：`ec64dc0` 用户配置、`930fe16` 进展记录、`bd911d6` 合并、`28a1f41` untrack 改造；均未 push。
 - 下一步：Phase B（Schema v2 与 Core）实施计划见 `docs/superpowers/plans/2026-09-11-schema-v2-core.md`。
+
+## 2026-09-11 - Phase B：Schema v2 与 Core 完成
+
+- 已完成：Core 新增 `config/schemaV2/`（types/parser/normalize/validate/migrate/toRouteKitConfig 六模块，全部纯函数无 Node IO）：严格 v2 parser、memberSets 递归展开与 preset 环检测、两层校验（作者层 + 规范化层）、v1→v2 迁移分析（确定性 slug、重复成员提取）、NormalizedProject → 现有渲染管线桥接。
+- 已完成：`parseAuthorProjectConfig` 按 schemaVersion 分发 v1/v2；`packages/core` 公共 API 导出；CLI 新增 `migrate` 命令（默认只读，`--write` 原子写入 `output/imported-routes-v2.yaml`，原配置永不改动）。
+- 已验证：核心验收达成——真实蓝本 `config/routes.yaml.example`（52 组）迁移后经渲染桥 `renderIni` 与 v1 输出逐字一致；memberSets 提取 4 个集合覆盖 28 个组；仅 1 条 info 级 runtime-setting issue、0 error。
+- 已验证：`pnpm test` 60 文件 404 测试、`pnpm typecheck`、`pnpm build`、`pnpm check`（gfw warning 保持非阻断）、`pnpm generate`、`pnpm migrate` 冒烟全部通过。
+- 已提交：`ed982e2` parser、`5b499da` normalize、`77832dc` validate、`bac7cb7` 渲染桥、`438591a` migrate、`d0d292d` 公共 API 与 CLI 接线；均未 push。
+- 执行方式：subagent-driven-development，主 agent 逐任务验收提交；计划 checklist 全部勾选（docs/superpowers/plans/2026-09-11-schema-v2-core.md）。
+- 下一步：Phase C（packages/local-server 边界与本地运行设置 `.clashroutekit/local.yaml`）；用户可选推送 main。

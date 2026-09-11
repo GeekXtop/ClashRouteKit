@@ -3,11 +3,11 @@
 ## 当前任务
 
 - 目标：实现总路线图 Phase B（Schema v2 与 Core），随后推进 C–E 阶段；配置文件边界已按用户要求改为“仓库只跟踪 `config/routes.yaml.example`，`config/routes.yaml` 为本地个人配置”。
-- 状态：`feat/workflow-redesign`（12 提交，HEAD `90bddc9`）已合并回 `main` 并通过全量门禁；routes.yaml 冲突按“用户改动 + 分支修复”合并；untrack + example 改造已落地提交 `28a1f41`。
+- 状态：Phase A 分支已合并、untrack 改造已完成（`28a1f41`）；Phase B（Schema v2 与 Core）已完成并全量门禁通过（60 文件 404 测试），未 push。
 - 最后更新：2026-09-11
 
 - 当前规格：`docs/superpowers/specs/2026-08-10-web-console-workflow-redesign-design.md`。
-- 当前计划：Phase B 实施计划 `docs/superpowers/plans/2026-09-11-schema-v2-core.md`。
+- 当前计划：`docs/superpowers/plans/2026-09-11-schema-v2-core.md` 已完成（Phase B 落地，7 任务全勾）。
 - 阶段 A（配置健康门禁）：已完成，随合并进入 main；独立复审遗留的低优先级事项（保存 API 错误响应携带结构化 diagnostics）仍未做。
 - 配置边界决策：`config/routes.yaml` 不再被 Git 跟踪；CI 在缺失时从 example 生成发布产物；`apps/web` 构建经 `virtual:routes-config-yaml` 内联本地配置（缺失回退 example）；`git-commit` 动作改为 add `config/modules.yaml` + `config/rules`。
 - 合并时对用户配置采纳的分支修复：`google@cn` 数据源、`Custom_Port_Direct` 真实来源、移除空 `.mrs` provider、移除误入 nodeFilter 的 URL；遗留非阻断 warning：GEOSITE `gfw` 已从上游 domain-list-community 移除，本地 Catalog 无此 tag。
@@ -57,7 +57,7 @@
 
 ## 下一步
 
-1. Phase B：按计划实现 v2 parser、迁移、规范化、稳定 ID、memberSets 与统一诊断，保持 v1 只读兼容。
+1. Phase C：引入 `packages/local-server` 边界、拆分 serveApi、新增 ignored 本地设置 `.clashroutekit/local.yaml` 与原子配置仓库。
 2. 用户可选：推送 `main`（合并与 untrack 改动均在本地，未 push）。
 3. 低优先级遗留：保存 API 错误响应携带结构化 `diagnostics` 字段；`config/routes.yaml.example` 是否要裁剪为中性模板由用户决定（当前为完整个人配置蓝本）。
 

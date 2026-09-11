@@ -59,13 +59,13 @@
 
 ## Tasks
 
-1. [ ] v2 类型 + 严格 parser + parser 测试（含上述非法夹具回归）。
-2. [ ] normalize + memberSets 展开 + preset 环检测 + 测试。
-3. [ ] validate 两层校验 + 测试。
-4. [ ] migrate 分析（slug、memberSets 提取、issue）+ INI 等价测试。
-5. [ ] toRouteKitConfig 渲染桥 + 等价/回归测试。
-6. [ ] `parseAuthorProjectConfig` 分发入口与 index 导出。
-7. [ ] CLI `migrate` 命令与测试；README 补充 v2 说明。
+1. [x] v2 类型 + 严格 parser + parser 测试（含上述非法夹具回归）。
+2. [x] normalize + memberSets 展开 + preset 环检测 + 测试。
+3. [x] validate 两层校验 + 测试。
+4. [x] migrate 分析（slug、memberSets 提取、issue）+ INI 等价测试。
+5. [x] toRouteKitConfig 渲染桥 + 等价/回归测试。
+6. [x] `parseAuthorProjectConfig` 分发入口与 index 导出。
+7. [x] CLI `migrate` 命令与测试；README 补充 v2 说明。
 
 每个任务完成后运行 `pnpm --filter @clash-route-kit/core test` 与 `pnpm --filter @clash-route-kit/core typecheck`；任务 6、7 后追加 `pnpm test`、`pnpm typecheck`、`pnpm check`、`pnpm build`。
 
