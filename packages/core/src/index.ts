@@ -2,9 +2,24 @@ export {
   parseRouteKitConfig,
   serializeRouteKitConfig,
 } from "./configDocument.js";
+export {
+  ConfigDiagnosticError,
+  formatDiagnostic,
+  hasDiagnosticErrors,
+} from "./config/diagnostics.js";
+export type {
+  Diagnostic,
+  DiagnosticSeverity,
+} from "./config/diagnostics.js";
+export {
+  createLegacyProxyGroupGraph,
+  validateLegacyProjectConfig,
+} from "./config/validateLegacy.js";
 export { renderIni } from "./ini.js";
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 export { parseIniToConfig } from "./import.js";
+export { findDependencyCycles } from "./routing/dependencyGraph.js";
+export type { DependencyGraph } from "./routing/dependencyGraph.js";
 export {
   LEGACY_GEOIP_NO_RESOLVE,
   LEGACY_HEALTH_CHECK_INTERVAL,

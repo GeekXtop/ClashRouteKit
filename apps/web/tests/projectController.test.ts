@@ -73,11 +73,15 @@ describe("project controller", () => {
       ruleSets: [{ ...config.ruleSets[0]!, id: "" }],
     });
 
-    expect(canSaveProject(next)).toEqual({
-      ok: false,
-      reason: "RuleSet ID 不能为空",
-      warnings: [],
-    });
+    const readiness = canSaveProject(next);
+    expect(readiness.ok).toBe(false);
+    if (readiness.ok) throw new Error("expected blocked save");
+    expect(readiness.reason).toBe("RuleSet ID 不能为空");
+    expect(readiness.warnings).toEqual([]);
+    expect(readiness.diagnostics).toContainEqual(expect.objectContaining({
+      code: "route.id.empty",
+      severity: "error",
+    }));
   });
 
   it("blocks save readiness when ruleSet ids are duplicated", () => {
@@ -92,11 +96,15 @@ describe("project controller", () => {
       ],
     });
 
-    expect(canSaveProject(next)).toEqual({
-      ok: false,
-      reason: "RuleSet ID 不能重复：developer-geosite-github",
-      warnings: [],
-    });
+    const readiness = canSaveProject(next);
+    expect(readiness.ok).toBe(false);
+    if (readiness.ok) throw new Error("expected blocked save");
+    expect(readiness.reason).toBe("重复值：developer-geosite-github");
+    expect(readiness.warnings).toEqual([]);
+    expect(readiness.diagnostics).toContainEqual(expect.objectContaining({
+      code: "route.id.duplicate",
+      severity: "error",
+    }));
   });
 
   it("blocks save readiness when a ruleSet references an unknown custom proxy group", () => {
@@ -107,11 +115,15 @@ describe("project controller", () => {
       ruleSets: [{ ...config.ruleSets[0]!, policy: "Missing" }, config.ruleSets[2]!],
     });
 
-    expect(canSaveProject(next)).toEqual({
-      ok: false,
-      reason: "RuleSet developer-geosite-github 引用了不存在的 custom_proxy_group：Missing",
-      warnings: [],
-    });
+    const readiness = canSaveProject(next);
+    expect(readiness.ok).toBe(false);
+    if (readiness.ok) throw new Error("expected blocked save");
+    expect(readiness.reason).toBe("RuleSet developer-geosite-github 引用了不存在的 custom_proxy_group：Missing");
+    expect(readiness.warnings).toEqual([]);
+    expect(readiness.diagnostics).toContainEqual(expect.objectContaining({
+      code: "route.policy.missing",
+      severity: "error",
+    }));
   });
 
   it("resets the dirty baseline after save", () => {
@@ -134,6 +146,33 @@ describe("project controller", () => {
     expect(saved.message).toBe("已保存 config/routes.yaml，可运行检查、生成和提交");
   });
 
+  it("counts Core warning diagnostics after save", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const warningConfig: RouteKitProjectConfig = {
+      ...config,
+      ruleSets: [
+        {
+          id: "legacy-provider",
+          enabled: false,
+          policy: "Proxy",
+          source: { type: "rule-provider", behavior: "domain", file: "Legacy.mrs" },
+        },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
+      ruleProviders: [
+        { name: "Legacy", output: "Legacy.mrs", behavior: "domain", enabled: false, sources: [] },
+      ],
+    };
+
+    const saved = markProjectSaved(controller, {
+      yaml: serializeRouteKitConfig(warningConfig),
+      config: warningConfig,
+    });
+
+    expect(saved.message).toBe("已保存，2 条配置警告待处理");
+  });
+
   it("keeps view, selected ruleSet, and validation output in controller state", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
@@ -152,43 +191,53 @@ describe("project controller", () => {
     expect(validated.validation).toEqual({ status: "success", output: "[check] ok" });
   });
 
-  it("uses draft validation diagnostics for save readiness", () => {
+  it("blocks save with the first Core error and keeps all diagnostics", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const dirty = applyDraftConfig(controller, {
       ...config,
-      ruleSets: [{ id: "ai", policy: "Missing", source: { type: "geosite", value: "openai" } }],
+      ruleSets: [
+        { id: "ai", policy: "Missing", source: { type: "geosite", value: "openai" } },
+        { id: "final", policy: "Proxy", source: { type: "final" } },
+      ],
     });
 
-    expect(canSaveProject(dirty)).toEqual({
-      ok: false,
-      reason: "RuleSet ai 引用了不存在的 custom_proxy_group：Missing",
-      warnings: [],
-    });
+    const readiness = canSaveProject(dirty);
+    expect(readiness.ok).toBe(false);
+    if (readiness.ok) throw new Error("expected blocked save");
+    expect(readiness.reason).toBe("RuleSet ai 引用了不存在的 custom_proxy_group：Missing");
+    expect(readiness.diagnostics).toContainEqual(expect.objectContaining({
+      code: "route.policy.missing",
+      severity: "error",
+    }));
   });
 
-  it("allows saving drafts that only have placeholder provider warnings", () => {
+  it("allows disabled imported provider placeholders as warnings", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
     const dirty = applyDraftConfig(controller, {
       ...config,
       ruleSets: [
         {
-          id: "custom-direct",
+          id: "legacy-provider",
+          enabled: false,
           policy: "Proxy",
-          source: { type: "rule-provider", behavior: "classical", file: "Custom_Direct_Classical_IP.yaml" },
+          source: { type: "rule-provider", behavior: "domain", file: "Legacy.mrs" },
         },
         { id: "final", policy: "Proxy", source: { type: "final" } },
       ],
       ruleProviders: [
-        { name: "CustomDirect", output: "Custom_Direct_Classical_IP.yaml", behavior: "classical", sources: [] },
+        { name: "Legacy", output: "Legacy.mrs", behavior: "domain", enabled: false, sources: [] },
       ],
     });
 
-    expect(canSaveProject(dirty)).toEqual({
-      ok: true,
-      warnings: ["规则源 CustomDirect 待补全：尚未指定数据源"],
-    });
+    const readiness = canSaveProject(dirty);
+    expect(readiness.ok).toBe(true);
+    if (!readiness.ok) throw new Error(readiness.reason);
+    expect(readiness.warnings.map((diagnostic) => diagnostic.code)).toEqual([
+      "provider.sources.disabled-empty",
+      "provider.output.disabled-unsupported",
+    ]);
   });
 
   it("selects first custom proxy group, provider, and rule file when available", () => {

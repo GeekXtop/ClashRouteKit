@@ -4,6 +4,24 @@ import {
   serializeRouteKitConfig,
 } from "../src/index.js";
 
+const base = `
+publishBaseUrl: http://127.0.0.1:8787
+template:
+  output: Custom_Clash.ini
+vendorRepos: []
+customProxyGroups:
+  - name: Proxy
+    type: select
+    options:
+      - DIRECT
+ruleSets:
+  - id: final
+    policy: Proxy
+    source:
+      type: final
+ruleProviders: []
+`;
+
 describe("config document utilities", () => {
   const yaml = [
     "publishBaseUrl: http://127.0.0.1:8787",
@@ -74,7 +92,9 @@ describe("config document utilities", () => {
   });
 
   it("rejects documents that are not route kit project configs", () => {
-    expect(() => parseRouteKitConfig("modules: nope\n")).toThrow("Invalid RouteKit project config");
+    expect(() => parseRouteKitConfig("modules: nope\n")).toThrow(
+      "config.modules: unknown field",
+    );
   });
 
   it("rejects legacy modules/proxyGroups documents", () => {
@@ -88,7 +108,7 @@ describe("config document utilities", () => {
         "modules: []",
         "",
       ].join("\n")),
-    ).toThrow("Invalid RouteKit project config");
+    ).toThrow("config.proxyGroups: unknown field");
   });
 
   it("preserves template flags and globalRemove through parse + serialize", () => {
@@ -176,5 +196,87 @@ describe("config document utilities", () => {
       },
     });
     expect(serializeRouteKitConfig(config)).toContain("ruleProviderInterval: 28800");
+  });
+
+  it("rejects a numeric proxy group instead of trusting a TypeScript assertion", () => {
+    expect(() => parseRouteKitConfig(base.replace(
+      "  - name: Proxy\n    type: select\n    options:\n      - DIRECT",
+      "  - 42",
+    ))).toThrow("customProxyGroups[0]: expected object");
+  });
+
+  it("rejects a RuleSet with a missing policy", () => {
+    expect(() => parseRouteKitConfig(base.replace("    policy: Proxy\n", ""))).toThrow(
+      "ruleSets[0].policy: expected string",
+    );
+  });
+
+  it("rejects an invalid nested vendor catalog kind", () => {
+    const yaml = base.replace(
+      "vendorRepos: []",
+      `vendorRepos:
+  - name: bad
+    url: https://example.com/repo.git
+    path: vendor/bad
+    catalog:
+      dir: vendor/bad/data
+      kind: 123`,
+    );
+    expect(() => parseRouteKitConfig(yaml)).toThrow(
+      "vendorRepos[0].catalog.kind: expected string",
+    );
+  });
+
+  it("rejects unknown nested source fields", () => {
+    const yaml = base.replace(
+      "ruleProviders: []",
+      `ruleProviders:
+  - name: Custom
+    output: Custom.yaml
+    behavior: domain
+    sources:
+      - name: Local
+        type: clash-list
+        path: config/rules/Custom.list
+        absolutePath: C:/secret`,
+    );
+    expect(() => parseRouteKitConfig(yaml)).toThrow(
+      "ruleProviders[0].sources[0].absolutePath: unknown field",
+    );
+  });
+
+  it("rejects null rule-provider source intervals", () => {
+    const yaml = base.replace(
+      "      type: final",
+      "      type: rule-provider\n      behavior: domain\n      file: rules.yaml\n      interval: null",
+    );
+    expect(() => parseRouteKitConfig(yaml)).toThrow(
+      "ruleSets[0].source.interval: expected number",
+    );
+  });
+
+  it("rejects null vendor repositories instead of treating them as missing", () => {
+    expect(() => parseRouteKitConfig(base.replace(
+      "vendorRepos: []",
+      "vendorRepos: null",
+    ))).toThrow("vendorRepos: expected array");
+  });
+
+  it("rejects null rule providers instead of treating them as missing", () => {
+    expect(() => parseRouteKitConfig(base.replace(
+      "ruleProviders: []",
+      "ruleProviders: null",
+    ))).toThrow("ruleProviders: expected array");
+  });
+
+  it("defaults missing optional project collections to empty arrays", () => {
+    const config = parseRouteKitConfig(
+      base
+        .replace("vendorRepos: []\n", "")
+        .replace("ruleProviders: []\n", ""),
+    );
+
+    expect(config.vendorRepos).toEqual([]);
+    expect(config.ruleProviders).toEqual([]);
   });
 });

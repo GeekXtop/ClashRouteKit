@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Popconfirm, Select, Space, Tooltip } from "antd";
+import { Alert, Button, Input, Popconfirm, Select, Space, Switch, Tooltip } from "antd";
 import { Plus, X } from "lucide-react";
 import type { RuleProviderConfig, RuleProviderSource } from "@clash-route-kit/core";
 import { fetchCatalogEntries } from "../catalog.js";
@@ -54,6 +54,22 @@ export function ProviderRecipeEditor(props: {
         </Popconfirm>
       </div>
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <div>
+          <div className="rk-field-label">执行状态</div>
+          <Space>
+            <Switch
+              aria-label="启用规则源"
+              checked={props.provider.enabled !== false}
+              onChange={(enabled) => props.onUpdate({ enabled })}
+            />
+            <span className="rk-lib-meta">
+              {props.provider.enabled === false ? "禁用草稿，不参与生成" : "启用并参与生成"}
+            </span>
+          </Space>
+        </div>
+        {props.provider.enabled !== false && props.provider.sources.length === 0 ? (
+          <Alert type="error" showIcon message="启用前至少添加一个数据源" />
+        ) : null}
         <div>
           <div className="rk-field-label">输出文件名</div>
           <Input

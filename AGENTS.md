@@ -9,7 +9,7 @@
 - `packages/core/`：共享类型、INI 渲染、rule-provider 生成逻辑和包级测试。
 - `apps/cli/`：提供 `generate`、`preview`、`check` 命令，入口位于 `src/index.ts` 和 `src/program.ts`。
 - `apps/web/`：React/Vite 本地控制台；界面源码在 `src/`，静态资源在 `public/`。
-- `config/modules.yaml`：策略组、模块顺序、GEOSITE/GEOIP 条目和 provider 声明。
+- `config/routes.yaml`：当前 v1 项目作者配置，包含默认值、模板、vendor 仓库、策略组、路由顺序和 provider 声明；Schema v2 迁移前仍是单一事实源。
 - `config/rules/`：手工维护的规则列表。
 - `output/`：生成的 INI 和 provider YAML；本地 ignored，不提交到 `main`，由 GitHub Actions 发布到 `publish` 分支。
 

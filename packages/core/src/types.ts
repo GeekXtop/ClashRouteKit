@@ -119,6 +119,7 @@ export interface RuleProviderConfig {
   name: string;
   output: string;
   behavior: ProviderBehavior;
+  enabled?: boolean;
   exclude?: string[];
   remove?: string[];
   sources: RuleProviderSource[];

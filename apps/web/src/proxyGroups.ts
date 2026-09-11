@@ -74,51 +74,6 @@ export function buildProxyGroupTree(
   return build(rootName, new Set());
 }
 
-export function detectProxyGroupCycles(groups: CustomProxyGroup[]): string[][] {
-  const byName = new Map(groups.map((group) => [group.name, group]));
-  const color = new Map<string, 0 | 1 | 2>();
-  const stack: string[] = [];
-  const cycles: string[][] = [];
-  const seen = new Set<string>();
-
-  function dfs(name: string): void {
-    const group = byName.get(name);
-    if (!group) return;
-    color.set(name, 1);
-    stack.push(name);
-    for (const option of group.options) {
-      if (!byName.has(option)) continue;
-      const optionColor = color.get(option) ?? 0;
-      if (optionColor === 1) {
-        const start = stack.indexOf(option);
-        const cycle = stack.slice(start);
-        const key = [...cycle].sort().join("|");
-        if (!seen.has(key)) {
-          seen.add(key);
-          cycles.push(cycle);
-        }
-      } else if (optionColor === 0) {
-        dfs(option);
-      }
-    }
-    stack.pop();
-    color.set(name, 2);
-  }
-
-  for (const group of groups) {
-    if ((color.get(group.name) ?? 0) === 0) dfs(group.name);
-  }
-  return cycles;
-}
-
-export function groupsInCycles(groups: CustomProxyGroup[]): Set<string> {
-  const names = new Set<string>();
-  for (const cycle of detectProxyGroupCycles(groups)) {
-    for (const name of cycle) names.add(name);
-  }
-  return names;
-}
-
 export type PolicyTone = "dir" | "rej" | "cat" | "reg" | "fin";
 
 /**

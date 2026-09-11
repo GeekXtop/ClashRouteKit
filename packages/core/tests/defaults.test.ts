@@ -4,6 +4,7 @@ import {
   resolveProxyGroupHealthCheck,
   resolveRuleProviderInterval,
   validateDefaultAwareConfig,
+  validateLegacyProjectConfig,
 } from "../src/index.js";
 
 describe("project defaults", () => {
@@ -168,5 +169,44 @@ describe("project defaults", () => {
         ruleSets: [],
       }),
     ).toEqual([]);
+  });
+
+  it("exposes default validation as structured diagnostics while keeping legacy messages", () => {
+    const config = {
+      publishBaseUrl: "https://example.com/publish",
+      template: { output: "Custom_Clash.ini" },
+      vendorRepos: [],
+      defaults: {
+        proxyGroups: {
+          healthCheck: { url: "ftp://probe.example", interval: 0 },
+        },
+      },
+      customProxyGroups: [
+        { name: "Proxy", type: "select" as const, options: ["DIRECT"], timeout: null },
+      ],
+      ruleSets: [
+        { id: "final", policy: "Proxy", source: { type: "final" as const } },
+      ],
+      ruleProviders: [],
+    };
+
+    expect(validateLegacyProjectConfig(config).slice(0, 2)).toEqual([
+      {
+        code: "defaults.health-check.url",
+        severity: "error",
+        path: "defaults.proxyGroups.healthCheck.url",
+        message: "健康检查 URL 必须是 HTTP/HTTPS URL",
+      },
+      {
+        code: "defaults.health-check.interval",
+        severity: "error",
+        path: "defaults.proxyGroups.healthCheck.interval",
+        message: "健康检查 interval 必须为正整数",
+      },
+    ]);
+    expect(validateDefaultAwareConfig(config)).toEqual([
+      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
+      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
+    ]);
   });
 });

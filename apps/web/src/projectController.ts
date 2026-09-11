@@ -1,8 +1,9 @@
 import {
   serializeRouteKitConfig,
+  validateLegacyProjectConfig,
+  type Diagnostic,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
-import { validateDraftConfig } from "./draftValidation.js";
 
 export type ProjectView = "routing" | "library" | "publish";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
@@ -30,11 +31,12 @@ export interface ProjectControllerState {
 }
 
 export type SaveReadiness =
-  | { ok: true; warnings: string[] }
+  | { ok: true; warnings: Diagnostic[] }
   | {
       ok: false;
       reason: string;
-      warnings: string[];
+      diagnostics: Diagnostic[];
+      warnings: Diagnostic[];
     };
 
 export interface ProjectConfigSnapshot {
@@ -44,6 +46,10 @@ export interface ProjectConfigSnapshot {
 
 function serializeConfig(config: RouteKitProjectConfig): string {
   return serializeRouteKitConfig(config);
+}
+
+function projectDiagnostics(config: RouteKitProjectConfig): Diagnostic[] {
+  return validateLegacyProjectConfig(config);
 }
 
 function computeDirty(originalConfig: RouteKitProjectConfig, draftConfig: RouteKitProjectConfig): boolean {
@@ -165,7 +171,9 @@ export function markProjectSaved(
   state: ProjectControllerState,
   snapshot: ProjectConfigSnapshot,
 ): ProjectControllerState {
-  const warnings = validateDraftConfig(snapshot.config).warnings;
+  const warnings = projectDiagnostics(snapshot.config).filter(
+    (diagnostic) => diagnostic.severity === "warning",
+  );
   return {
     ...state,
     originalYaml: snapshot.yaml,
@@ -176,7 +184,7 @@ export function markProjectSaved(
     status: "ready",
     message:
       warnings.length > 0
-        ? `已保存，${warnings.length} 个规则源待补全数据源`
+        ? `已保存，${warnings.length} 条配置警告待处理`
         : "已保存 config/routes.yaml，可运行检查、生成和提交",
     selectedRuleSetId: hasSelectedRuleSet(snapshot.config, state.selectedRuleSetId)
       ? state.selectedRuleSetId
@@ -192,22 +200,26 @@ export function markProjectSaved(
 }
 
 export function canSaveProject(state: ProjectControllerState): SaveReadiness {
+  const diagnostics = projectDiagnostics(state.draftConfig);
+  const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
   if (!state.dirty) {
     return {
       ok: false,
       reason: "没有未保存的修改",
-      warnings: validateDraftConfig(state.draftConfig).warnings,
+      diagnostics,
+      warnings,
     };
   }
 
-  const diagnostics = validateDraftConfig(state.draftConfig);
-  if (diagnostics.errors.length > 0) {
+  const error = diagnostics.find((diagnostic) => diagnostic.severity === "error");
+  if (error) {
     return {
       ok: false,
-      reason: diagnostics.errors[0]!,
-      warnings: diagnostics.warnings,
+      reason: error.message,
+      diagnostics,
+      warnings,
     };
   }
 
-  return { ok: true, warnings: diagnostics.warnings };
+  return { ok: true, warnings };
 }

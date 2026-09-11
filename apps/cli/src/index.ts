@@ -1,4 +1,5 @@
 import path from "node:path";
+import { formatDiagnostic, hasDiagnosticErrors } from "@clash-route-kit/core";
 import {
   buildSubconverterUrl,
   checkConfig,
@@ -43,9 +44,16 @@ async function main(): Promise<void> {
     const diagnostics = await checkConfig({ root, configFile });
     if (diagnostics.length > 0) {
       for (const diagnostic of diagnostics) {
-        console.error(`[check] ${diagnostic}`);
+        const output = `[check] ${formatDiagnostic(diagnostic)}`;
+        if (diagnostic.severity === "error") {
+          console.error(output);
+        } else if (diagnostic.severity === "warning") {
+          console.warn(output);
+        } else {
+          console.log(output);
+        }
       }
-      process.exitCode = 1;
+      if (hasDiagnosticErrors(diagnostics)) process.exitCode = 1;
       return;
     }
     console.log("[check] ok");

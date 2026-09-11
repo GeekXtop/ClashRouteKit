@@ -9,7 +9,7 @@ import type {
   RuleSet,
   RuleSetSource,
 } from "@clash-route-kit/core";
-import { parseIniToConfig } from "@clash-route-kit/core";
+import { parseIniToConfig, validateLegacyProjectConfig } from "@clash-route-kit/core";
 import {
   addCustomProxyGroup,
   addRoute,
@@ -34,7 +34,6 @@ import {
   toggleRuleSet,
   updateRuleProvider,
 } from "./configMutations.js";
-import { validateDraftConfig } from "./draftValidation.js";
 import {
   applyDraftConfig,
   setProjectSelection,
@@ -217,7 +216,9 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
         try {
           const next = applyDraftConfig(current, replaceImportedConfig(current.draftConfig, imported));
           const importWarnings = imported.warnings.length;
-          const placeholderWarnings = validateDraftConfig(next.draftConfig).warnings.length;
+          const placeholderWarnings = validateLegacyProjectConfig(next.draftConfig).filter(
+            (diagnostic) => diagnostic.severity === "warning",
+          ).length;
           const warningCount = importWarnings + placeholderWarnings;
           return {
             ...dirtyMessage(next),

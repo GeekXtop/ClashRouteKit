@@ -1,18 +1,22 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  ConfigDiagnosticError,
   collectRuleProviderRules,
   convertDomainListCommunity,
   generateRuleProvider,
+  hasDiagnosticErrors,
   parseIniToConfig,
+  parseRouteKitConfig,
   renderIni,
   serializeRouteKitConfig,
   summarizeRuleProvider,
-  validateDefaultAwareConfig,
+  validateLegacyProjectConfig,
+  type Diagnostic,
   type ImportedConfig,
   type ProviderRule,
   type ProviderSummary,
@@ -22,6 +26,7 @@ import {
   type VendorRepoConfig,
 } from "@clash-route-kit/core";
 import YAML from "yaml";
+import { validateLegacyWorkspace } from "./workspaceValidation.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -207,7 +212,7 @@ export function resolveProjectRoot(start: string, configFile: string): string {
 
 export async function readConfig(options: ProgramOptions): Promise<RouteKitProjectConfig> {
   const text = await readFile(path.join(options.root, options.configFile), "utf8");
-  const config = YAML.parse(text) as RouteKitProjectConfig;
+  const config = parseRouteKitConfig(text);
   const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
   return publishBaseUrl ? { ...config, publishBaseUrl } : config;
 }
@@ -253,16 +258,20 @@ async function readRules(root: string, source: RuleProviderSource): Promise<stri
   throw new Error(`Unsupported rule provider source type: ${(source satisfies never)}`);
 }
 
-async function readLocalGeositeTags(root: string): Promise<Set<string> | null> {
-  const dataPath = path.join(root, "vendor/domain-list-community/data");
-  if (!existsSync(dataPath)) return null;
+async function projectDiagnostics(
+  options: ProgramOptions,
+  config: RouteKitProjectConfig,
+): Promise<Diagnostic[]> {
+  return [
+    ...validateLegacyProjectConfig(config),
+    ...await validateLegacyWorkspace(options, config),
+  ];
+}
 
-  const entries = await readdir(dataPath, { withFileTypes: true });
-  return new Set(
-    entries
-      .filter((entry) => entry.isFile())
-      .map((entry) => entry.name),
-  );
+function assertNoErrors(diagnostics: readonly Diagnostic[]): void {
+  if (hasDiagnosticErrors(diagnostics)) {
+    throw new ConfigDiagnosticError(diagnostics);
+  }
 }
 
 function sourceLabel(source: RuleProviderSource): string {
@@ -319,6 +328,7 @@ function overlapRulesByProvider(
 
 export async function generateOutputs(options: ProgramOptions): Promise<GenerateResult> {
   const config = await readConfig(options);
+  assertNoErrors(await projectDiagnostics(options, config));
   const templatePath = path.join(options.root, "output/templates", config.template.output);
   const reportPath = path.join(options.root, "output/reports/rule-report.json");
   await mkdir(path.dirname(templatePath), { recursive: true });
@@ -336,7 +346,9 @@ export async function generateOutputs(options: ProgramOptions): Promise<Generate
   const providers: ProviderOutputSummary[] = [];
   const duplicates: ProviderDuplicateSummary[] = [];
   const finalProviderRules: Array<{ provider: string; rules: ProviderRule[] }> = [];
-  for (const provider of config.ruleProviders ?? []) {
+  const enabledProviders = (config.ruleProviders ?? [])
+    .filter((provider) => provider.enabled !== false);
+  for (const provider of enabledProviders) {
     const rules: string[] = [];
     const sources: SourceContributionSummary[] = [];
     const sourceRulesForReport: Array<{ source: string; rules: ProviderRule[] }> = [];
@@ -489,38 +501,7 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
   return lines;
 }
 
-export async function checkConfig(options: ProgramOptions): Promise<string[]> {
+export async function checkConfig(options: ProgramOptions): Promise<Diagnostic[]> {
   const config = await readConfig(options);
-  const groupNames = new Set(config.customProxyGroups.map((group) => group.name));
-  const builtInPolicies = new Set(["DIRECT", "REJECT"]);
-  const geositeTags = await readLocalGeositeTags(options.root);
-  const diagnostics = validateDefaultAwareConfig(config);
-  let finalRuleCount = 0;
-
-  for (const ruleSet of config.ruleSets) {
-    if (ruleSet.enabled === false) continue;
-    if (!groupNames.has(ruleSet.policy) && !builtInPolicies.has(ruleSet.policy)) {
-      diagnostics.push(`RuleSet ${ruleSet.id} references missing custom_proxy_group: ${ruleSet.policy}`);
-    }
-
-    const source = ruleSet.source;
-    if (geositeTags) {
-      if (source.type === "geosite" && !geositeTags.has(source.value)) {
-        diagnostics.push(`RuleSet ${ruleSet.id} references missing geosite tag: ${source.value}`);
-      }
-    }
-
-    if (source.type === "final") {
-      finalRuleCount += 1;
-    }
-  }
-
-  if (finalRuleCount === 0) {
-    diagnostics.push("Missing FINAL ruleSet");
-  }
-  if (finalRuleCount > 1) {
-    diagnostics.push("FINAL ruleSet must be declared once");
-  }
-
-  return diagnostics;
+  return projectDiagnostics(options, config);
 }
