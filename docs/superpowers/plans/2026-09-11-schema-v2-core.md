@@ -71,8 +71,8 @@
 
 ## Verification（整体验收）
 
-- [ ] `pnpm test` 全绿（≥55 文件）。
-- [ ] `pnpm typecheck`、`pnpm build` 通过。
-- [ ] `pnpm check` 对当前 v1 `config/routes.yaml` 行为不变（gfw warning 保持非阻断）。
-- [ ] `pnpm exec --filter @clash-route-kit/cli start migrate`（只读）对当前配置产出合法 `MigrationPlan` 且不写盘。
-- [ ] v1 与迁移 v2 的 `renderIni` 输出逐字一致（等价测试覆盖）。
+- [x] `pnpm test` 全绿（≥55 文件）。
+- [x] `pnpm typecheck`、`pnpm build` 通过。
+- [x] `pnpm check` 对当前 v1 `config/routes.yaml` 行为不变（gfw warning 保持非阻断）。
+- [x] `pnpm exec --filter @clash-route-kit/cli start migrate`（只读）对当前配置产出合法 `MigrationPlan` 且不写盘。
+- [x] v1 与迁移 v2 的 `renderIni` 输出逐字一致（等价测试覆盖）。

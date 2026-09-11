@@ -202,11 +202,14 @@ pnpm typecheck
 pnpm build
 pnpm check
 pnpm preview
+pnpm migrate
 pnpm sync:vendor
 pnpm generate
 pnpm serve:output
 pnpm dev
 ```
+
+`pnpm migrate` 只读分析 v1 配置并预览 v2 迁移，`--write` 时写入 `output/imported-routes-v2.yaml`，不改动原配置。
 
 常用流程：
 

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -10,14 +10,17 @@ import {
   convertDomainListCommunity,
   generateRuleProvider,
   hasDiagnosticErrors,
+  parseAuthorProjectConfig,
   parseIniToConfig,
   parseRouteKitConfig,
+  planLegacyMigration,
   renderIni,
   serializeRouteKitConfig,
   summarizeRuleProvider,
   validateLegacyProjectConfig,
   type Diagnostic,
   type ImportedConfig,
+  type MigrationPlan,
   type ProviderRule,
   type ProviderSummary,
   type RouteKitProjectConfig,
@@ -504,4 +507,65 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
 export async function checkConfig(options: ProgramOptions): Promise<Diagnostic[]> {
   const config = await readConfig(options);
   return projectDiagnostics(options, config);
+}
+
+export interface MigrateOptions extends ProgramOptions {
+  /** true 时把迁移 plan.yaml 原子写入 output/imported-routes-v2.yaml；缺省只读分析。 */
+  write?: boolean;
+}
+
+export interface MigrateResult {
+  /** 输入已是 schemaVersion: 2，无需迁移；plan 为 null 且不写盘。 */
+  alreadyV2: boolean;
+  plan: MigrationPlan | null;
+  /** plan.yaml 的目标路径（只读模式用于提示 --write 的写入位置）。 */
+  outputPath: string;
+  written: boolean;
+}
+
+const MIGRATE_OUTPUT_PATH = path.join("output", "imported-routes-v2.yaml");
+
+/**
+ * 临时文件 + rename 的原子替换；rename 失败时清理残留临时文件，目标不受影响。
+ */
+async function writeFileAtomic(targetPath: string, content: string): Promise<void> {
+  const tempPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tempPath, content, "utf8");
+  try {
+    await rename(tempPath, targetPath);
+  } catch (error: unknown) {
+    await rm(tempPath, { force: true });
+    throw error;
+  }
+}
+
+/**
+ * v1 → v2 迁移的 CLI 入口：读 CLASH_ROUTE_KIT_CONFIG 指向的配置并按
+ * schemaVersion 分发。v1 输入运行 planLegacyMigration（只读分析，永不改动
+ * 原配置文件）；write 为 true 时把 plan.yaml 原子写入 output/imported-routes-v2.yaml。
+ * v2 输入直接返回 alreadyV2，跳过分析与写盘。输入解析失败由
+ * parseAuthorProjectConfig 抛出 ConfigDiagnosticError，与非零退出语义一致。
+ */
+export async function migrateConfig(options: MigrateOptions): Promise<MigrateResult> {
+  const configPath = path.join(options.root, options.configFile);
+  const outputPath = path.join(options.root, MIGRATE_OUTPUT_PATH);
+  const text = await readFile(configPath, "utf8");
+  const parsed = parseAuthorProjectConfig(text);
+  if (parsed.schemaVersion === 2) {
+    return { alreadyV2: true, plan: null, outputPath, written: false };
+  }
+
+  const v1Config = parsed.v1;
+  if (v1Config === undefined) {
+    throw new Error(
+      "parseAuthorProjectConfig returned schemaVersion 1 without a v1 config",
+    );
+  }
+  const plan = planLegacyMigration(v1Config);
+  if (options.write !== true) {
+    return { alreadyV2: false, plan, outputPath, written: false };
+  }
+  await mkdir(path.dirname(outputPath), { recursive: true });
+  await writeFileAtomic(outputPath, plan.yaml);
+  return { alreadyV2: false, plan, outputPath, written: true };
 }

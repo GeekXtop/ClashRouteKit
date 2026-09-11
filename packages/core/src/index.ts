@@ -1,12 +1,56 @@
 export {
+  parseAuthorProjectConfig,
   parseRouteKitConfig,
   serializeRouteKitConfig,
 } from "./configDocument.js";
+export type { ParsedAuthorProjectConfig } from "./configDocument.js";
 export {
   ConfigDiagnosticError,
   formatDiagnostic,
   hasDiagnosticErrors,
 } from "./config/diagnostics.js";
+export { parseAuthorProjectConfigV2 } from "./config/schemaV2/parser.js";
+export { normalizeAuthorProjectConfig } from "./config/schemaV2/normalize.js";
+export type {
+  NormalizeResult,
+  NormalizedMember,
+  NormalizedPolicyTarget,
+  NormalizedProject,
+  NormalizedProxyGroup,
+  NormalizedRoute,
+} from "./config/schemaV2/normalize.js";
+export {
+  validateAuthorProjectConfigV2,
+  validateNormalizedProject,
+} from "./config/schemaV2/validate.js";
+export { planLegacyMigration } from "./config/schemaV2/migrate.js";
+export type {
+  MigrationPlan,
+  MigrationPlanSummary,
+} from "./config/schemaV2/migrate.js";
+export { toRouteKitConfig } from "./config/schemaV2/toRouteKitConfig.js";
+export type { RenderRuntimeContext } from "./config/schemaV2/toRouteKitConfig.js";
+export type {
+  AuthorProjectConfigV2,
+  BuiltinPolicy,
+  ClashListSourceV2,
+  ClashProviderSourceV2,
+  DomainListCommunitySourceV2,
+  MemberSet,
+  NodeFilterV2,
+  PolicyTarget,
+  ProjectTemplateV2,
+  ProjectV2,
+  ProviderSourceV2,
+  ProxyGroupTypeV2,
+  ProxyGroupV2,
+  RouteSourceV2,
+  RouteV2,
+  RuleProviderV2,
+  SchemaVersionV2,
+  TypedMember,
+  VendorRepoV2,
+} from "./config/schemaV2/types.js";
 export type {
   Diagnostic,
   DiagnosticSeverity,

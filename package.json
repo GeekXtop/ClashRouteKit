@@ -13,6 +13,7 @@
     "generate": "pnpm --filter @clash-route-kit/cli start generate",
     "preview": "pnpm --filter @clash-route-kit/cli start preview",
     "check": "pnpm --filter @clash-route-kit/cli start check",
+    "migrate": "pnpm --filter @clash-route-kit/cli start migrate",
     "sync:vendor": "pnpm --filter @clash-route-kit/cli start sync-vendor",
     "subconvert-url": "pnpm --filter @clash-route-kit/cli start subconvert-url"
   },
