@@ -816,7 +816,7 @@ export async function runRouteKitAction(
         diagnostics,
       };
     }
-    await runCommand("git", ["add", "config/routes.yaml", "config/rules"], options.root);
+    await runCommand("git", ["add", "config/modules.yaml", "config/rules"], options.root);
     const output = await runCommand("git", ["commit", "-m", "chore: update route config"], options.root);
     return {
       action,

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -17,12 +18,38 @@ export function resolveProjectConfigPath(
   return path.resolve(configuredRoot, configuredFile);
 }
 
+export function resolveRoutesConfigSourcePath(
+  configuredRoot: string,
+  configuredFile: string,
+): string {
+  const configPath = resolveProjectConfigPath(configuredRoot, configuredFile);
+  if (existsSync(configPath)) return configPath;
+  return path.join(path.dirname(configPath), "routes.yaml.example");
+}
+
 export function createConfigWatchIgnore(
   configuredRoot: string,
   configuredFile: string,
 ) {
   const configPath = resolveProjectConfigPath(configuredRoot, configuredFile);
   return (watchedPath: string): boolean => path.resolve(watchedPath) === configPath;
+}
+
+const routesConfigVirtualId = "virtual:routes-config-yaml";
+
+function routesConfigInlinePlugin(): Plugin {
+  return {
+    name: "route-kit-routes-config-inline",
+    resolveId(id) {
+      if (id === routesConfigVirtualId) return `\0${routesConfigVirtualId}`;
+      return null;
+    },
+    load(id) {
+      if (id !== `\0${routesConfigVirtualId}`) return null;
+      const sourcePath = resolveRoutesConfigSourcePath(projectRoot, configFile);
+      return `export default ${JSON.stringify(readFileSync(sourcePath, "utf8"))};`;
+    },
+  };
 }
 
 function routeKitApiPlugin(): Plugin {
@@ -42,7 +69,7 @@ function routeKitApiPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [routeKitApiPlugin(), react()],
+  plugins: [routeKitApiPlugin(), routesConfigInlinePlugin(), react()],
   resolve: {
     alias: {
       "@clash-route-kit/core": path.resolve(root, "packages/core/src/index.ts"),

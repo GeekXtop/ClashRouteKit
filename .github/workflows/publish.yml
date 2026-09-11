@@ -27,10 +27,15 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
 
+      - name: Prepare project config
+        run: |
+          if [ ! -f config/routes.yaml ]; then
+            cp config/routes.yaml.example config/routes.yaml
+            echo "config/routes.yaml not tracked; prepared from routes.yaml.example"
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9.1.4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

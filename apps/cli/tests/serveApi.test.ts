@@ -410,7 +410,7 @@ describe("git route kit actions", () => {
     });
 
     expect(commands).toEqual([
-      "git add config/routes.yaml config/rules",
+      "git add config/modules.yaml config/rules",
       "git commit -m chore: update route config",
     ]);
     expect(result.ok).toBe(true);
@@ -456,7 +456,7 @@ describe("git route kit actions", () => {
     });
 
     expect(commands).toEqual([
-      "git add config/routes.yaml config/rules",
+      "git add config/modules.yaml config/rules",
       "git commit -m chore: update route config",
     ]);
     expect(result).toMatchObject({
