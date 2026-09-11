@@ -1,5 +1,7 @@
 # 当前状态
 
+> 本文件是派生视图：可从 `.agents/handoffs/`、`docs/adr/` 和 Obsidian 项目笔记重建，不保存孤本信息。
+
 ## 当前任务
 
 - 目标：实现总路线图 Phase B（Schema v2 与 Core），随后推进 C–E 阶段；配置文件边界已按用户要求改为“仓库只跟踪 `config/routes.yaml.example`，`config/routes.yaml` 为本地个人配置”。

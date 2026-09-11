@@ -12,3 +12,4 @@ coverage/
 !.env.example
 
 config/routes.yaml
+.agents/scratch/
