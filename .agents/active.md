@@ -2,14 +2,16 @@
 
 ## 当前任务
 
-- 目标：重新梳理 Web 控制台的“项目 → 规则库 → 路由 → 输出”信息架构，消除策略组详情与编辑抽屉的重复信息，并让设备配置与 GitHub 发布符合本地优先的真实依赖。
-- 状态：配置健康门禁阶段已在隔离分支完成并通过独立复审，尚未合并或 push；根工作区现有 `config/routes.yaml` 用户修改未被覆盖。
-- 最后更新：2026-08-13
+- 目标：实现总路线图 Phase B（Schema v2 与 Core），随后推进 C–E 阶段；配置文件边界已按用户要求改为“仓库只跟踪 `config/routes.yaml.example`，`config/routes.yaml` 为本地个人配置”。
+- 状态：`feat/workflow-redesign`（12 提交，HEAD `90bddc9`）已合并回 `main` 并通过全量门禁；routes.yaml 冲突按“用户改动 + 分支修复”合并；untrack + example 改造已落地提交 `28a1f41`。
+- 最后更新：2026-09-11
 
 - 当前规格：`docs/superpowers/specs/2026-08-10-web-console-workflow-redesign-design.md`。
-- 当前计划：`docs/superpowers/plans/2026-08-10-config-health-gates.md` 已完成；分支 `feat/workflow-redesign`，worktree `.worktrees/workflow-redesign`，HEAD `90bddc9`。
-- 当前结论：一级导航为“项目 / 规则库 / 路由 / 输出”；输出页保留同页双标签“设备配置 / GitHub 发布”。配置层继续使用 YAML 和单一逻辑事实源，但升级为 schema v2，增加稳定 ID、memberSets、显式迁移、统一诊断和本地运行设置分层；工程层新增 `packages/local-server` 边界。
-- 当前证据：策略组详情重复展示上游引用、下游成员与规则；导入入口固定在右上角；发布页本地按钮实际推送当前分支，而 `publish` 分支由 GitHub Actions 生成。
+- 当前计划：Phase B 实施计划 `docs/superpowers/plans/2026-09-11-schema-v2-core.md`。
+- 阶段 A（配置健康门禁）：已完成，随合并进入 main；独立复审遗留的低优先级事项（保存 API 错误响应携带结构化 diagnostics）仍未做。
+- 配置边界决策：`config/routes.yaml` 不再被 Git 跟踪；CI 在缺失时从 example 生成发布产物；`apps/web` 构建经 `virtual:routes-config-yaml` 内联本地配置（缺失回退 example）；`git-commit` 动作改为 add `config/modules.yaml` + `config/rules`。
+- 合并时对用户配置采纳的分支修复：`google@cn` 数据源、`Custom_Port_Direct` 真实来源、移除空 `.mrs` provider、移除误入 nodeFilter 的 URL；遗留非阻断 warning：GEOSITE `gfw` 已从上游 domain-list-community 移除，本地 Catalog 无此 tag。
+- 已知偏离规格：规格 4.1 假设 `config/routes.yaml` 为可提交事实源，现改为本地文件；四层模型本身不受影响，GitHub 发布产物的个人配置来源改为本地 generate。
 
 ## 配置健康门禁阶段
 
@@ -55,9 +57,9 @@
 
 ## 下一步
 
-1. 由用户决定：将 `feat/workflow-redesign` 本地合并到 `main`、推送并建 PR，或保留 worktree 继续下一阶段。
-2. 若合并到根工作区，先人工合并根目录现有 `config/routes.yaml` 修改，再在合并结果上重跑完整门禁。
-3. 下一阶段可继续总路线图中的 Schema v2 / 信息架构实现；本阶段未引入 v2 字段。
+1. Phase B：按计划实现 v2 parser、迁移、规范化、稳定 ID、memberSets 与统一诊断，保持 v1 只读兼容。
+2. 用户可选：推送 `main`（合并与 untrack 改动均在本地，未 push）。
+3. 低优先级遗留：保存 API 错误响应携带结构化 `diagnostics` 字段；`config/routes.yaml.example` 是否要裁剪为中性模板由用户决定（当前为完整个人配置蓝本）。
 
 ## 当前 ADR
 

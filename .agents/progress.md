@@ -122,3 +122,13 @@
 - 已验证：`pnpm test` 55 个文件、343 个测试通过；`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 全部通过；仅保留既有 Ant Design 弃用与 Vite chunk-size 非阻断提示。
 - 当前载体：分支 `feat/workflow-redesign`，worktree `.worktrees/workflow-redesign`，HEAD `90bddc9`；尚未 merge、push 或创建 PR。
 - 下一步：由用户选择本地合并、推送 PR 或保留分支；根工作区用户修改的 `config/routes.yaml` 必须冲突感知合并，不能直接覆盖。
+
+## 2026-09-11 - 合并健康门禁分支并 untrack 个人配置
+
+- 已完成：将 `feat/workflow-redesign`（12 提交）三方合并回 `main`；`config/routes.yaml` 冲突按“用户地区节点/Talkatone 改动 + 分支 google@cn 与 provider source 修复”解决。
+- 已完成：合并后门禁抓出用户配置三类遗留问题并修复：`🎯 全球直连` 的 URL 误入 nodeFilter（照分支基线移除）、两条路由引用 `.mrs` 输出（改为 `.yaml`）、空 `.mrs` provider 移除；`pnpm sync:vendor` 后 check 仅剩 `gfw` 非阻断 warning（上游已移除该 tag）。
+- 已完成：`config/routes.yaml` 移出 Git 跟踪，新增 `config/routes.yaml.example`（当前完整配置蓝本）并加入 `.gitignore`。
+- 已完成：Web 构建内联改为 `virtual:routes-config-yaml` 虚拟模块，本地配置缺失时回退 example（含临时移走本地文件的构建验证）；CI `publish.yml` 增加同名回退步骤并移除与 `packageManager`（pnpm 12）冲突的 `version: 9.1.4`；`git-commit` 动作改为 add `config/modules.yaml` + `config/rules`。
+- 已验证：合并后与 untrack 后分别全量门禁通过：`pnpm test` 55 文件 345 测试、`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate`；无本地配置时 Web 构建回退验证通过。
+- 已提交：`ec64dc0` 用户配置、`930fe16` 进展记录、`bd911d6` 合并、`28a1f41` untrack 改造；均未 push。
+- 下一步：Phase B（Schema v2 与 Core）实施计划见 `docs/superpowers/plans/2026-09-11-schema-v2-core.md`。
