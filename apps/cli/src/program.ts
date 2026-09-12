@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -29,6 +29,7 @@ import {
   type VendorRepoConfig,
 } from "@clash-route-kit/core";
 import YAML from "yaml";
+import { writeFileAtomic } from "@clash-route-kit/local-server";
 import { validateLegacyWorkspace } from "./workspaceValidation.js";
 
 const execFileAsync = promisify(execFile);
@@ -524,20 +525,6 @@ export interface MigrateResult {
 }
 
 const MIGRATE_OUTPUT_PATH = path.join("output", "imported-routes-v2.yaml");
-
-/**
- * 临时文件 + rename 的原子替换；rename 失败时清理残留临时文件，目标不受影响。
- */
-async function writeFileAtomic(targetPath: string, content: string): Promise<void> {
-  const tempPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(tempPath, content, "utf8");
-  try {
-    await rename(tempPath, targetPath);
-  } catch (error: unknown) {
-    await rm(tempPath, { force: true });
-    throw error;
-  }
-}
 
 /**
  * v1 → v2 迁移的 CLI 入口：读 CLASH_ROUTE_KIT_CONFIG 指向的配置并按

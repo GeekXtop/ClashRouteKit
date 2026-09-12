@@ -4,14 +4,10 @@ import { readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
-  ConfigDiagnosticError,
   convertDomainListCommunity,
   formatDiagnostic,
   hasDiagnosticErrors,
   parseDomainListEntry,
-  parseRouteKitConfig,
-  serializeRouteKitConfig,
-  validateLegacyProjectConfig,
   type Diagnostic,
   type DomainListEntryInfo,
   type RouteKitProjectConfig,
@@ -23,8 +19,20 @@ import {
   type GenerateResult,
   type ProgramOptions,
 } from "./program.js";
+import {
+  readProjectConfigFile,
+  writeProjectConfigFile,
+  type ProjectConfigFileResult,
+} from "@clash-route-kit/local-server";
 import { addVendorRepo, removeVendorRepo, updateVendorRepo } from "@clash-route-kit/core";
 import type { VendorRepoConfig } from "@clash-route-kit/core";
+
+export { readProjectConfigFile, writeProjectConfigFile } from "@clash-route-kit/local-server";
+export type {
+  ProjectConfigFileOptions,
+  ProjectConfigFileResult,
+  WriteProjectConfigFileOptions,
+} from "@clash-route-kit/local-server";
 
 const execFileAsync = promisify(execFile);
 
@@ -50,23 +58,6 @@ type ReadDirectory = (directory: string) => Promise<string[]>;
 type ReadText = (filePath: string) => Promise<string>;
 type WriteText = (filePath: string, text: string) => Promise<void>;
 type RemovePath = (filePath: string) => Promise<void>;
-
-export interface ProjectConfigFileOptions extends ProgramOptions {
-  readText?: ReadText;
-  statMtime?: (filePath: string) => Promise<number>;
-}
-
-export interface WriteProjectConfigFileOptions extends ProgramOptions {
-  config: RouteKitProjectConfig;
-  writeText?: WriteText;
-  statMtime?: (filePath: string) => Promise<number>;
-}
-
-export interface ProjectConfigFileResult {
-  yaml: string;
-  config: RouteKitProjectConfig;
-  mtime: number;
-}
 
 export interface ProjectRuleFilesOptions extends ProgramOptions {
   readDirectory?: ReadDirectory;
@@ -97,10 +88,6 @@ export interface DeleteProjectRuleFileResult {
   file: string;
 }
 
-function projectConfigPath(options: ProgramOptions): string {
-  return path.resolve(options.root, options.configFile);
-}
-
 function rulesDirectory(options: ProgramOptions): string {
   return path.resolve(options.root, "config/rules");
 }
@@ -116,41 +103,6 @@ function resolveRuleFile(options: ProgramOptions, file: string): string {
     throw new Error(`Invalid rule file: ${file}`);
   }
   return resolved;
-}
-
-export async function readProjectConfigFile(
-  options: ProjectConfigFileOptions,
-): Promise<ProjectConfigFileResult> {
-  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
-  const statMtime =
-    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
-  const configPath = projectConfigPath(options);
-  const yaml = await readText(configPath);
-  return {
-    yaml,
-    config: parseRouteKitConfig(yaml),
-    mtime: await statMtime(configPath),
-  };
-}
-
-export async function writeProjectConfigFile(
-  options: WriteProjectConfigFileOptions,
-): Promise<ProjectConfigFileResult> {
-  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
-  const statMtime =
-    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
-  const diagnostics = validateLegacyProjectConfig(options.config);
-  if (hasDiagnosticErrors(diagnostics)) {
-    throw new ConfigDiagnosticError(diagnostics);
-  }
-  const yaml = serializeRouteKitConfig(options.config);
-  const configPath = projectConfigPath(options);
-  await writeText(configPath, yaml);
-  return {
-    yaml,
-    config: options.config,
-    mtime: await statMtime(configPath),
-  };
 }
 
 export async function listProjectRuleFiles(options: ProjectRuleFilesOptions): Promise<string[]> {

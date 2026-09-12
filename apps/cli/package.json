@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clash-route-kit/core": "workspace:*",
+    "@clash-route-kit/local-server": "workspace:*",
     "yaml": "^2.8.0"
   },
   "devDependencies": {

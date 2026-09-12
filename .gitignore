@@ -12,4 +12,5 @@ coverage/
 !.env.example
 
 config/routes.yaml
+.clashroutekit/
 .agents/scratch/

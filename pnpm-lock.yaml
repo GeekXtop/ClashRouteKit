@@ -133,6 +133,9 @@ importers:
       '@clash-route-kit/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@clash-route-kit/local-server':
+        specifier: workspace:*
+        version: link:../../packages/local-server
       yaml:
         specifier: ^2.8.0
         version: 2.9.0
@@ -189,6 +192,19 @@ importers:
       yaml:
         specifier: ^2.8.0
         version: 2.9.0
+
+  packages/local-server:
+    dependencies:
+      '@clash-route-kit/core':
+        specifier: workspace:*
+        version: link:../core
+      yaml:
+        specifier: ^2.8.0
+        version: 2.9.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.2
+        version: 22.20.2
 
 packages:
 
