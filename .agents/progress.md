@@ -142,3 +142,12 @@
 - 已提交：`ed982e2` parser、`5b499da` normalize、`77832dc` validate、`bac7cb7` 渲染桥、`438591a` migrate、`d0d292d` 公共 API 与 CLI 接线；均未 push。
 - 执行方式：subagent-driven-development，主 agent 逐任务验收提交；计划 checklist 全部勾选（docs/superpowers/plans/2026-09-11-schema-v2-core.md）。
 - 下一步：Phase C（packages/local-server 边界与本地运行设置 `.clashroutekit/local.yaml`）；用户可选推送 main。
+
+## 2026-09-13 - Phase C：local-server 边界与本地运行设置完成
+
+- 已完成：新增 `packages/local-server`（config/rules/catalog/vendor/git/generate/check/http 七模块），`serveApi.ts` 1182 行拆解为薄包装（106 行）；vite.config 不再相对导入 apps/cli 源码。
+- 已完成：generate/check/sync-vendor 用例下沉新包并经 `createDefaultDependencies` 默认装配，vite dev 下 check/generate/git-status/sync-vendor 全部 200（修复 Task 3 引入的 dev 回归）。
+- 已完成：`.clashroutekit/local.yaml` 本地运行设置（ignored），优先级 CLI 参数 > 环境变量 > 文件 > 默认值；serve / serve:output / subconvert-url / vite publicBase 全部接入；`serveHosting.ts` 与 `workspaceValidation.ts` 收敛进新包。
+- 已验证：`pnpm test` 71 文件 504 测试（Phase C 前 404 → +100）、typecheck、build、check、generate、migrate 冒烟、dev 与 serve 双路 HTTP 冒烟全部通过；远端 CI（publish 工作流）对已推送 main 首跑成功。
+- 已提交：`6bdf6d8` 骨架与配置模块、`4427b65` 模块迁移、`45ffbc0` HTTP 装配迁移、`6920390` 用例下沉与本地设置接线；计划 checklist 全勾（docs/superpowers/plans/2026-09-13-local-server-boundary.md）。
+- 下一步：Phase D（Web 工作流四页信息架构 + 迁移复核 + 稳定 ID mutation）。
