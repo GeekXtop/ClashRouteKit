@@ -3,8 +3,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-import { createRouteKitApiHandler } from "../cli/src/serveApi.js";
-import { createHostingHandler } from "../cli/src/serveHosting.js";
+// 说明：vite 8 加载配置文件（configLoader: "bundle"）会把裸包名导入 externalize
+// 后交给 Node 原生解析，conditions 只有 [node, import]，会落到 dist（且 Node 无法
+// 直接加载本包 src 内部以 .js 后缀引用的 .ts 源码）。这里沿用配置文件相对内联的
+// 方式指向 local-server 公开源码入口，保证 dev 始终命中 src 而非 dist；
+// 同名包别名仍注册在 resolve.alias 中，供客户端侧解析使用。
+import { createLocalServerContext } from "../../packages/local-server/src/index.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
@@ -56,14 +60,13 @@ function routeKitApiPlugin(): Plugin {
   return {
     name: "route-kit-local-api",
     configureServer(server) {
-      const base = { root: projectRoot, configFile };
-      server.middlewares.use(
-        createHostingHandler({
-          ...base,
-          publicBase: process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "http://127.0.0.1:8787",
-        }),
-      );
-      server.middlewares.use(createRouteKitApiHandler(base));
+      const { hostingHandler, apiHandler } = createLocalServerContext({
+        root: projectRoot,
+        configFile,
+        publicBase: process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "http://127.0.0.1:8787",
+      });
+      server.middlewares.use(hostingHandler);
+      server.middlewares.use(apiHandler);
     },
   };
 }
@@ -73,6 +76,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@clash-route-kit/core": path.resolve(root, "packages/core/src/index.ts"),
+      "@clash-route-kit/local-server": path.resolve(root, "packages/local-server/src/index.ts"),
     },
   },
   server: {

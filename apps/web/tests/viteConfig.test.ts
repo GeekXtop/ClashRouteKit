@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
@@ -7,6 +7,13 @@ import {
   resolveProjectConfigPath,
   resolveRoutesConfigSourcePath,
 } from "../vite.config.js";
+
+describe("Vite config boundary", () => {
+  it("does not import apps/cli sources (uses the local-server entry)", () => {
+    const source = readFileSync(new URL("../vite.config.ts", import.meta.url), "utf8");
+    expect(source).not.toContain("apps/cli/src");
+  });
+});
 
 describe("Vite project config watch ignore", () => {
   it("resolves relative config files against the configured project root", () => {

@@ -77,3 +77,17 @@ export {
   type VendorRepoMutationOptions,
   type VendorRepoUpdateResult,
 } from "./vendor/vendorSync.js";
+export {
+  createRouteKitApiHandler,
+  type ApiHandlerOptions,
+} from "./http/apiHandler.js";
+export {
+  createHostingHandler,
+  type HostingOptions,
+} from "./http/hostingHandler.js";
+export {
+  createLocalServerContext,
+  type LocalServerContext,
+  type LocalServerContextOptions,
+  type LocalServerMiddleware,
+} from "./http/localServer.js";
