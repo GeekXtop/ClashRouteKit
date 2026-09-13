@@ -182,3 +182,11 @@
 - 已修复 UI：规则库侧栏"上游仓库"分组恢复"添加上游仓库"入口与每行"移除"按钮（确认弹窗说明 vendor 文件保留与内置默认源回退），移除页头突兀的"仓库设置"按钮；编辑入口保留在每行。
 - 已验证：`pnpm test` 85 文件 709 测试、typecheck、build、check、generate 全绿；浏览器实测 v2 项目下规则库四仓库加载、添加/编辑/移除入口就位、移除确认弹窗正常。
 - 已提交：31d368c（已推送 origin/main）。
+
+## 2026-09-13 - v2 项目支持 INI 模板导入（用户反馈）
+
+- 已完成：移除"Schema v2 项目暂不支持模板导入"守门。替换导入经 importTemplateAsV2 转换链（INI 解析 → 当前工程字段上 replaceImportedConfig 组装 → planLegacyMigration）产出 v2 YAML，经 saveV2Project 原子写盘后装载；悬空 provider 引用转为禁用占位草稿（与 v1 导入语义一致）。
+- 已完成：合并导入在 v2 下语义未定义，ImportModal 合并按钮禁用并提示仅支持替换。
+- 已修复：planLegacyMigration 对缺失 template 字段的 ImportedConfig 类输入容错访问。
+- 已验证：`pnpm test` 86 文件 712 测试、typecheck、build 全绿；浏览器端到端：v2 项目下粘贴 INI → 替换导入 → 成功通知 + 磁盘写盘确认 + 项目页计数更新（验证后用户原配置已字节级恢复）。
+- 已提交并推送 origin/main。
