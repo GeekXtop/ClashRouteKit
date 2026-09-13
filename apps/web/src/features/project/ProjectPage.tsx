@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Alert, Button, Card, Col, Row, Space, Tag } from "antd";
 import { FilePlus2, FolderOpen, Upload } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { ProjectStatus, ProjectValidationState, ProjectView } from "../../projectController.js";
+import type { ProjectSchemaVersion } from "./projectMeta.js";
 import { detectSchemaVersion, isEmptyProjectConfig } from "./projectMeta.js";
+import { MigrationWizard } from "./MigrationWizard.js";
 
 const workViewLabels: Record<"library" | "routing" | "output", string> = {
   library: "规则库",
@@ -10,8 +13,7 @@ const workViewLabels: Record<"library" | "routing" | "output", string> = {
   output: "输出",
 };
 
-function SchemaVersionTag({ yaml }: { yaml: string }) {
-  const version = detectSchemaVersion(yaml);
+function SchemaVersionTag({ version }: { version: ProjectSchemaVersion }) {
   return (
     <Space size={6}>
       <Tag color={version === 2 ? "success" : "warning"}>{`Schema v${version}`}</Tag>
@@ -133,6 +135,8 @@ function EmptyProjectState({
 function ExistingProjectState(props: {
   config: RouteKitProjectConfig;
   originalYaml: string;
+  originalConfig: RouteKitProjectConfig;
+  schemaVersion: ProjectSchemaVersion;
   status: ProjectStatus;
   message: string;
   dirty: boolean;
@@ -141,7 +145,9 @@ function ExistingProjectState(props: {
   onNavigate: (view: ProjectView) => void;
   onOpenImport: () => void;
   onRunCheck: () => void;
+  onMigrated: () => void;
 }) {
+  const [wizardOpen, setWizardOpen] = useState(false);
   const lastWorkLabel = props.lastWorkView === "project" ? "路由" : workViewLabels[props.lastWorkView];
   return (
     <>
@@ -154,7 +160,7 @@ function ExistingProjectState(props: {
               <span>config/routes.yaml</span>
               {props.dirty ? <Tag color="processing">有未保存修改</Tag> : <Tag>无未保存修改</Tag>}
             </Space>
-            <SchemaVersionTag yaml={props.originalYaml} />
+            <SchemaVersionTag version={props.schemaVersion} />
           </Space>
           <ValidationSummary validation={props.validation} onRunCheck={props.onRunCheck} />
           <Space size={12} wrap>
@@ -165,20 +171,34 @@ function ExistingProjectState(props: {
           </Space>
         </Space>
       </Card>
-      {detectSchemaVersion(props.originalYaml) === 1 ? (
+      {props.schemaVersion === 1 ? (
         <Alert
           type="info"
           showIcon
           message="此项目使用 Schema v1，可迁移到 v2（稳定 ID 与成员集合）"
           description="迁移需要逐项复核变更摘要与语义对比，确认后才会原子写入；不会在后台自动改写配置。"
           action={
-            <Button size="small" disabled>
+            <Button size="small" data-testid="open-migration-wizard" onClick={() => setWizardOpen(true)}>
               了解迁移
             </Button>
           }
         />
-      ) : null}
+      ) : (
+        <Alert
+          type="success"
+          showIcon
+          message="此项目已使用 Schema v2（稳定 ID 与成员集合）"
+          description="v2 实体编辑即将支持；其他工作域页面暂按 v1 投影只读浏览。"
+          data-testid="schema-v2-overview"
+        />
+      )}
       <DomainCards config={props.config} onNavigate={props.onNavigate} />
+      <MigrationWizard
+        open={wizardOpen}
+        originalConfig={props.originalConfig}
+        onClose={() => setWizardOpen(false)}
+        onMigrated={props.onMigrated}
+      />
     </>
   );
 }
@@ -186,6 +206,8 @@ function ExistingProjectState(props: {
 export function ProjectPage(props: {
   config: RouteKitProjectConfig;
   originalYaml: string;
+  originalConfig?: RouteKitProjectConfig;
+  schemaVersion?: ProjectSchemaVersion;
   status: ProjectStatus;
   message: string;
   dirty: boolean;
@@ -195,7 +217,10 @@ export function ProjectPage(props: {
   onOpenImport: () => void;
   onRunCheck: () => void;
   onCreateBlankProject: () => void;
+  onMigrated?: () => void;
 }) {
+  // 快照未提供 schemaVersion 时（旧调用方/测试）退回轻量探测。
+  const schemaVersion = props.schemaVersion ?? detectSchemaVersion(props.originalYaml);
   return (
     <div className="rk-publish-flow" data-testid="project-page">
       {isEmptyProjectConfig(props.config) ? (
@@ -207,6 +232,8 @@ export function ProjectPage(props: {
         <ExistingProjectState
           config={props.config}
           originalYaml={props.originalYaml}
+          originalConfig={props.originalConfig ?? props.config}
+          schemaVersion={schemaVersion}
           status={props.status}
           message={props.message}
           dirty={props.dirty}
@@ -215,6 +242,7 @@ export function ProjectPage(props: {
           onNavigate={props.onNavigate}
           onOpenImport={props.onOpenImport}
           onRunCheck={props.onRunCheck}
+          onMigrated={props.onMigrated ?? (() => {})}
         />
       )}
     </div>

@@ -7,6 +7,8 @@ import {
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
+import type { ProjectSchemaVersion } from "../features/project/projectMeta.js";
+import { SchemaV2Notice } from "../features/project/SchemaV2Notice.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
 import { GroupNav, type GroupLocate } from "./GroupNav.js";
 import { GroupDrawer } from "./GroupDrawer.js";
@@ -63,12 +65,14 @@ function collectIssuesByRuleId(
 
 export function RoutingPage({
   config,
+  schemaVersion,
   selectedRuleSetId,
   draftActions,
   fetcher,
   onOpenImport,
 }: {
   config: RouteKitProjectConfig;
+  schemaVersion?: ProjectSchemaVersion;
   selectedRuleSetId: string;
   draftActions: ReturnType<typeof useProjectDraftActions>;
   fetcher?: Fetcher;
@@ -168,6 +172,7 @@ export function RoutingPage({
 
   return (
     <div className="rk-page-col" style={{ height: "100%" }}>
+      {schemaVersion === 2 ? <SchemaV2Notice /> : null}
       <div className="rk-routing-top">
         <ValidationBar
           diagnostics={diagnostics}

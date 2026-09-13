@@ -5,6 +5,7 @@ import {
   applyDraftConfig,
   canSaveProject,
   createProjectController,
+  markProjectMigrated,
   markProjectSaved,
   setProjectSelection,
   updateProjectValidation,
@@ -287,5 +288,44 @@ describe("project controller", () => {
     expect(next.selectedCustomProxyGroupName).toBe("Direct");
     expect(next.selectedProviderName).toBe("");
     expect(next.selectedRuleFile).toBe("AI.list");
+  });
+});
+
+describe("project controller schema version", () => {
+  it("detects schema v1 and v2 from the loaded yaml", () => {
+    const config = createConfig();
+    const v1 = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    expect(v1.schemaVersion).toBe(1);
+
+    const v2 = createProjectController({
+      yaml: "schemaVersion: 2\nproject:\n  template:\n    output: Custom_Clash.ini\nproxyGroups: []\nroutes: []\n",
+      config,
+    });
+    expect(v2.schemaVersion).toBe(2);
+  });
+
+  it("keeps the schema version across draft edits", () => {
+    const config = createConfig();
+    const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
+    const next = applyDraftConfig(controller, {
+      ...config,
+      ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
+    });
+    expect(next.schemaVersion).toBe(1);
+  });
+
+  it("blocks v1 save on migrated snapshots and marks the project as schema v2", () => {
+    const config = createConfig();
+    const migrated = markProjectMigrated(
+      createProjectController({ yaml: serializeRouteKitConfig(config), config }),
+    );
+    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.dirty).toBe(false);
+
+    const readiness = canSaveProject({ ...migrated, dirty: true });
+    expect(readiness.ok).toBe(false);
+    if (!readiness.ok) {
+      expect(readiness.reason).toBe("Schema v2 项目暂不支持 v1 编辑保存");
+    }
   });
 });

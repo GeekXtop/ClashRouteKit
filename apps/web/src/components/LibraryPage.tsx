@@ -5,6 +5,8 @@ import { Settings } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
+import type { ProjectSchemaVersion } from "../features/project/projectMeta.js";
+import { SchemaV2Notice } from "../features/project/SchemaV2Notice.js";
 import {
   addVendorRepoRequest,
   createRuleFileRequest,
@@ -49,11 +51,13 @@ const PROVIDER_PATH = /^ruleProviders\[(\d+)\]/;
 
 export function LibraryPage({
   config,
+  schemaVersion,
   draftActions,
   onRefreshConfig,
   fetcher,
 }: {
   config: RouteKitProjectConfig;
+  schemaVersion?: ProjectSchemaVersion;
   draftActions: ReturnType<typeof useProjectDraftActions>;
   onRefreshConfig: () => void;
   fetcher?: Fetcher;
@@ -278,6 +282,7 @@ export function LibraryPage({
 
   return (
     <div className="rk-page-col" style={{ height: "100%" }}>
+      {schemaVersion === 2 ? <SchemaV2Notice /> : null}
       <div className="rk-library-top">
         <LibraryHealthBar
           pending={pendingItems}

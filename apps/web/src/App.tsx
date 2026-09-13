@@ -15,6 +15,7 @@ import { notifyError } from "./notify.js";
 import {
   canSaveProject,
   createProjectController,
+  markProjectMigrated,
   markProjectSaved,
   setProjectSelection,
   setProjectStatus,
@@ -60,6 +61,16 @@ export default function App() {
     void loadLocalProjectConfig()
       .then((result) => setProject(createProjectController(result)))
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
+  }
+
+  /**
+   * 迁移应用成功后的刷新：优先重载配置；v2 文件在服务端 GET /api/project/config
+   * 仍保持 v1 形状时无法解析（400），此时本地把快照标记为 Schema v2 并阻断 v1 保存。
+   */
+  function handleMigrated() {
+    void loadLocalProjectConfig()
+      .then((result) => setProject(createProjectController(result)))
+      .catch(() => setProject((current) => markProjectMigrated(current)));
   }
 
   function runCheck() {
@@ -141,6 +152,8 @@ export default function App() {
           <ProjectPage
             config={config}
             originalYaml={project.originalYaml}
+            originalConfig={project.originalConfig}
+            schemaVersion={project.schemaVersion}
             status={project.status}
             message={project.message}
             dirty={project.dirty}
@@ -150,19 +163,27 @@ export default function App() {
             onOpenImport={openImport}
             onRunCheck={runCheck}
             onCreateBlankProject={createBlankProject}
+            onMigrated={handleMigrated}
           />
         ) : project.selectedView === "routing" ? (
           <RoutingPage
             config={config}
+            schemaVersion={project.schemaVersion}
             selectedRuleSetId={project.selectedRuleSetId}
             draftActions={draftActions}
             onOpenImport={openImport}
           />
         ) : project.selectedView === "library" ? (
-          <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
+          <LibraryPage
+            config={config}
+            schemaVersion={project.schemaVersion}
+            draftActions={draftActions}
+            onRefreshConfig={refreshConfig}
+          />
         ) : (
           <OutputPage
             config={config}
+            schemaVersion={project.schemaVersion}
             originalConfig={project.originalConfig}
             originalYaml={project.originalYaml}
             validation={project.validation}

@@ -5,7 +5,10 @@ import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { ProjectPage } from "../src/features/project/ProjectPage.js";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const blankConfig: RouteKitProjectConfig = {
   publishBaseUrl: "http://127.0.0.1:8787",
@@ -73,18 +76,28 @@ describe("ProjectPage empty state", () => {
 });
 
 describe("ProjectPage existing project state", () => {
-  it("shows schema v1 with a migration notice and a disabled learn-more button", () => {
+  it("shows schema v1 with a migration notice and a wired learn-more action", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        ({ ok: true, status: 200, json: async () => ({ currentSchemaVersion: 2, plan: null }) }) as unknown as Response,
+      ),
+    );
     renderPage();
     expect(screen.getByText("Schema v1")).toBeTruthy();
     expect(screen.getByText(/可迁移到 v2/)).toBeTruthy();
     const learnMore = screen.getByRole("button", { name: "了解迁移" });
-    expect(learnMore.hasAttribute("disabled")).toBe(true);
+    expect(learnMore.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(learnMore);
+    expect(screen.getByText("迁移到 Schema v2")).toBeTruthy();
+    await screen.findByTestId("migrate-already-v2");
   });
 
-  it("shows schema v2 without the migration notice", () => {
+  it("shows schema v2 without the migration notice and with a v2 overview", () => {
     renderPage({ originalYaml: "schemaVersion: 2\nproject:\n  template:\n    output: Custom_Clash.ini\n" });
     expect(screen.getByText("Schema v2")).toBeTruthy();
     expect(screen.queryByText(/可迁移到 v2/)).toBeNull();
+    expect(screen.getByTestId("schema-v2-overview")).toBeTruthy();
   });
 
   it("renders the four task domain cards with the project marked as current", () => {

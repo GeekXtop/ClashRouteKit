@@ -4,6 +4,7 @@ import {
   type Diagnostic,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
+import { detectSchemaVersion, type ProjectSchemaVersion } from "./features/project/projectMeta.js";
 
 export type ProjectView = "project" | "library" | "routing" | "output";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
@@ -22,6 +23,8 @@ export interface ProjectControllerState {
   dirty: boolean;
   status: ProjectStatus;
   message: string;
+  /** 项目作者配置的 schema 版本（1 = 无 schemaVersion 的 v1 文档）。 */
+  schemaVersion: ProjectSchemaVersion;
   validation: ProjectValidationState;
   selectedView: ProjectView;
   selectedRuleSetId: string;
@@ -89,6 +92,7 @@ export function createProjectController(snapshot: ProjectConfigSnapshot): Projec
     dirty: false,
     status: "ready",
     message: "已读取本地 config/routes.yaml",
+    schemaVersion: detectSchemaVersion(snapshot.yaml),
     validation: {
       status: "idle",
       output: "尚未运行检查",
@@ -115,6 +119,7 @@ export function applyDraftConfig(
     draftYaml: serializeConfig(draftConfig),
     dirty: computeDirty(state.originalConfig, draftConfig),
     status: state.status === "saving" ? "ready" : state.status,
+    schemaVersion: state.schemaVersion,
     selectedRuleSetId,
     selectedCustomProxyGroupName: hasSelectedCustomProxyGroup(draftConfig, state.selectedCustomProxyGroupName)
       ? state.selectedCustomProxyGroupName
@@ -186,6 +191,7 @@ export function markProjectSaved(
       warnings.length > 0
         ? `已保存，${warnings.length} 条配置警告待处理`
         : "已保存 config/routes.yaml，可运行检查、生成和提交",
+    schemaVersion: detectSchemaVersion(snapshot.yaml),
     selectedRuleSetId: hasSelectedRuleSet(snapshot.config, state.selectedRuleSetId)
       ? state.selectedRuleSetId
       : firstRuleSetId(snapshot.config),
@@ -202,6 +208,15 @@ export function markProjectSaved(
 export function canSaveProject(state: ProjectControllerState): SaveReadiness {
   const diagnostics = projectDiagnostics(state.draftConfig);
   const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
+  if (state.schemaVersion === 2) {
+    // v2 项目文件不能被 v1 序列化覆盖写回；v2 实体编辑由后续任务提供。
+    return {
+      ok: false,
+      reason: "Schema v2 项目暂不支持 v1 编辑保存",
+      diagnostics,
+      warnings,
+    };
+  }
   if (!state.dirty) {
     return {
       ok: false,
@@ -222,4 +237,18 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
   }
 
   return { ok: true, warnings };
+}
+
+/**
+ * 迁移复核应用成功后的本地标记：把快照切到 Schema v2 并清空脏状态，
+ * 阻断后续 v1 自动保存。配置重载由 App 层 refresh 链路负责。
+ */
+export function markProjectMigrated(state: ProjectControllerState): ProjectControllerState {
+  return {
+    ...state,
+    schemaVersion: 2,
+    dirty: false,
+    status: "ready",
+    message: "已迁移到 Schema v2（v2 实体编辑即将支持）",
+  };
 }
