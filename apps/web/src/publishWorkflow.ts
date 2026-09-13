@@ -89,6 +89,26 @@ export function parseGitHubRemote(value: string): GitHubRepo | undefined {
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+export type WorkflowRunState =
+  | "success"
+  | "in-progress"
+  | "queued"
+  | "failed"
+  | "unknown"
+  | "unsupported";
+
+export interface WorkflowRunStatus {
+  state: WorkflowRunState;
+  runUrl?: string;
+  createdAt?: string;
+  conclusion?: string;
+}
+
+export interface PublishStatusPayload {
+  branch: string;
+  workflow: WorkflowRunStatus;
+}
+
 export async function fetchGitRemote(fetcher: Fetcher = globalThis.fetch): Promise<string> {
   const response = await fetcher("/api/git/remote");
   const payload = (await response.json()) as { url?: unknown };
@@ -96,6 +116,21 @@ export async function fetchGitRemote(fetcher: Fetcher = globalThis.fetch): Promi
     throw new Error("Invalid git remote response");
   }
   return payload.url;
+}
+
+export async function fetchPublishStatus(fetcher: Fetcher = globalThis.fetch): Promise<PublishStatusPayload> {
+  const response = await fetcher("/api/git/publish-status");
+  const payload = (await response.json()) as Partial<PublishStatusPayload> | null;
+  if (
+    !response.ok
+    || !payload
+    || typeof payload.branch !== "string"
+    || !payload.workflow
+    || typeof payload.workflow.state !== "string"
+  ) {
+    throw new Error("Invalid publish status response");
+  }
+  return payload as PublishStatusPayload;
 }
 
 export function createRawUrlTemplates(

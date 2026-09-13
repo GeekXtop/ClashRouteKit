@@ -578,6 +578,54 @@ describe("createRouteKitApiHandler", () => {
     expect(JSON.parse(res.body)).toEqual({ url: "git@github.com:acme/routes.git" });
   });
 
+  it("returns branch and workflow status for GET /api/git/publish-status", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      runCommand: async (_command, args) =>
+        args[0] === "rev-parse" ? "main\n" : "git@github.com:acme/routes.git\n",
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            workflow_runs: [
+              {
+                html_url: "https://github.com/acme/routes/actions/runs/9",
+                created_at: "2026-09-13T00:00:00Z",
+                status: "in_progress",
+                conclusion: null,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      env: {},
+    });
+    const res = await callHandler(handler, "/api/git/publish-status");
+    expect(res.status).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({
+      branch: "main",
+      workflow: {
+        state: "in-progress",
+        runUrl: "https://github.com/acme/routes/actions/runs/9",
+        createdAt: "2026-09-13T00:00:00Z",
+      },
+    });
+  });
+
+  it("responds 400 for publish-status when the branch cannot be read", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      runCommand: async (_command, args) =>
+        args[0] === "rev-parse" ? "HEAD\n" : "https://github.com/acme/routes.git",
+      env: {},
+    });
+    const res = await callHandler(handler, "/api/git/publish-status");
+    expect(res.status).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({
+      ok: false,
+      output: "当前处于 detached HEAD 状态，无法确认发布分支",
+    });
+  });
+
   it("runs the check action with the injected implementation", async () => {
     const handler = createRouteKitApiHandler({
       ...baseOptions,

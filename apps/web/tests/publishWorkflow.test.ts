@@ -3,6 +3,7 @@ import {
   createInitialActionStates,
   createRawUrlTemplates,
   fetchGitRemote,
+  fetchPublishStatus,
   getPublishActionWarning,
   parseGitHubRemote,
   parseGitHubRepo,
@@ -68,5 +69,24 @@ describe("publish workflow", () => {
   it("reads the git remote url from the local API", async () => {
     const fetcher = async () => new Response(JSON.stringify({ url: "git@github.com:acme/routes.git" }), { status: 200 });
     await expect(fetchGitRemote(fetcher)).resolves.toBe("git@github.com:acme/routes.git");
+  });
+
+  it("reads branch and workflow status from the publish-status API", async () => {
+    const payload = {
+      branch: "main",
+      workflow: {
+        state: "success",
+        conclusion: "success",
+        createdAt: "2026-09-13T01:00:00Z",
+        runUrl: "https://github.com/acme/routes/actions/runs/7",
+      },
+    };
+    const fetcher = async () => new Response(JSON.stringify(payload), { status: 200 });
+    await expect(fetchPublishStatus(fetcher)).resolves.toEqual(payload);
+  });
+
+  it("rejects a malformed publish-status payload", async () => {
+    const fetcher = async () => new Response(JSON.stringify({ branch: "main" }), { status: 200 });
+    await expect(fetchPublishStatus(fetcher)).rejects.toThrow("Invalid publish status response");
   });
 });

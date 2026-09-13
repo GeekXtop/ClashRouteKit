@@ -82,12 +82,18 @@ export {
 } from "./generate/generateOutputs.js";
 export {
   defaultRunCommand,
+  getGitBranch,
+  getPublishStatus,
+  getWorkflowRunStatus,
+  parseGitHubOwnerRepo,
   readGitRemote,
   runRouteKitAction,
   type CheckConfigFn,
+  type FetchLike,
   type GenerateOutputsFn,
   type GenerateOutputsResult,
   type GitRemoteOptions,
+  type PublishStatusResult,
   type RouteKitAction,
   type RouteKitActionDependencies,
   type RouteKitActionOptions,
@@ -95,6 +101,9 @@ export {
   type RunCommand,
   type SyncVendorFn,
   type VendorSyncActionResult,
+  type WorkflowRunOptions,
+  type WorkflowRunState,
+  type WorkflowRunStatus,
 } from "./git/gitActions.js";
 export {
   deleteProjectRuleFile,

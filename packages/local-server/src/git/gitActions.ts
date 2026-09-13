@@ -187,3 +187,139 @@ export async function readGitRemote(options: GitRemoteOptions): Promise<string> 
   const output = await runCommand("git", ["remote", "get-url", "origin"], options.root);
   return output.trim();
 }
+
+/** HTTP fetch 注入点：默认 global fetch；测试注入 mock，避免真实网络调用。 */
+export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+/** workflow 查询选项：runCommand 解析 remote，fetchImpl 查询 GitHub API，env 提供 token。 */
+export interface WorkflowRunOptions extends GitRemoteOptions {
+  fetchImpl?: FetchLike;
+  env?: NodeJS.ProcessEnv;
+}
+
+export type WorkflowRunState =
+  | "success"
+  | "in-progress"
+  | "queued"
+  | "failed"
+  | "unknown"
+  | "unsupported";
+
+export interface WorkflowRunStatus {
+  state: WorkflowRunState;
+  runUrl?: string;
+  createdAt?: string;
+  conclusion?: string;
+}
+
+export interface PublishStatusResult {
+  branch: string;
+  workflow: WorkflowRunStatus;
+}
+
+/** 从 git remote URL 解析 GitHub owner/repo，支持 https 与 git@ 形式；其余返回 null。 */
+export function parseGitHubOwnerRepo(remote: string): { owner: string; repo: string } | null {
+  const trimmed = remote.trim();
+  const ssh = /^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/i.exec(trimmed);
+  if (ssh) return { owner: ssh[1]!, repo: ssh[2]! };
+  const https = /^https:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?$/i.exec(trimmed);
+  if (https) return { owner: https[1]!, repo: https[2]! };
+  return null;
+}
+
+/** 当前分支：detached HEAD 或命令失败时抛带说明的错误，由上层端点转 JSON。 */
+export async function getGitBranch(options: GitRemoteOptions): Promise<string> {
+  const runCommand = options.runCommand ?? defaultRunCommand;
+  let output: string;
+  try {
+    output = await runCommand("git", ["rev-parse", "--abbrev-ref", "HEAD"], options.root);
+  } catch (error: unknown) {
+    throw new Error(`无法读取当前分支：${error instanceof Error ? error.message : String(error)}`);
+  }
+  const branch = output.trim();
+  if (!branch || branch === "HEAD") {
+    throw new Error("当前处于 detached HEAD 状态，无法确认发布分支");
+  }
+  return branch;
+}
+
+function mapWorkflowRunState(status: unknown, conclusion: unknown): WorkflowRunState {
+  if (status === "in_progress") return "in-progress";
+  if (status === "queued" || status === "waiting" || status === "pending") return "queued";
+  if (conclusion === "success") return "success";
+  if (
+    conclusion === "failure"
+    || conclusion === "timed_out"
+    || conclusion === "cancelled"
+    || conclusion === "startup_failure"
+  ) {
+    return "failed";
+  }
+  return "unknown";
+}
+
+/**
+ * 查询 publish workflow 最近一次运行。非 GitHub remote、网络失败或非 2xx 一律降级为
+ * unsupported（不抛错）；token 仅从环境变量读取并只用于 Authorization 头，不写日志。
+ */
+export async function getWorkflowRunStatus(options: WorkflowRunOptions): Promise<WorkflowRunStatus> {
+  const unsupported: WorkflowRunStatus = { state: "unsupported" };
+  let remote: string;
+  try {
+    remote = await readGitRemote(options);
+  } catch {
+    return unsupported;
+  }
+  const repo = parseGitHubOwnerRepo(remote);
+  if (!repo) {
+    return unsupported;
+  }
+
+  const fetchImpl = options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
+  const headers: Record<string, string> = {
+    accept: "application/vnd.github+json",
+    "user-agent": "clash-route-kit-local-server",
+  };
+  const env = options.env ?? process.env;
+  const token = env.GITHUB_TOKEN ?? env.GH_TOKEN;
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetchImpl(
+      `https://api.github.com/repos/${repo.owner}/${repo.repo}/actions/workflows/publish.yml/runs?per_page=1`,
+      { headers },
+    );
+    if (!response.ok) {
+      return unsupported;
+    }
+    const payload = (await response.json()) as {
+      workflow_runs?: Array<{
+        html_url?: unknown;
+        created_at?: unknown;
+        status?: unknown;
+        conclusion?: unknown;
+      }>;
+    };
+    const run = payload.workflow_runs?.[0];
+    if (!run) {
+      return { state: "unknown" };
+    }
+    return {
+      state: mapWorkflowRunState(run.status, run.conclusion),
+      ...(typeof run.html_url === "string" ? { runUrl: run.html_url } : {}),
+      ...(typeof run.created_at === "string" ? { createdAt: run.created_at } : {}),
+      ...(typeof run.conclusion === "string" ? { conclusion: run.conclusion } : {}),
+    };
+  } catch {
+    return unsupported;
+  }
+}
+
+/** 发布状态聚合：当前分支（失败会抛错，由端点层转 JSON）+ 最近 workflow 运行（降级不抛错）。 */
+export async function getPublishStatus(options: WorkflowRunOptions): Promise<PublishStatusResult> {
+  const branch = await getGitBranch(options);
+  const workflow = await getWorkflowRunStatus(options);
+  return { branch, workflow };
+}

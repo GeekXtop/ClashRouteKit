@@ -24,9 +24,11 @@ import {
   applyMigration,
 } from "../config/migration.js";
 import {
+  getPublishStatus,
   readGitRemote,
   runRouteKitAction,
   type CheckConfigFn,
+  type FetchLike,
   type GenerateOutputsFn,
   type RouteKitAction,
   type RunCommand,
@@ -57,6 +59,8 @@ export interface ApiHandlerOptions extends ProjectOptions {
   generateOutputs?: GenerateOutputsFn;
   syncVendor?: SyncVendorFn;
   runCommand?: RunCommand;
+  fetchImpl?: FetchLike;
+  env?: NodeJS.ProcessEnv;
   readText?: ReadText;
   writeText?: WriteText;
   readDirectory?: ReadDirectory;
@@ -437,6 +441,15 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/git/remote") {
       void readGitRemote(options)
         .then((remote) => writeJson(response, 200, { url: remote }))
+        .catch((error: unknown) =>
+          writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
+        );
+      return;
+    }
+
+    if (url.pathname === "/api/git/publish-status") {
+      void getPublishStatus(options)
+        .then((status) => writeJson(response, 200, status))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );

@@ -38,7 +38,7 @@ describe("OutputPage", () => {
     const props = renderOutput();
     expect(screen.getByText("本机 · 实时")).toBeTruthy();
     expect(screen.getByText("生成 config.yaml")).toBeTruthy();
-    expect(screen.queryByText("构建并推送 publish 分支")).toBeNull();
+    expect(screen.queryByText("提交并推送 main")).toBeNull();
     expect(props.onRunCheck).toHaveBeenCalledTimes(1);
   });
 
@@ -60,7 +60,7 @@ describe("OutputPage", () => {
   it("reveals the github publish panel after switching tabs", () => {
     renderOutput();
     fireEvent.click(screen.getByText("GitHub 发布"));
-    expect(screen.getByText("构建并推送 publish 分支")).toBeTruthy();
+    expect(screen.getByText("提交并推送 main")).toBeTruthy();
     expect(screen.getByTestId("publish-ini-preview")).toBeTruthy();
   });
 });

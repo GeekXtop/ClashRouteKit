@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  getGitBranch,
+  getPublishStatus,
+  getWorkflowRunStatus,
+  parseGitHubOwnerRepo,
   readGitRemote,
   runRouteKitAction,
 } from "../src/index.js";
@@ -243,5 +247,258 @@ describe("git route kit actions", () => {
       },
     });
     expect(url).toBe("git@github.com:acme/routes.git");
+  });
+});
+
+describe("getGitBranch", () => {
+  const baseOptions = {
+    root: "E:/repo",
+    configFile: "config/routes.yaml",
+  };
+
+  it("returns the current branch via the injected command runner", async () => {
+    const branch = await getGitBranch({
+      ...baseOptions,
+      runCommand: async (command, args, cwd) => {
+        expect(command).toBe("git");
+        expect(args).toEqual(["rev-parse", "--abbrev-ref", "HEAD"]);
+        expect(cwd).toBe("E:/repo");
+        return "feature/publish-loop\n";
+      },
+    });
+    expect(branch).toBe("feature/publish-loop");
+  });
+
+  it("throws a descriptive error on detached HEAD", async () => {
+    await expect(
+      getGitBranch({
+        ...baseOptions,
+        runCommand: async () => "HEAD\n",
+      }),
+    ).rejects.toThrow("detached HEAD");
+  });
+
+  it("throws a descriptive error when the git command fails", async () => {
+    await expect(
+      getGitBranch({
+        ...baseOptions,
+        runCommand: async () => {
+          throw new Error("git failed");
+        },
+      }),
+    ).rejects.toThrow("无法读取当前分支");
+  });
+});
+
+describe("parseGitHubOwnerRepo", () => {
+  it("parses https and ssh remotes and rejects non-GitHub hosts", () => {
+    expect(parseGitHubOwnerRepo("https://github.com/acme/routes.git")).toEqual({ owner: "acme", repo: "routes" });
+    expect(parseGitHubOwnerRepo("https://github.com/acme/routes")).toEqual({ owner: "acme", repo: "routes" });
+    expect(parseGitHubOwnerRepo("git@github.com:acme/routes.git")).toEqual({ owner: "acme", repo: "routes" });
+    expect(parseGitHubOwnerRepo("https://gitlab.com/acme/routes.git")).toBeNull();
+    expect(parseGitHubOwnerRepo("")).toBeNull();
+  });
+});
+
+describe("getWorkflowRunStatus", () => {
+  const baseOptions = {
+    root: "E:/repo",
+    configFile: "config/routes.yaml",
+  };
+
+  function runsPayload(run: Record<string, unknown>): unknown {
+    return {
+      total_count: 1,
+      workflow_runs: [
+        {
+          html_url: "https://github.com/acme/routes/actions/runs/123",
+          created_at: "2026-09-13T01:02:03Z",
+          ...run,
+        },
+      ],
+    };
+  }
+
+  function fetchMock(payload: unknown, status = 200) {
+    return vi.fn(async (_input: string, _init?: RequestInit) =>
+      new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } }),
+    );
+  }
+
+  it("maps in_progress and queued statuses without a conclusion", async () => {
+    const fetchImpl = fetchMock(runsPayload({ status: "in_progress", conclusion: null }));
+    const status = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git\n",
+      fetchImpl,
+      env: {},
+    });
+    expect(status).toEqual({
+      state: "in-progress",
+      runUrl: "https://github.com/acme/routes/actions/runs/123",
+      createdAt: "2026-09-13T01:02:03Z",
+    });
+
+    const queued = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "git@github.com:acme/routes.git",
+      fetchImpl: fetchMock(runsPayload({ status: "queued", conclusion: null })),
+      env: {},
+    });
+    expect(queued.state).toBe("queued");
+  });
+
+  it("maps success and failure conclusions", async () => {
+    const success = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl: fetchMock(runsPayload({ status: "completed", conclusion: "success" })),
+      env: {},
+    });
+    expect(success.state).toBe("success");
+    expect(success.conclusion).toBe("success");
+
+    const failed = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl: fetchMock(runsPayload({ status: "completed", conclusion: "failure" })),
+      env: {},
+    });
+    expect(failed.state).toBe("failed");
+  });
+
+  it("requests the latest publish workflow run with GitHub API headers", async () => {
+    const fetchImpl = fetchMock(runsPayload({ status: "completed", conclusion: "success" }));
+    await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "git@github.com:acme/routes.git",
+      fetchImpl,
+      env: {},
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0]!;
+    expect(url).toBe("https://api.github.com/repos/acme/routes/actions/workflows/publish.yml/runs?per_page=1");
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers.accept).toBe("application/vnd.github+json");
+    expect(headers["user-agent"]).toBeTruthy();
+    expect(headers.authorization).toBeUndefined();
+  });
+
+  it("sends a bearer token from the environment when present", async () => {
+    const fetchImpl = fetchMock(runsPayload({ status: "completed", conclusion: "success" }));
+    await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl,
+      env: { GITHUB_TOKEN: "secret-token" },
+    });
+    const headers = (fetchImpl.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+    expect(headers.authorization).toBe("Bearer secret-token");
+  });
+
+  it("prefers GITHUB_TOKEN over GH_TOKEN", async () => {
+    const fetchImpl = fetchMock(runsPayload({ status: "completed", conclusion: "success" }));
+    await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl,
+      env: { GITHUB_TOKEN: "primary", GH_TOKEN: "fallback" },
+    });
+    const headers = (fetchImpl.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+    expect(headers.authorization).toBe("Bearer primary");
+  });
+
+  it("falls back to unsupported for non-GitHub remotes without calling the API", async () => {
+    const fetchImpl = fetchMock({});
+    const status = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://gitlab.com/acme/routes.git",
+      fetchImpl,
+      env: {},
+    });
+    expect(status).toEqual({ state: "unsupported" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("falls back to unsupported when the remote cannot be read", async () => {
+    const fetchImpl = fetchMock({});
+    const status = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => {
+        throw new Error("not a repo");
+      },
+      fetchImpl,
+      env: {},
+    });
+    expect(status).toEqual({ state: "unsupported" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("falls back to unsupported on network errors and non-2xx responses", async () => {
+    const network = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl: async () => {
+        throw new Error("offline");
+      },
+      env: {},
+    });
+    expect(network).toEqual({ state: "unsupported" });
+
+    const httpError = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl: fetchMock({ message: "Not Found" }, 404),
+      env: {},
+    });
+    expect(httpError).toEqual({ state: "unsupported" });
+  });
+
+  it("reports unknown when the workflow has no runs yet", async () => {
+    const status = await getWorkflowRunStatus({
+      ...baseOptions,
+      runCommand: async () => "https://github.com/acme/routes.git",
+      fetchImpl: fetchMock({ total_count: 0, workflow_runs: [] }),
+      env: {},
+    });
+    expect(status).toEqual({ state: "unknown" });
+  });
+});
+
+describe("getPublishStatus", () => {
+  const baseOptions = {
+    root: "E:/repo",
+    configFile: "config/routes.yaml",
+  };
+
+  it("aggregates the current branch and the latest workflow run", async () => {
+    const status = await getPublishStatus({
+      ...baseOptions,
+      runCommand: async (_command, args) =>
+        args[0] === "rev-parse" ? "main\n" : "git@github.com:acme/routes.git\n",
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            workflow_runs: [
+              {
+                html_url: "https://github.com/acme/routes/actions/runs/9",
+                created_at: "2026-09-13T00:00:00Z",
+                status: "in_progress",
+                conclusion: null,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      env: {},
+    });
+    expect(status).toEqual({
+      branch: "main",
+      workflow: {
+        state: "in-progress",
+        runUrl: "https://github.com/acme/routes/actions/runs/9",
+        createdAt: "2026-09-13T00:00:00Z",
+      },
+    });
   });
 });

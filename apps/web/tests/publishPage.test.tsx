@@ -33,14 +33,19 @@ const changedConfig: RouteKitProjectConfig = {
   ],
 };
 
-it("keeps the legacy publish flow reachable: build+push runs generate, commit, push", async () => {
+const jsonOk = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
+
+it("keeps the legacy publish flow reachable: push main runs generate, commit, push", async () => {
   const calls: string[] = [];
   const fetcher = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     const action = /\/api\/actions\/([\w-]+)/.exec(url)?.[1] ?? "";
     if (action) calls.push(action);
-    if (url.includes("/api/git/remote")) return { ok: true, json: async () => ({ url: "" }) } as unknown as Response;
-    return { ok: true, json: async () => ({ action, ok: true, output: "ok" }) } as unknown as Response;
+    if (url.includes("/api/git/remote")) return jsonOk({ url: "" });
+    if (url.includes("/api/git/publish-status")) {
+      return jsonOk({ branch: "main", workflow: { state: "unsupported" } });
+    }
+    return jsonOk({ action, ok: true, output: "ok" });
   });
   render(
     <AppProviders>
@@ -53,7 +58,8 @@ it("keeps the legacy publish flow reachable: build+push runs generate, commit, p
     </AppProviders>,
   );
   fireEvent.click(screen.getByText("GitHub 发布"));
-  fireEvent.click(screen.getByText(/构建并推送/));
+  await waitFor(() => expect((screen.getByTestId("publish-main-button") as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByTestId("publish-main-button"));
   await waitFor(() => expect(calls).toEqual(expect.arrayContaining(["generate", "git-commit", "git-push"])));
 });
 
