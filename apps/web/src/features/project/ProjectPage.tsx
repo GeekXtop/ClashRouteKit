@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, Row, Space, Tag } from "antd";
 import { FilePlus2, FolderOpen, Upload } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import type { ProjectStatus, ProjectValidationState, ProjectView } from "../../projectController.js";
+import type { V2NormalizedSummary } from "../../v2/v2Project.js";
 import type { ProjectSchemaVersion } from "./projectMeta.js";
 import { detectSchemaVersion, isEmptyProjectConfig } from "./projectMeta.js";
 import { MigrationWizard } from "./MigrationWizard.js";
@@ -53,12 +54,18 @@ function ValidationSummary({
 
 function DomainCards({
   config,
+  v2Summary,
   onNavigate,
 }: {
   config: RouteKitProjectConfig;
+  v2Summary?: V2NormalizedSummary;
   onNavigate: (view: ProjectView) => void;
 }) {
-  const providers = config.ruleProviders ?? [];
+  // v2 项目以稳定 ID 状态为准（v1 投影对 v2 恒为空）。
+  const providers = v2Summary ? [] : (config.ruleProviders ?? []);
+  const providerCount = v2Summary ? v2Summary.providers : providers.length;
+  const routeCount = v2Summary ? v2Summary.routes : config.ruleSets.length;
+  const groupCount = v2Summary ? v2Summary.groups : config.customProxyGroups.length;
   const domains: {
     key: ProjectView;
     title: string;
@@ -70,13 +77,13 @@ function DomainCards({
       key: "library",
       title: "规则库",
       description: "补全来源、维护规则集与仓库设置",
-      meta: `${providers.length} 个规则源`,
+      meta: `${providerCount} 个规则源`,
     },
     {
       key: "routing",
       title: "路由",
       description: "编排规则顺序、编辑策略组",
-      meta: `${config.ruleSets.length} 条路由 · ${config.customProxyGroups.length} 个策略组`,
+      meta: `${routeCount} 条路由 · ${groupCount} 个策略组`,
     },
     {
       key: "output",
@@ -142,6 +149,7 @@ function ExistingProjectState(props: {
   dirty: boolean;
   validation: ProjectValidationState;
   lastWorkView: ProjectView;
+  v2Summary?: V2NormalizedSummary;
   onNavigate: (view: ProjectView) => void;
   onOpenImport: () => void;
   onRunCheck: () => void;
@@ -184,15 +192,13 @@ function ExistingProjectState(props: {
           }
         />
       ) : (
-        <Alert
-          type="success"
-          showIcon
-          message="此项目已使用 Schema v2（稳定 ID 与成员集合）"
-          description="v2 实体编辑即将支持；其他工作域页面暂按 v1 投影只读浏览。"
-          data-testid="schema-v2-overview"
-        />
+        <Card size="small" data-testid="schema-v2-overview" title="稳定 ID 与成员集合">
+          <span className="rk-lib-meta">
+            三个工作域（路由 / 规则库 / 输出）已支持直接编辑：策略组成员集合一处声明、组内引用，路由与规则源按稳定 ID 变更。
+          </span>
+        </Card>
       )}
-      <DomainCards config={props.config} onNavigate={props.onNavigate} />
+      <DomainCards config={props.config} v2Summary={props.v2Summary} onNavigate={props.onNavigate} />
       <MigrationWizard
         open={wizardOpen}
         originalConfig={props.originalConfig}
@@ -213,6 +219,7 @@ export function ProjectPage(props: {
   dirty: boolean;
   validation: ProjectValidationState;
   lastWorkView: ProjectView;
+  v2Summary?: V2NormalizedSummary;
   onNavigate: (view: ProjectView) => void;
   onOpenImport: () => void;
   onRunCheck: () => void;
@@ -221,9 +228,13 @@ export function ProjectPage(props: {
 }) {
   // 快照未提供 schemaVersion 时（旧调用方/测试）退回轻量探测。
   const schemaVersion = props.schemaVersion ?? detectSchemaVersion(props.originalYaml);
+  // v2 项目以 v2 汇总判定空项目（v1 投影对 v2 恒为空）。
+  const isEmpty = props.v2Summary
+    ? props.v2Summary.groups + props.v2Summary.routes + props.v2Summary.providers === 0
+    : isEmptyProjectConfig(props.config);
   return (
     <div className="rk-publish-flow" data-testid="project-page">
-      {isEmptyProjectConfig(props.config) ? (
+      {isEmpty ? (
         <EmptyProjectState
           onOpenImport={props.onOpenImport}
           onCreateBlankProject={props.onCreateBlankProject}
@@ -239,6 +250,7 @@ export function ProjectPage(props: {
           dirty={props.dirty}
           validation={props.validation}
           lastWorkView={props.lastWorkView}
+          v2Summary={props.v2Summary}
           onNavigate={props.onNavigate}
           onOpenImport={props.onOpenImport}
           onRunCheck={props.onRunCheck}

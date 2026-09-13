@@ -27,6 +27,8 @@ export function RuleStream(props: {
   onReorder: (orderedIds: string[]) => void;
   allOrderedIds: string[];
   onAddRule: () => void;
+  /** v2 路由无 enabled 语义：列表隐藏启用开关。 */
+  showEnabledToggle?: boolean;
 }) {
   const dragId = useRef<string | null>(null);
 
@@ -85,6 +87,7 @@ export function RuleStream(props: {
                   ruleSet.source.type === "rule-provider" &&
                   Boolean(props.incompleteProviderOutputs?.has(ruleSet.source.file))
                 }
+                showToggle={props.showEnabledToggle !== false}
                 onSelect={() => props.onSelectRuleSet(ruleSet.id)}
                 onToggle={() => props.onToggle(ruleSet.id)}
                 onEdit={() => props.onEditRule(ruleSet.id)}

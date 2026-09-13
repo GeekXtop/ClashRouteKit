@@ -19,6 +19,7 @@ import type {
   AuthorProjectConfigV2,
   MemberSet,
   PolicyTarget,
+  ProjectV2,
   ProxyGroupTypeV2,
   ProxyGroupV2,
   RouteSourceV2,
@@ -33,7 +34,7 @@ const V2_ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
  * 确定性 slug：与 migrate.ts `slugifyName` 同规则。
  * 结果不满足 v2 ID 模式（含为空）时返回空串，由调用方回退序号命名。
  */
-function slugifyId(name: string): string {
+export function slugifyId(name: string): string {
   const slug = name
     .replace(/\s+/g, "-")
     .toLowerCase()
@@ -54,7 +55,7 @@ function collectUsedIds(config: AuthorProjectConfigV2): Set<string> {
 }
 
 /** 冲突时追加 "-2"、"-3" 直至可用；同一输入集合下结果确定。 */
-function allocateId(used: ReadonlySet<string>, candidate: string): string {
+export function allocateId(used: ReadonlySet<string>, candidate: string): string {
   if (!used.has(candidate)) return candidate;
   let suffix = 2;
   while (used.has(`${candidate}-${suffix}`)) suffix += 1;
@@ -430,5 +431,25 @@ export function removeMemberSet(
   return {
     ...config,
     ...(Object.keys(next).length === 0 ? { memberSets: undefined } : { memberSets: next }),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 项目级字段（project.defaults / project.template）
+// ---------------------------------------------------------------------------
+
+/** 按 patch 浅合并 project 段（defaults / template）；patch 为空对象时返回原对象。 */
+export function updateProject(
+  config: AuthorProjectConfigV2,
+  patch: Partial<ProjectV2>,
+): AuthorProjectConfigV2 {
+  const base: ProjectV2 = config.project ?? {};
+  return {
+    ...config,
+    project: {
+      ...base,
+      ...(patch.template !== undefined ? { template: patch.template } : {}),
+      ...(patch.defaults !== undefined ? { defaults: patch.defaults } : {}),
+    },
   };
 }

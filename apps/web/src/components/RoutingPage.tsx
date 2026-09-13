@@ -7,8 +7,8 @@ import {
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
-import type { ProjectSchemaVersion } from "../features/project/projectMeta.js";
-import { SchemaV2Notice } from "../features/project/SchemaV2Notice.js";
+import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
+import type { V2ProjectState } from "../v2/v2Project.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
 import { GroupNav, type GroupLocate } from "./GroupNav.js";
 import { GroupDrawer } from "./GroupDrawer.js";
@@ -30,6 +30,15 @@ type LocateTarget =
 
 const RULESET_PATH = /^ruleSets\[(\d+)\]/;
 const GROUP_PATH = /^customProxyGroups\[(\d+)\]/;
+const V2_ROUTE_PATH = /^routes\[(\d+)\]/;
+const V2_GROUP_INDEX_PATH = /^proxyGroups\[(\d+)\]/;
+const V2_GROUP_ID_PATH = /^proxyGroups\.([a-z0-9][a-z0-9_-]*)/;
+
+/** Schema v2 编辑会话：v2 状态 + 稳定 ID 动作。存在时页面走 v2 通路。 */
+export interface RoutingV2Session {
+  state: V2ProjectState;
+  actions: ReturnType<typeof useV2DraftActions>;
+}
 
 function collectIssuesByGroup(
   diagnostics: readonly Diagnostic[],
@@ -63,21 +72,65 @@ function collectIssuesByRuleId(
   return map;
 }
 
+/** v2 诊断按路由 ID 聚合：v2 path 形如 `routes[3].policy.group`。 */
+function collectV2IssuesByRouteId(
+  diagnostics: readonly Diagnostic[],
+  routes: { id: string }[],
+): Map<string, Diagnostic[]> {
+  const map = new Map<string, Diagnostic[]>();
+  for (const diagnostic of diagnostics) {
+    const match = V2_ROUTE_PATH.exec(diagnostic.path ?? "");
+    const route = match ? routes[Number(match[1])] : undefined;
+    if (!route) continue;
+    const bucket = map.get(route.id) ?? [];
+    bucket.push(diagnostic);
+    map.set(route.id, bucket);
+  }
+  return map;
+}
+
+/** v2 诊断按组显示名聚合：path 兼容 `proxyGroups[i]...`（作者层）与 `proxyGroups.<id>`（规范化层）。 */
+function collectV2IssuesByGroup(
+  diagnostics: readonly Diagnostic[],
+  groups: { id: string; name: string }[],
+): Map<string, Diagnostic[]> {
+  const byId = new Map(groups.map((group) => [group.id, group]));
+  const map = new Map<string, Diagnostic[]>();
+  for (const diagnostic of diagnostics) {
+    const path = diagnostic.path ?? "";
+    let group: { name: string } | undefined;
+    const indexMatch = V2_GROUP_INDEX_PATH.exec(path);
+    if (indexMatch) {
+      group = groups[Number(indexMatch[1])];
+    } else {
+      const idMatch = V2_GROUP_ID_PATH.exec(path);
+      group = idMatch ? byId.get(idMatch[1]) : undefined;
+    }
+    if (!group) continue;
+    const bucket = map.get(group.name) ?? [];
+    bucket.push(diagnostic);
+    map.set(group.name, bucket);
+  }
+  return map;
+}
+
 export function RoutingPage({
   config,
-  schemaVersion,
   selectedRuleSetId,
   draftActions,
+  v2,
   fetcher,
   onOpenImport,
 }: {
   config: RouteKitProjectConfig;
-  schemaVersion?: ProjectSchemaVersion;
   selectedRuleSetId: string;
   draftActions: ReturnType<typeof useProjectDraftActions>;
+  /** Schema v2 编辑会话：存在时 mutation 走稳定 ID 通路，config 为渲染投影。 */
+  v2?: RoutingV2Session;
   fetcher?: Fetcher;
   onOpenImport?: () => void;
 }) {
+  const v2State = v2?.state;
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [drawerGroup, setDrawerGroup] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -86,16 +139,25 @@ export function RoutingPage({
   const [iniResultOpen, setIniResultOpen] = useState(false);
   const [locate, setLocate] = useState<LocateTarget | null>(null);
 
-  // 本地实时校验：随草稿更新（与 /api/actions/check 共用同一 validate 实现），
-  // 且诊断带 path，可用于行内就近显示与点击定位。
-  const diagnostics = useMemo(() => validateLegacyProjectConfig(config), [config]);
+  // v1：本地实时校验随草稿更新；v2：诊断随 mutation 由 analyzeV2Config 重算
+  // （App 自动保存前已作为闸门），不再重复校验 v1 投影。
+  const diagnostics = useMemo(
+    () => (v2State ? v2State.diagnostics : validateLegacyProjectConfig(config)),
+    [v2State, config],
+  );
   const issuesByRuleId = useMemo(
-    () => collectIssuesByRuleId(diagnostics, config.ruleSets),
-    [diagnostics, config.ruleSets],
+    () =>
+      v2State
+        ? collectV2IssuesByRouteId(diagnostics, v2State.config.routes)
+        : collectIssuesByRuleId(diagnostics, config.ruleSets),
+    [diagnostics, v2State, config.ruleSets],
   );
   const issuesByGroup = useMemo(
-    () => collectIssuesByGroup(diagnostics, config.customProxyGroups),
-    [diagnostics, config.customProxyGroups],
+    () =>
+      v2State
+        ? collectV2IssuesByGroup(diagnostics, v2State.config.proxyGroups)
+        : collectIssuesByGroup(diagnostics, config.customProxyGroups),
+    [diagnostics, v2State, config.customProxyGroups],
   );
 
   const stats = useMemo(() => createCustomProxyGroupStats(config), [config]);
@@ -112,11 +174,23 @@ export function RoutingPage({
   const sections = [
     ...new Set(config.ruleSets.map((ruleSet) => ruleSet.section).filter((s): s is string => Boolean(s))),
   ];
-  const allOrderedIds = config.ruleSets.map((ruleSet) => ruleSet.id);
+  const allOrderedIds = v2State
+    ? v2State.config.routes.map((route) => route.id)
+    : config.ruleSets.map((ruleSet) => ruleSet.id);
   const visibleRuleSets = selectedGroup
     ? config.ruleSets.filter((ruleSet) => ruleSet.policy === selectedGroup)
     : config.ruleSets;
-  const editingGroup = config.customProxyGroups.find((group) => group.name === drawerGroup);
+  const editingGroup = v2State
+    ? undefined
+    : config.customProxyGroups.find((group) => group.name === drawerGroup);
+  const editingV2Group =
+    v2State && drawerGroup
+      ? v2State.config.proxyGroups.find((group) => group.name === drawerGroup)
+      : undefined;
+  const editingV2Route =
+    v2State && editRuleId
+      ? v2State.config.routes.find((route) => route.id === editRuleId)
+      : undefined;
 
   function pushLocate(next: { ruleId: string } | { groupName: string }) {
     setLocate((prev) =>
@@ -128,11 +202,39 @@ export function RoutingPage({
 
   function canLocateDiagnostic(diagnostic: Diagnostic): boolean {
     const path = diagnostic.path ?? "";
+    if (v2State) {
+      return (
+        V2_ROUTE_PATH.test(path) || V2_GROUP_INDEX_PATH.test(path) || V2_GROUP_ID_PATH.test(path)
+      );
+    }
     return RULESET_PATH.test(path) || GROUP_PATH.test(path);
   }
 
   function locateDiagnostic(diagnostic: Diagnostic) {
     const path = diagnostic.path ?? "";
+    if (v2State) {
+      const routeMatch = V2_ROUTE_PATH.exec(path);
+      if (routeMatch) {
+        const route = v2State.config.routes[Number(routeMatch[1])];
+        if (route) {
+          setSelectedGroup(null);
+          pushLocate({ ruleId: route.id });
+          return;
+        }
+      }
+      const indexMatch = V2_GROUP_INDEX_PATH.exec(path);
+      if (indexMatch) {
+        const group = v2State.config.proxyGroups[Number(indexMatch[1])];
+        if (group) pushLocate({ groupName: group.name });
+        return;
+      }
+      const idMatch = V2_GROUP_ID_PATH.exec(path);
+      if (idMatch) {
+        const group = v2State.config.proxyGroups.find((item) => item.id === idMatch[1]);
+        if (group) pushLocate({ groupName: group.name });
+      }
+      return;
+    }
     const ruleMatch = RULESET_PATH.exec(path);
     if (ruleMatch) {
       const ruleSet = config.ruleSets[Number(ruleMatch[1])];
@@ -164,7 +266,9 @@ export function RoutingPage({
           <Button type="primary" onClick={onOpenImport}>
             从模板导入开始
           </Button>
-          <Button onClick={() => draftActions.createCustomProxyGroup()}>手动新建策略组</Button>
+          <Button onClick={() => (v2?.actions ?? draftActions).createCustomProxyGroup()}>
+            手动新建策略组
+          </Button>
         </Space>
       </Empty>
     );
@@ -172,7 +276,6 @@ export function RoutingPage({
 
   return (
     <div className="rk-page-col" style={{ height: "100%" }}>
-      {schemaVersion === 2 ? <SchemaV2Notice /> : null}
       <div className="rk-routing-top">
         <ValidationBar
           diagnostics={diagnostics}
@@ -194,7 +297,7 @@ export function RoutingPage({
             locate={locate?.kind === "group" ? locate : null}
             onSelectGroup={setSelectedGroup}
             onEditGroup={setDrawerGroup}
-            onCreateGroup={draftActions.createCustomProxyGroup}
+            onCreateGroup={(v2?.actions ?? draftActions).createCustomProxyGroup}
             onOpenDefaults={() => setDefaultsSection("proxy-groups")}
           />
         </div>
@@ -208,6 +311,7 @@ export function RoutingPage({
             defaults={config.defaults}
             issuesByRuleId={issuesByRuleId}
             locate={locate?.kind === "rule" ? locate : null}
+            showEnabledToggle={!v2State}
             emptyDescription={
               selectedGroup ? (
                 <>
@@ -216,13 +320,13 @@ export function RoutingPage({
                 </>
               ) : undefined
             }
-            onSelectRuleSet={draftActions.selectRuleSet}
-            onToggle={draftActions.toggleRuleSet}
+            onSelectRuleSet={(v2?.actions ?? draftActions).selectRuleSet}
+            onToggle={(v2?.actions ?? draftActions).toggleRuleSet}
             onEditRule={(id) => {
-              draftActions.selectRuleSet(id);
+              (v2?.actions ?? draftActions).selectRuleSet(id);
               setEditRuleId(id);
             }}
-            onReorder={draftActions.reorderRuleSets}
+            onReorder={(v2?.actions ?? draftActions).reorderRuleSets}
             onAddRule={() => setPickerOpen(true)}
           />
         </div>
@@ -231,8 +335,27 @@ export function RoutingPage({
       <GroupDrawer
         open={drawerGroup !== null}
         group={editingGroup}
+        v2={
+          v2 && editingV2Group
+            ? {
+                group: editingV2Group,
+                memberSets: v2State?.config.memberSets ?? {},
+                groupOptions: (v2State?.config.proxyGroups ?? [])
+                  .filter((group) => group.id !== editingV2Group.id)
+                  .map((group) => ({ id: group.id, name: group.name })),
+                onSave: (nextGroup) => {
+                  if (!editingV2Group) return;
+                  v2.actions.saveProxyGroup(editingV2Group.id, nextGroup);
+                  if (selectedGroup === drawerGroup) setSelectedGroup(nextGroup.name);
+                  setDrawerGroup(null);
+                },
+                onUpsertMemberSet: (setId, members) => v2.actions.upsertMemberSet(setId, members),
+                onRemoveMemberSet: (setId) => v2.actions.removeMemberSet(setId),
+              }
+            : undefined
+        }
         groups={config.customProxyGroups}
-        defaults={config.defaults}
+        defaults={v2State ? v2State.config.project?.defaults : config.defaults}
         inboundCount={drawerGroup ? selectInboundRuleSets(config, drawerGroup).length : 0}
         onSave={(nextGroup) => {
           if (!drawerGroup) return;
@@ -243,7 +366,9 @@ export function RoutingPage({
         onCancel={() => setDrawerGroup(null)}
         onDelete={() => {
           if (drawerGroup) {
-            draftActions.deleteCustomProxyGroup(drawerGroup);
+            (v2?.actions ?? draftActions).deleteCustomProxyGroup(
+              editingV2Group ? editingV2Group.id : drawerGroup,
+            );
             setDrawerGroup(null);
           }
         }}
@@ -252,10 +377,31 @@ export function RoutingPage({
 
       <RuleDrawer
         open={editRuleId !== null}
-        ruleSet={config.ruleSets.find((r) => r.id === editRuleId)}
+        ruleSet={v2State ? undefined : config.ruleSets.find((r) => r.id === editRuleId)}
+        v2={
+          v2 && editingV2Route
+            ? {
+                route: editingV2Route,
+                groups: (v2State?.config.proxyGroups ?? []).map((group) => ({
+                  id: group.id,
+                  name: group.name,
+                })),
+                providers: (v2State?.config.ruleProviders ?? []).map((provider) => ({
+                  id: provider.id,
+                  name: provider.name,
+                })),
+                routeIds: v2State?.config.routes.map((route) => route.id) ?? [],
+                onSave: (nextRoute) => {
+                  if (!editingV2Route) return;
+                  v2.actions.saveRoute(editingV2Route.id, nextRoute);
+                  setEditRuleId(null);
+                },
+              }
+            : undefined
+        }
         ruleSetIds={config.ruleSets.map((ruleSet) => ruleSet.id)}
         policies={policies}
-        defaults={config.defaults}
+        defaults={v2State ? v2State.config.project?.defaults : config.defaults}
         onSave={(nextRuleSet) => {
           if (!editRuleId) return;
           draftActions.saveRuleSet(editRuleId, nextRuleSet);
@@ -263,7 +409,7 @@ export function RoutingPage({
         }}
         onCancel={() => setEditRuleId(null)}
         onDelete={() => {
-          if (editRuleId) draftActions.deleteRuleSet(editRuleId);
+          if (editRuleId) (v2?.actions ?? draftActions).deleteRuleSet(editRuleId);
           setEditRuleId(null);
         }}
       />
@@ -272,9 +418,9 @@ export function RoutingPage({
         <ProjectDefaultsDrawer
           open
           initialSection={defaultsSection}
-          defaults={config.defaults}
+          defaults={v2State ? v2State.config.project?.defaults : config.defaults}
           onSave={(defaults) => {
-            draftActions.setProjectDefaults(defaults);
+            (v2?.actions ?? draftActions).setProjectDefaults(defaults);
             setDefaultsSection(null);
           }}
           onCancel={() => setDefaultsSection(null)}
@@ -288,7 +434,7 @@ export function RoutingPage({
           defaultPolicy={selectedGroup || policies[0] || "DIRECT"}
           sections={sections}
           fetcher={fetcher}
-          onAdd={(source, policy, section) => draftActions.addRoute(source, policy, section)}
+          onAdd={(source, policy, section) => (v2?.actions ?? draftActions).addRoute(source, policy, section)}
           onClose={() => setPickerOpen(false)}
         />
       ) : null}

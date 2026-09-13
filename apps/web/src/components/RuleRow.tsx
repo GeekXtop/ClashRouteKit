@@ -15,6 +15,7 @@ export function RuleRow({
   onToggle,
   onEdit,
   incompleteProvider = false,
+  showToggle = true,
   dragHandlers,
 }: {
   ruleSet: RuleSet;
@@ -27,6 +28,8 @@ export function RuleRow({
   onToggle: () => void;
   onEdit: () => void;
   incompleteProvider?: boolean;
+  /** v2 路由无 enabled 语义，列表开关隐藏。 */
+  showToggle?: boolean;
   dragHandlers: {
     draggable: boolean;
     onDragStart: () => void;
@@ -59,7 +62,7 @@ export function RuleRow({
         </span>
       ) : null}
       <Tag style={{ marginLeft: "auto" }}>{ruleSet.policy}</Tag>
-      {!isFinal ? (
+      {showToggle && !isFinal ? (
         <Switch
           size="small"
           checked={ruleSet.enabled !== false}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { parseIniToConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
 import { ImportModal } from "./components/ImportModal.js";
@@ -24,6 +24,8 @@ import {
   type ProjectView,
 } from "./projectController.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
+import { renderV2PageConfig } from "./v2/renderProject.js";
+import { useV2DraftActions } from "./v2/useV2DraftActions.js";
 import { fetchProjectDocument, saveV2Project, serializeV2Project } from "./v2/v2Project.js";
 
 export default function App() {
@@ -31,7 +33,14 @@ export default function App() {
     createProjectController({ yaml: bundledProjectConfigYaml, config: bundledProjectConfig }),
   );
   const draftActions = useProjectDraftActions(setProject);
+  const v2Actions = useV2DraftActions(setProject);
   const config = project.draftConfig;
+  const v2State = project.schemaVersion === 2 ? project.v2 : undefined;
+  // v2 页面渲染输入：normalize + toRouteKitConfig 投影（显示名进、稳定 ID 出）。
+  const pageConfig = useMemo(
+    () => (v2State ? renderV2PageConfig(v2State.config) : config),
+    [v2State, config],
+  );
   const [importOpen, setImportOpen] = useState(false);
   const [importSources, setImportSources] = useState<CatalogSourceInfo[]>([]);
   const [lastWorkView, setLastWorkView] = useState<Exclude<ProjectView, "project">>("routing");
@@ -44,6 +53,12 @@ export default function App() {
   }
 
   function handleImport(text: string, mode: "replace" | "merge") {
+    // v2 作者配置不经 INI 导入（无 v1 草稿可合并），避免污染 v2 状态。
+    if (v2State) {
+      notifyError("Schema v2 项目暂不支持模板导入");
+      setImportOpen(false);
+      return;
+    }
     if (mode === "merge") {
       draftActions.importIni(text);
     } else {
@@ -168,7 +183,7 @@ export default function App() {
       <AppShell selectedView={project.selectedView} saveLabel={saveLabel} onSelectView={handleSelectView}>
         {project.selectedView === "project" ? (
           <ProjectPage
-            config={config}
+            config={v2State ? pageConfig : config}
             originalYaml={project.originalYaml}
             originalConfig={project.originalConfig}
             schemaVersion={project.schemaVersion}
@@ -177,6 +192,7 @@ export default function App() {
             dirty={project.dirty}
             validation={project.validation}
             lastWorkView={lastWorkView}
+            v2Summary={v2State?.normalizedSummary}
             onNavigate={handleSelectView}
             onOpenImport={openImport}
             onRunCheck={runCheck}
@@ -185,23 +201,22 @@ export default function App() {
           />
         ) : project.selectedView === "routing" ? (
           <RoutingPage
-            config={config}
-            schemaVersion={project.schemaVersion}
+            config={pageConfig}
             selectedRuleSetId={project.selectedRuleSetId}
-            draftActions={draftActions}
+            draftActions={v2State ? v2Actions : draftActions}
+            v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onOpenImport={openImport}
           />
         ) : project.selectedView === "library" ? (
           <LibraryPage
-            config={config}
-            schemaVersion={project.schemaVersion}
-            draftActions={draftActions}
+            config={pageConfig}
+            draftActions={v2State ? v2Actions : draftActions}
+            v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onRefreshConfig={refreshConfig}
           />
         ) : (
           <OutputPage
-            config={config}
-            schemaVersion={project.schemaVersion}
+            config={pageConfig}
             originalConfig={project.originalConfig}
             originalYaml={project.originalYaml}
             validation={project.validation}

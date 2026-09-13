@@ -5,8 +5,8 @@ import { Settings } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
-import type { ProjectSchemaVersion } from "../features/project/projectMeta.js";
-import { SchemaV2Notice } from "../features/project/SchemaV2Notice.js";
+import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
+import type { V2ProjectState } from "../v2/v2Project.js";
 import {
   addVendorRepoRequest,
   createRuleFileRequest,
@@ -33,6 +33,12 @@ import { RepoModal } from "./RepoModal.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+/** Schema v2 编辑会话：v2 状态 + 稳定 ID 动作。存在时页面走 v2 通路。 */
+export interface LibraryV2Session {
+  state: V2ProjectState;
+  actions: ReturnType<typeof useV2DraftActions>;
+}
+
 interface RepoModalState {
   open: boolean;
   mode: "add" | "edit";
@@ -51,14 +57,15 @@ const PROVIDER_PATH = /^ruleProviders\[(\d+)\]/;
 
 export function LibraryPage({
   config,
-  schemaVersion,
   draftActions,
+  v2,
   onRefreshConfig,
   fetcher,
 }: {
   config: RouteKitProjectConfig;
-  schemaVersion?: ProjectSchemaVersion;
   draftActions: ReturnType<typeof useProjectDraftActions>;
+  /** Schema v2 编辑会话：存在时 provider mutation 走稳定 ID 通路。 */
+  v2?: LibraryV2Session;
   onRefreshConfig: () => void;
   fetcher?: Fetcher;
 }) {
@@ -88,13 +95,18 @@ export function LibraryPage({
     };
   }, [fetch, refreshKey]);
 
-  const providers = config.ruleProviders ?? [];
+  const v2State = v2?.state;
+  const providers = v2State ? v2State.config.ruleProviders : (config.ruleProviders ?? []);
 
   // 页顶汇总卡三类数据源：
   // - 待补全来源：sources 为空或缺路径的 provider（纯配置可算）；
   // - 失效来源：Web 拿不到文件系统，用可计算的最接近语义（本地 .list 缺失 / vendor 仓库未声明）；
-  // - 阻断生成：validateLegacyProjectConfig 中 ruleProviders[]/defaults 桶的 error 诊断。
-  const diagnostics = useMemo(() => validateLegacyProjectConfig(config), [config]);
+  // - 阻断生成：校验诊断中 ruleProviders[]/defaults 桶的 error 诊断
+  //   （v1 为 validateLegacyProjectConfig，v2 为 analyzeV2Config 的结构化诊断）。
+  const diagnostics = useMemo(
+    () => (v2State ? v2State.diagnostics : validateLegacyProjectConfig(config)),
+    [v2State, config],
+  );
   const pendingItems = useMemo<LibraryHealthItem[]>(
     () =>
       providers
@@ -259,6 +271,21 @@ export function LibraryPage({
         />
       );
     if (selection?.kind === "provider") {
+      if (v2State && v2) {
+        const v2Provider = v2State.config.ruleProviders.find((p) => p.name === selection.name);
+        if (!v2Provider) return <Empty description="规则源不存在" style={{ paddingTop: 60 }} />;
+        return (
+          <ProviderRecipeEditor
+            provider={v2Provider}
+            onUpdate={(patch) => v2.actions.updateProvider(v2Provider.id, patch)}
+            onDelete={() => {
+              v2.actions.deleteProvider(v2Provider.id);
+              setSelection(null);
+            }}
+            fetcher={fetch}
+          />
+        );
+      }
       const provider = providers.find((p) => p.name === selection.name);
       if (!provider) return <Empty description="规则源不存在" style={{ paddingTop: 60 }} />;
       return (
@@ -282,7 +309,6 @@ export function LibraryPage({
 
   return (
     <div className="rk-page-col" style={{ height: "100%" }}>
-      {schemaVersion === 2 ? <SchemaV2Notice /> : null}
       <div className="rk-library-top">
         <LibraryHealthBar
           pending={pendingItems}
@@ -308,7 +334,7 @@ export function LibraryPage({
             onSyncAll={() => void syncCatalogVendor(fetch).then(() => setRefreshKey((k) => k + 1)).catch(() => {})}
             onEditRepo={openEditRepo}
             onNewList={() => setNewListOpen(true)}
-            onNewProvider={() => draftActions.createProvider()}
+            onNewProvider={() => (v2?.actions ?? draftActions).createProvider()}
             onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
           />
         </div>
@@ -335,9 +361,9 @@ export function LibraryPage({
         <ProjectDefaultsDrawer
           open
           initialSection={defaultsSection}
-          defaults={config.defaults}
+          defaults={v2State ? v2State.config.project?.defaults : config.defaults}
           onSave={(defaults) => {
-            draftActions.setProjectDefaults(defaults);
+            (v2?.actions ?? draftActions).setProjectDefaults(defaults);
             setDefaultsSection(null);
           }}
           onCancel={() => setDefaultsSection(null)}

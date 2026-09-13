@@ -220,8 +220,10 @@ export function markProjectSaved(
 }
 
 /**
- * Schema v2 项目的 v1 只读投影：v2 页面接线完成前，v1 页面以空投影渲染
- * （各页面已有 SchemaV2Notice 提示），v1 草稿字段仅作占位，永不参与 v2 保存。
+ * Schema v2 项目控制器：装载失败（YAML / 结构错误）时不抛出，
+ * v2 状态留空并置 error 状态提示；canSaveProject 会拒绝保存。
+ * draftConfig 是 v1 只读投影（渲染各页面的兜底输入），编辑 mutation
+ * 均经 useV2DraftActions 走 v2.config + applyV2Config，永不写投影。
  */
 function v2ReadOnlyProjection(templateOutput: string): RouteKitProjectConfig {
   return {
@@ -266,7 +268,7 @@ export function createV2ProjectController(yaml: string): ProjectControllerState 
       output: "尚未运行检查",
     },
     selectedView: "project",
-    selectedRuleSetId: "",
+    selectedRuleSetId: v2?.config.routes[0]?.id ?? "",
     selectedCustomProxyGroupName: "",
     selectedProviderName: "",
     selectedRuleFile: "",
