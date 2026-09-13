@@ -173,3 +173,12 @@
 - 已提交：d0802af 发布流向与状态、6b4e629 gitignore 锚定修复、（本次）设备配置与模板状态。
 - 总路线图状态：Phase A 配置健康门禁、Phase B Schema v2 与 Core、Phase C local-server 边界与本地设置、Phase D Web 工作流四页与 v2 编辑、Phase E 输出与发布闭环全部完成并推送；全部工作在 origin/main。
 - 后续可选项：360px 移动端与键盘焦点逐项走查（规格第 10 节）；OutputPage v2 渲染的 publishBaseUrl 接本地设置；低优先级遗留（保存 API 错误响应携带结构化 diagnostics）。
+
+## 2026-09-13 - 修复 v2 项目下规则库瘫痪与白屏（用户反馈）
+
+- 根因一：用户将项目迁移到 Schema v2 后，catalog 七个端点与 vendor 增删改仍走 v1 严格 parser（`config.schemaVersion: unknown field` → "Invalid catalog sources response"）；更危险的是 vendor 写回会把 v2 配置降级覆盖回 v1。修复：catalog origins（loadCatalogOrigins）与 vendor mutation 按 schemaVersion 分发，v2 写回保留全部结构并走校验链原子写入。
+- 根因二：`readConfig`（check/generate/preview 全链入口）未分发，v2 项目下 CLI 校验与生成失效。修复：v2 经 normalize + toRouteKitConfig 投影并补全 template/vendorRepos/ruleProviders。
+- 根因三：`apps/web/src/config.ts` 模块级 v1 严格解析 v2 YAML 抛错 → App 白屏（用户刷新页面即复现）。修复：容错分发，坏 YAML 以空白项目兜底。
+- 已修复 UI：规则库侧栏"上游仓库"分组恢复"添加上游仓库"入口与每行"移除"按钮（确认弹窗说明 vendor 文件保留与内置默认源回退），移除页头突兀的"仓库设置"按钮；编辑入口保留在每行。
+- 已验证：`pnpm test` 85 文件 709 测试、typecheck、build、check、generate 全绿；浏览器实测 v2 项目下规则库四仓库加载、添加/编辑/移除入口就位、移除确认弹窗正常。
+- 已提交：31d368c（已推送 origin/main）。
