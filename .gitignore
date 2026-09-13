@@ -1,7 +1,7 @@
 node_modules/
 dist/
-output/
-vendor/
+/output/
+/vendor/
 *.tsbuildinfo
 .playwright-mcp/
 .worktrees/
