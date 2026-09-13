@@ -13,6 +13,8 @@ type Mode = "template" | "paste";
 export function ImportModal(props: {
   open: boolean;
   sources: CatalogSourceInfo[];
+  /** Schema v2 项目下合并导入语义未定义，禁用并说明。 */
+  mergeDisabled?: boolean;
   onClose: () => void;
   onImport: (text: string, mode: "replace" | "merge") => void;
   fetcher?: Fetcher;
@@ -67,7 +69,12 @@ export function ImportModal(props: {
         <Button key="cancel" onClick={props.onClose}>
           取消
         </Button>,
-        <Button key="merge" onClick={() => emit("merge")}>
+        <Button
+          key="merge"
+          disabled={props.mergeDisabled}
+          title={props.mergeDisabled ? "Schema v2 项目仅支持替换导入" : undefined}
+          onClick={() => emit("merge")}
+        >
           合并进现有配置
         </Button>,
         <Button key="replace" type="primary" onClick={() => emit("replace")}>

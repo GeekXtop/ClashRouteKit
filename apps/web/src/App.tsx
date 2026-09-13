@@ -7,6 +7,7 @@ import { RoutingPage } from "./components/RoutingPage.js";
 import { OutputPage } from "./features/output/OutputPage.js";
 import { ProjectPage } from "./features/project/ProjectPage.js";
 import { createBlankProjectConfig } from "./features/project/projectMeta.js";
+import { importTemplateAsV2 } from "./features/project/importToV2.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
 import {
@@ -15,11 +16,12 @@ import {
   bundledSchemaVersion,
 } from "./config.js";
 import { saveLocalProjectConfig } from "./localProject.js";
-import { notifyError } from "./notify.js";
+import { notifyError, notifySuccess } from "./notify.js";
 import {
   canSaveProject,
   createProjectController,
   createProjectControllerFromDocument,
+  createV2ProjectController,
   markProjectSaved,
   markV2ProjectSaved,
   setProjectSelection,
@@ -66,9 +68,33 @@ export default function App() {
   }
 
   function handleImport(text: string, mode: "replace" | "merge") {
-    // v2 作者配置不经 INI 导入（无 v1 草稿可合并），避免污染 v2 状态。
+    // v2 项目：INI 模板经「v1 解析 → 迁移规划」转换为 v2 后整体替换并写盘；
+    // 合并语义在 v2 下未定义，入口已在 ImportModal 禁用。
     if (v2State) {
-      notifyError("Schema v2 项目暂不支持模板导入");
+      if (mode === "merge") {
+        notifyError("Schema v2 项目仅支持「替换现有配置」导入");
+        return;
+      }
+      void (async () => {
+        const converted = importTemplateAsV2(text, pageConfig);
+        if (!converted.ok) {
+          notifyError(converted.error);
+          return;
+        }
+        const save = await saveV2Project(converted.yaml);
+        if (!save.ok) {
+          notifyError(save.diagnostics.map((d) => `[${d.code}] ${d.message}`).join("；") || save.reason);
+          return;
+        }
+        setProject(createV2ProjectController(save.yaml));
+        notifySuccess(
+          converted.warningCount
+            ? `已导入并转换为 Schema v2 配置（${converted.warningCount} 条警告，规则源可在规则库补全）`
+            : "已导入并转换为 Schema v2 配置",
+        );
+      })().catch((error: unknown) =>
+        notifyError(error instanceof Error ? error.message : String(error)),
+      );
       setImportOpen(false);
       return;
     }
@@ -237,7 +263,13 @@ export default function App() {
           />
         )}
       </AppShell>
-      <ImportModal open={importOpen} sources={importSources} onClose={() => setImportOpen(false)} onImport={handleImport} />
+      <ImportModal
+        open={importOpen}
+        sources={importSources}
+        mergeDisabled={Boolean(v2State)}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImport}
+      />
     </>
   );
 }
