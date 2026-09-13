@@ -2,11 +2,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Diagnostic, MigrationPlan, RouteKitProjectConfig } from "@clash-route-kit/core";
 import { ConfigDiagnosticError } from "@clash-route-kit/core";
 import {
-  catalogOriginsFromConfig,
   clearCatalogIndexCache,
   findCatalogPath,
   listCatalogEntriesWithMeta,
   listCatalogSources,
+  loadCatalogOrigins,
   readCatalogEntry,
   readCatalogEntryDomains,
   readCatalogTemplate,
@@ -15,7 +15,6 @@ import {
 import type { ProjectOptions, ReadText, WriteText } from "../config/configRepository.js";
 import {
   readAuthorProjectFile,
-  readProjectConfigFile,
   saveAuthorProject,
   writeProjectConfigFile,
 } from "../config/configRepository.js";
@@ -100,7 +99,16 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
         // 经 parseAuthorProjectConfig 分发：v1 追加 schemaVersion: 1（原字段不变），
         // v2 返回 { schemaVersion: 2, yaml, mtime }，不再因 v1 严格解析而报错。
         void readAuthorProjectFile(options)
-          .then((result) => writeJson(response, 200, result))
+          .then((result) =>
+            result.schemaVersion === 1
+              ? writeJson(response, 200, {
+                  schemaVersion: 1,
+                  yaml: result.yaml,
+                  config: result.config,
+                  mtime: result.mtime,
+                })
+              : writeJson(response, 200, { schemaVersion: 2, yaml: result.yaml, mtime: result.mtime }),
+          )
           .catch((error: unknown) => {
             writeJson(response, 500, {
               ok: false,
@@ -283,8 +291,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     }
 
     if (url.pathname === "/api/catalog/sources") {
-      void readProjectConfigFile(options)
-        .then(({ config }) => listCatalogSources({ ...options, origins: catalogOriginsFromConfig(config) }))
+      void loadCatalogOrigins(options)
+        .then((origins) => listCatalogSources({ ...options, origins }))
         .then((sources) => writeJson(response, 200, { sources }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -294,10 +302,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
 
     if (url.pathname === "/api/catalog/entries") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
-      void readProjectConfigFile(options)
-        .then(({ config }) =>
-          listCatalogEntriesWithMeta({ ...options, origin, origins: catalogOriginsFromConfig(config) }),
-        )
+      void loadCatalogOrigins(options)
+        .then((origins) => listCatalogEntriesWithMeta({ ...options, origin, origins }))
         .then((entries) => writeJson(response, 200, { entries }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -308,8 +314,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/catalog/entry") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
       const name = url.searchParams.get("name") ?? "";
-      void readProjectConfigFile(options)
-        .then(({ config }) => readCatalogEntry({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }))
+      void loadCatalogOrigins(options)
+        .then((origins) => readCatalogEntry({ ...options, origin, name, origins }))
         .then((detail) => writeJson(response, 200, detail))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -320,10 +326,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/catalog/domains") {
       const origin = url.searchParams.get("origin") ?? "domain-list-community";
       const name = url.searchParams.get("name") ?? "";
-      void readProjectConfigFile(options)
-        .then(({ config }) =>
-          readCatalogEntryDomains({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
-        )
+      void loadCatalogOrigins(options)
+        .then((origins) => readCatalogEntryDomains({ ...options, origin, name, origins }))
         .then((domains) => writeJson(response, 200, { domains }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -334,10 +338,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/catalog/template") {
       const origin = url.searchParams.get("origin") ?? "";
       const name = url.searchParams.get("name") ?? "";
-      void readProjectConfigFile(options)
-        .then(({ config }) =>
-          readCatalogTemplate({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
-        )
+      void loadCatalogOrigins(options)
+        .then((origins) => readCatalogTemplate({ ...options, origin, name, origins }))
         .then((template) => writeJson(response, 200, template))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -348,10 +350,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/catalog/search") {
       const origin = url.searchParams.get("origin") ?? "";
       const query = url.searchParams.get("q") ?? "";
-      void readProjectConfigFile(options)
-        .then(({ config }) =>
-          searchCatalog({ ...options, origin, query, origins: catalogOriginsFromConfig(config) }),
-        )
+      void loadCatalogOrigins(options)
+        .then((origins) => searchCatalog({ ...options, origin, query, origins }))
         .then((hits) => writeJson(response, 200, { hits }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
@@ -362,10 +362,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     if (url.pathname === "/api/catalog/path") {
       const origin = url.searchParams.get("origin") ?? "";
       const name = url.searchParams.get("name") ?? "";
-      void readProjectConfigFile(options)
-        .then(({ config }) =>
-          findCatalogPath({ ...options, origin, name, origins: catalogOriginsFromConfig(config) }),
-        )
+      void loadCatalogOrigins(options)
+        .then((origins) => findCatalogPath({ ...options, origin, name, origins }))
         .then((catalogPath) => writeJson(response, 200, { path: catalogPath }))
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),

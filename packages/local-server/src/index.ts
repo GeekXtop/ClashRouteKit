@@ -41,11 +41,13 @@ export {
 } from "./config/localSettings.js";
 export {
   catalogOriginsFromConfig,
+  catalogOriginsFromVendorRepos,
   clearCatalogIndexCache,
   findCatalogPath,
   listCatalogEntries,
   listCatalogEntriesWithMeta,
   listCatalogSources,
+  loadCatalogOrigins,
   readCatalogEntry,
   readCatalogEntryDomains,
   readCatalogTemplate,

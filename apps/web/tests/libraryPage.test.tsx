@@ -189,16 +189,15 @@ describe("library health bar", () => {
   });
 });
 
-describe("repo settings entry", () => {
-  it("opens the add-repo modal from the page header dropdown", async () => {
+describe("repo management entry", () => {
+  it("opens the add-repo modal from the sidebar repo group header", async () => {
     render(
       <AppProviders>
         <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "仓库设置" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "添加上游仓库" }));
+    fireEvent.click(screen.getByRole("button", { name: "添加上游仓库" }));
     expect(await screen.findByRole("dialog", { name: "添加上游仓库" })).toBeTruthy();
   });
 
@@ -209,8 +208,29 @@ describe("repo settings entry", () => {
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "仓库设置" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "编辑 ACL4SSR" }));
+    fireEvent.click(screen.getByRole("button", { name: "编辑 ACL4SSR" }));
     expect(await screen.findByRole("dialog", { name: "编辑上游仓库" })).toBeTruthy();
+  });
+
+  it("removes a repo after confirmation", async () => {
+    const fetcher = makeFetcher();
+    render(
+      <AppProviders>
+        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={fetcher} />
+      </AppProviders>,
+    );
+    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "移除 ACL4SSR" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^移\s*除$/ }));
+    await waitFor(() => {
+      const calls = fetcher.mock.calls.map((call) => {
+        const [input, init] = call as unknown as [RequestInfo | URL, RequestInit | undefined];
+        return {
+          url: String(input),
+          method: init?.method ?? "GET",
+        };
+      });
+      expect(calls.some((c) => c.url === "/api/vendor/remove" && c.method === "POST")).toBe(true);
+    });
   });
 });

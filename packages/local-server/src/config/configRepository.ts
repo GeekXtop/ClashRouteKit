@@ -3,10 +3,14 @@ import path from "node:path";
 import {
   ConfigDiagnosticError,
   hasDiagnosticErrors,
+  normalizeAuthorProjectConfig,
   parseAuthorProjectConfig,
   parseRouteKitConfig,
   serializeRouteKitConfig,
+  toRouteKitConfig,
   validateLegacyProjectConfig,
+  validateNormalizedProject,
+  type AuthorProjectConfigV2,
   type Diagnostic,
   type ParsedAuthorProjectConfig,
   type RouteKitProjectConfig,
@@ -48,12 +52,41 @@ export function projectConfigPath(options: ProjectOptions): string {
 }
 
 /**
- * 读取项目配置（严格解析）并应用 CLASH_ROUTE_KIT_PUBLISH_BASE_URL 环境变量覆盖
+ * 读取项目配置并应用 CLASH_ROUTE_KIT_PUBLISH_BASE_URL 环境变量覆盖
  * publishBaseUrl（供 publish 构建使用）；自 apps/cli program.ts 原样下沉。
+ * 按顶层 schemaVersion 分发：v1 走严格 v1 parser；v2 经 normalize +
+ * toRouteKitConfig 投影为渲染输入（check / generate / preview 等 CLI
+ * 链路对 v2 项目自动生效），规范化存在 error 级诊断时抛 ConfigDiagnosticError。
  */
 export async function readConfig(options: ProjectOptions): Promise<RouteKitProjectConfig> {
   const text = await readFile(path.join(options.root, options.configFile), "utf8");
-  const config = parseRouteKitConfig(text);
+  const parsed = parseAuthorProjectConfig(text);
+  let config: RouteKitProjectConfig;
+  if (parsed.schemaVersion === 2 && parsed.v2) {
+    const normalized = normalizeAuthorProjectConfig(parsed.v2);
+    const errors = [
+      ...normalized.diagnostics,
+      ...validateNormalizedProject(normalized.project),
+    ].filter((diagnostic) => diagnostic.severity === "error");
+    if (errors.length > 0) {
+      throw new ConfigDiagnosticError(errors);
+    }
+    const rendered = toRouteKitConfig(normalized.project, {
+      publishBaseUrl: process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "",
+    });
+    // 补全 v1 校验与生成链所需的工程字段：template、vendorRepos、ruleProviders
+    //（workspace 校验检查路由引用的 provider 输出与来源文件存在性）。
+    config = {
+      ...rendered,
+      template: { output: parsed.v2.project?.template?.output ?? "Custom_Clash.ini" },
+      vendorRepos: parsed.v2.vendorRepos ?? [],
+      ruleProviders: parsed.v2.ruleProviders,
+    };
+  } else if (parsed.v1) {
+    config = parsed.v1;
+  } else {
+    config = parseRouteKitConfig(text);
+  }
   const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
   return publishBaseUrl ? { ...config, publishBaseUrl } : config;
 }
@@ -92,11 +125,13 @@ export interface AuthorProjectFileOptions extends ProjectOptions {
 /**
  * readAuthorProjectFile 结果：按顶层 schemaVersion 分发——
  * v1 保留既有响应形状（yaml / config / mtime）并追加 schemaVersion: 1；
- * v2 返回 { schemaVersion: 2, yaml, mtime }，不含 v1 解析字段（config）。
+ * v2 返回 { schemaVersion: 2, yaml, mtime, v2 }，v2 为解析后的作者配置对象
+ * （catalog origins 与 vendor mutation 的 v2 消费方使用；HTTP 响应不得整体
+ * 透传本结果，需按 schemaVersion 挑选字段）。
  */
 export type ReadAuthorProjectFileResult =
   | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig; mtime: number }
-  | { schemaVersion: 2; yaml: string; mtime: number };
+  | { schemaVersion: 2; yaml: string; v2: AuthorProjectConfigV2; mtime: number };
 
 /**
  * GET /api/project/config 的读取路径：经 parseAuthorProjectConfig 分发 v1/v2，
@@ -114,7 +149,10 @@ export async function readAuthorProjectFile(
   const parsed = parseAuthorProjectConfig(yaml);
   const mtime = await statMtime(configPath);
   if (parsed.schemaVersion === 2) {
-    return { schemaVersion: 2, yaml, mtime };
+    if (parsed.v2 === undefined) {
+      throw new Error("parseAuthorProjectConfig returned schemaVersion 2 without a v2 config");
+    }
+    return { schemaVersion: 2, yaml, v2: parsed.v2, mtime };
   }
   if (parsed.v1 === undefined) {
     throw new Error("parseAuthorProjectConfig returned schemaVersion 1 without a v1 config");

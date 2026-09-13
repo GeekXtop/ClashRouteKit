@@ -23,6 +23,8 @@ it("edits and syncs a repo, selects a list file", () => {
         onSyncRepo={onSyncRepo}
         onSyncAll={() => {}}
         onEditRepo={onEditRepo}
+        onAddRepo={() => {}}
+        onRemoveRepo={() => {}}
         onNewList={() => {}}
         onNewProvider={() => {}}
         onOpenRuleDefaults={onOpenRuleDefaults}
@@ -60,6 +62,8 @@ it("marks empty rule providers as incomplete", () => {
         onSyncRepo={() => {}}
         onSyncAll={() => {}}
         onEditRepo={() => {}}
+        onAddRepo={() => {}}
+        onRemoveRepo={() => {}}
         onNewList={() => {}}
         onNewProvider={() => {}}
         onOpenRuleDefaults={() => {}}
@@ -90,6 +94,8 @@ it("marks .mrs providers as import problems instead of pending", () => {
         onSyncRepo={() => {}}
         onSyncAll={() => {}}
         onEditRepo={() => {}}
+        onAddRepo={() => {}}
+        onRemoveRepo={() => {}}
         onNewList={() => {}}
         onNewProvider={() => {}}
         onOpenRuleDefaults={() => {}}
@@ -122,6 +128,8 @@ it("locates a provider row: expands the providers panel and moves focus", async 
         onSyncRepo={() => {}}
         onSyncAll={() => {}}
         onEditRepo={() => {}}
+        onAddRepo={() => {}}
+        onRemoveRepo={() => {}}
         onNewList={() => {}}
         onNewProvider={() => {}}
         onOpenRuleDefaults={() => {}}

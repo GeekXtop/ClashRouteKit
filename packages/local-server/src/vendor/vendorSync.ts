@@ -1,19 +1,25 @@
-import { rm } from "node:fs/promises";
+import { rm, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   addVendorRepo,
   removeVendorRepo,
   updateVendorRepo,
+  type AuthorProjectConfigV2,
+  type RouteKitProjectConfig,
   type VendorRepoConfig,
+  type VendorRepoV2,
 } from "@clash-route-kit/core";
 import {
-  readProjectConfigFile,
+  projectConfigPath,
+  readAuthorProjectFile,
   writeProjectConfigFile,
   type ProjectConfigFileResult,
   type ProjectOptions,
   type ReadText,
   type WriteText,
 } from "../config/configRepository.js";
+import { writeFileAtomic } from "../config/atomic.js";
+import { serializeAuthorProjectV2, validateAuthorProjectV2Yaml } from "../config/authorProjectV2.js";
 
 export type { ReadText, WriteText };
 
@@ -71,11 +77,74 @@ async function clearVendorDirectory(
   await removePath(target);
 }
 
+/** v2 作者配置下的 vendor 仓库增删改结果（HTTP 响应不携带 v1 解析字段）。 */
+export interface VendorRepoV2MutationResult {
+  ok: true;
+  schemaVersion: 2;
+  yaml: string;
+  mtime: number;
+}
+
+export type VendorRepoMutationResult = ProjectConfigFileResult | VendorRepoV2MutationResult;
+
+/** vendorRepos 清单级 mutation：core 的 add/update/remove 只读取 config.vendorRepos，用最小占位对象复用其校验逻辑。 */
+function mutateVendorRepoList(
+  repos: readonly VendorRepoConfig[],
+  mutate: (config: RouteKitProjectConfig) => RouteKitProjectConfig,
+): VendorRepoConfig[] {
+  return mutate({ vendorRepos: [...repos] } as unknown as RouteKitProjectConfig).vendorRepos;
+}
+
+/** v2 新增仓库时生成确定性稳定 id（name 的 slug，冲突追加序号）。 */
+function withV2RepoId(repos: readonly VendorRepoV2[], repo: VendorRepoConfig): VendorRepoV2 {
+  const base =
+    repo.name
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/-{2,}/g, "-")
+      .replace(/^-+|-+$/g, "") || "repo";
+  let id = base;
+  let n = 2;
+  while (repos.some((item) => item.id === id)) {
+    id = `${base}-${n}`;
+    n += 1;
+  }
+  return { ...repo, id };
+}
+
+/** v2 作者配置：变更 vendorRepos 后走完整校验链并原子写回（schemaVersion: 2 置顶）。 */
+async function saveV2VendorRepos(
+  options: VendorRepoMutationOptions,
+  v2: AuthorProjectConfigV2,
+  repos: VendorRepoConfig[],
+): Promise<VendorRepoV2MutationResult> {
+  const yamlText = serializeAuthorProjectV2({ ...v2, vendorRepos: repos as VendorRepoV2[] });
+  const validation = validateAuthorProjectV2Yaml(yamlText);
+  const errors = validation.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(errors.map((diagnostic) => `[${diagnostic.code}] ${diagnostic.message}`).join("; "));
+  }
+  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFileAtomic(filePath, text));
+  const statMtime =
+    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
+  const configPath = projectConfigPath(options);
+  await writeText(configPath, yamlText);
+  return { ok: true, schemaVersion: 2, yaml: yamlText, mtime: await statMtime(configPath) };
+}
+
 export async function addProjectVendorRepo(
   options: VendorRepoMutationOptions & { input: VendorRepoInput },
-): Promise<ProjectConfigFileResult> {
-  const { config } = await readProjectConfigFile(options);
-  return writeProjectConfigFile({ ...options, config: addVendorRepo(config, normalizeVendorRepoInput(options.input)) });
+): Promise<VendorRepoMutationResult> {
+  const document = await readAuthorProjectFile(options);
+  if (document.schemaVersion === 2) {
+    const repos = document.v2.vendorRepos ?? [];
+    const next = withV2RepoId(repos, normalizeVendorRepoInput(options.input));
+    return saveV2VendorRepos(options, document.v2, mutateVendorRepoList(repos, (config) => addVendorRepo(config, next)));
+  }
+  return writeProjectConfigFile({
+    ...options,
+    config: addVendorRepo(document.config, normalizeVendorRepoInput(options.input)),
+  });
 }
 
 export interface VendorRepoUpdateResult extends ProjectConfigFileResult {
@@ -83,12 +152,36 @@ export interface VendorRepoUpdateResult extends ProjectConfigFileResult {
   resync: boolean;
 }
 
+export type VendorRepoUpdateMutationResult =
+  | VendorRepoUpdateResult
+  | (VendorRepoV2MutationResult & { resync: boolean });
+
 export async function updateProjectVendorRepo(
   options: VendorRepoMutationOptions & { name: string; input: VendorRepoInput },
-): Promise<VendorRepoUpdateResult> {
-  const { config } = await readProjectConfigFile(options);
-  const previous = config.vendorRepos.find((repo) => repo.name === options.name);
+): Promise<VendorRepoUpdateMutationResult> {
+  const document = await readAuthorProjectFile(options);
   const next = normalizeVendorRepoInput(options.input);
+  if (document.schemaVersion === 2) {
+    const repos = document.v2.vendorRepos ?? [];
+    const previous = repos.find((repo) => repo.name === options.name);
+    const result = await saveV2VendorRepos(
+      options,
+      document.v2,
+      mutateVendorRepoList(repos, (config) => updateVendorRepo(config, options.name, next)),
+    );
+    const resync = Boolean(
+      previous &&
+        (previous.path !== next.path ||
+          previous.url !== next.url ||
+          (previous.branch ?? "") !== (next.branch ?? "")),
+    );
+    if (resync && previous) {
+      await clearVendorDirectory(options, previous.path);
+    }
+    return { ...result, resync };
+  }
+  const { config } = document;
+  const previous = config.vendorRepos.find((repo) => repo.name === options.name);
   const result = await writeProjectConfigFile({ ...options, config: updateVendorRepo(config, options.name, next) });
   const resync = Boolean(
     previous &&
@@ -105,7 +198,14 @@ export async function updateProjectVendorRepo(
 
 export async function removeProjectVendorRepo(
   options: VendorRepoMutationOptions & { name: string },
-): Promise<ProjectConfigFileResult> {
-  const { config } = await readProjectConfigFile(options);
-  return writeProjectConfigFile({ ...options, config: removeVendorRepo(config, options.name) });
+): Promise<VendorRepoMutationResult> {
+  const document = await readAuthorProjectFile(options);
+  if (document.schemaVersion === 2) {
+    return saveV2VendorRepos(
+      options,
+      document.v2,
+      mutateVendorRepoList(document.v2.vendorRepos ?? [], (config) => removeVendorRepo(config, options.name)),
+    );
+  }
+  return writeProjectConfigFile({ ...options, config: removeVendorRepo(document.config, options.name) });
 }

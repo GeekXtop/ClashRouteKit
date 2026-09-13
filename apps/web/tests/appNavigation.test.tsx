@@ -7,6 +7,7 @@ import App from "../src/App.js";
 // 根 vitest.config 未注册 virtual:routes-config-yaml 插件，
 // 这里整体替换 config 模块，避免 App 装配测试依赖构建期内联配置。
 vi.mock("../src/config.js", () => ({
+  bundledSchemaVersion: 1,
   bundledProjectConfigYaml: "publishBaseUrl: http://127.0.0.1:8787\n",
   bundledProjectConfig: {
     publishBaseUrl: "http://127.0.0.1:8787",

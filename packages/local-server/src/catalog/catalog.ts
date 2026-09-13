@@ -5,8 +5,10 @@ import {
   parseDomainListEntry,
   type DomainListEntryInfo,
   type RouteKitProjectConfig,
+  type VendorRepoConfig,
 } from "@clash-route-kit/core";
-import type { ProjectOptions, ReadText } from "../config/configRepository.js";
+import type { AuthorProjectFileOptions, ProjectOptions, ReadText } from "../config/configRepository.js";
+import { readAuthorProjectFile } from "../config/configRepository.js";
 import { listProjectRuleFiles } from "../rules/ruleFiles.js";
 
 export type { ReadText };
@@ -61,9 +63,11 @@ export interface CatalogSourcesOptions extends ProjectOptions {
   origins?: CatalogOriginDef[];
 }
 
-export function catalogOriginsFromConfig(config: RouteKitProjectConfig): CatalogOriginDef[] {
+export function catalogOriginsFromVendorRepos(
+  repos: readonly VendorRepoConfig[],
+): CatalogOriginDef[] {
   const fromConfig: CatalogOriginDef[] = [];
-  for (const repo of config.vendorRepos) {
+  for (const repo of repos) {
     if (repo.catalog) {
       fromConfig.push({ id: repo.name, label: repo.name, kind: repo.catalog.kind, dir: repo.catalog.dir });
     }
@@ -77,6 +81,25 @@ export function catalogOriginsFromConfig(config: RouteKitProjectConfig): Catalog
     }
   }
   return fromConfig.length > 0 ? fromConfig : CATALOG_ORIGINS;
+}
+
+export function catalogOriginsFromConfig(config: RouteKitProjectConfig): CatalogOriginDef[] {
+  return catalogOriginsFromVendorRepos(config.vendorRepos);
+}
+
+/**
+ * 目录浏览的来源加载：按顶层 schemaVersion 分发读取作者配置。
+ * v1 取 config.vendorRepos；v2 取解析后的 v2.vendorRepos（形状兼容 v1，
+ * 多出的稳定 id 字段不影响 origins 构造）。vendorRepos 清空时两者都
+ * 回退到内置默认源（CATALOG_ORIGINS）。
+ */
+export async function loadCatalogOrigins(
+  options: AuthorProjectFileOptions,
+): Promise<CatalogOriginDef[]> {
+  const document = await readAuthorProjectFile(options);
+  const repos =
+    document.schemaVersion === 1 ? document.config.vendorRepos : document.v2.vendorRepos ?? [];
+  return catalogOriginsFromVendorRepos(repos);
 }
 
 function catalogOrigin(origin: string, origins: CatalogOriginDef[] = CATALOG_ORIGINS): CatalogOriginDef {

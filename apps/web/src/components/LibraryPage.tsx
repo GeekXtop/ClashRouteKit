@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dropdown, Empty, Input, Modal } from "antd";
-import type { MenuProps } from "antd";
-import { Settings } from "lucide-react";
+import { Empty, Input, Modal } from "antd";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
@@ -77,6 +75,7 @@ export function LibraryPage({
   const [repoModal, setRepoModal] = useState<RepoModalState>({ open: false, mode: "add" });
   const [newListOpen, setNewListOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [defaultsSection, setDefaultsSection] = useState<ProjectDefaultsSection | null>(null);
   const [sidebarLocate, setSidebarLocate] = useState<{ name: string; nonce: number } | null>(null);
@@ -164,20 +163,6 @@ export function LibraryPage({
     }
     return items;
   }, [diagnostics, providers]);
-
-  const repoMenuItems: MenuProps["items"] = [
-    ...config.vendorRepos.map((repo) => ({ key: `repo:${repo.name}`, label: `编辑 ${repo.name}` })),
-    ...(config.vendorRepos.length ? [{ type: "divider" as const }] : []),
-    { key: "repo:add", label: "添加上游仓库" },
-  ];
-
-  function handleRepoMenuClick({ key }: { key: string }) {
-    if (key === "repo:add") {
-      setRepoModal({ open: true, mode: "add" });
-      return;
-    }
-    openEditRepo(key.slice("repo:".length));
-  }
 
   function handleHealthLocate(item: LibraryHealthItem) {
     if (item.providerName) {
@@ -316,9 +301,6 @@ export function LibraryPage({
           blocking={blockingItems}
           onLocate={handleHealthLocate}
         />
-        <Dropdown menu={{ items: repoMenuItems, onClick: handleRepoMenuClick }} trigger={["click"]}>
-          <Button icon={<Settings size={14} />}>仓库设置</Button>
-        </Dropdown>
       </div>
       <div className="rk-library" style={{ flex: 1, minHeight: 0 }}>
         <div className="rk-pane">
@@ -333,6 +315,8 @@ export function LibraryPage({
             onSyncRepo={(name) => void syncRepo(name)}
             onSyncAll={() => void syncCatalogVendor(fetch).then(() => setRefreshKey((k) => k + 1)).catch(() => {})}
             onEditRepo={openEditRepo}
+            onAddRepo={() => setRepoModal({ open: true, mode: "add" })}
+            onRemoveRepo={(name) => setRemoveTarget(name)}
             onNewList={() => setNewListOpen(true)}
             onNewProvider={() => (v2?.actions ?? draftActions).createProvider()}
             onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
@@ -349,6 +333,22 @@ export function LibraryPage({
         onClose={() => setRepoModal((s) => ({ ...s, open: false }))}
         onRemove={repoModal.initial ? () => void removeRepo(repoModal.initial!.name) : undefined}
       />
+      <Modal
+        open={removeTarget !== null}
+        title={`移除上游仓库 ${removeTarget ?? ""}？`}
+        onCancel={() => setRemoveTarget(null)}
+        onOk={() => {
+          const name = removeTarget;
+          setRemoveTarget(null);
+          if (name) void removeRepo(name);
+        }}
+        okText="移除"
+        okButtonProps={{ danger: true }}
+        cancelText="取消"
+      >
+        <p>移除后该仓库的目录浏览与规则源将不再可用（vendor/ 内已同步的文件保留在本地）。</p>
+        <p>仓库列表清空后，目录浏览会回退到内置默认源；可随时重新添加。</p>
+      </Modal>
       <Modal open={newListOpen} title="新建 .list" onCancel={() => setNewListOpen(false)} onOk={() => void createList()} okText="新建" cancelText="取消">
         <Input
           aria-label="文件名"

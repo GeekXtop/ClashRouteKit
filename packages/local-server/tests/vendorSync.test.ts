@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import type { VendorRepoConfig } from "@clash-route-kit/core";
+import type { ProjectConfigFileResult } from "../src/config/configRepository.js";
 import {
   addProjectVendorRepo,
   normalizeVendorRepoInput,
@@ -95,8 +96,8 @@ describe("vendor repo mutations over project config", () => {
         written = text;
       },
     });
-    expect(result.config.vendorRepos.at(-1)?.name).toBe("GeekX");
-    expect(result.config.vendorRepos.at(-1)?.catalog?.dir).toBe("vendor/GeekX/rule");
+    expect((result as ProjectConfigFileResult).config.vendorRepos.at(-1)?.name).toBe("GeekX");
+    expect((result as ProjectConfigFileResult).config.vendorRepos.at(-1)?.catalog?.dir).toBe("vendor/GeekX/rule");
     expect(written).toContain("GeekX");
   });
 
@@ -116,8 +117,8 @@ describe("vendor repo mutations over project config", () => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
-    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
     expect(result.resync).toBe(true);
     expect(removed).toEqual([path.resolve(root, "vendor/Custom")]);
   });
@@ -136,9 +137,9 @@ describe("vendor repo mutations over project config", () => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.path).toBe("vendor/Custom_OpenClash_Rules");
-    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom_OpenClash_Rules/rule");
-    expect(result.config.vendorRepos[0]?.templateDir).toBe("vendor/Custom_OpenClash_Rules/cfg");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.path).toBe("vendor/Custom_OpenClash_Rules");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom_OpenClash_Rules/rule");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.templateDir).toBe("vendor/Custom_OpenClash_Rules/cfg");
     expect(result.resync).toBe(true);
     expect(removed).toEqual([path.resolve(root, "vendor/Aethersailor")]);
   });
@@ -157,7 +158,7 @@ describe("vendor repo mutations over project config", () => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.name).toBe("Renamed");
+    expect((result as ProjectConfigFileResult).config.vendorRepos[0]?.name).toBe("Renamed");
     expect(result.resync).toBe(false);
     expect(removed).toEqual([]);
   });
@@ -171,6 +172,92 @@ describe("vendor repo mutations over project config", () => {
         yamlWith(["vendorRepos:", "  - name: Custom", "    url: x", "    path: vendor/Custom"].join("\n")),
       writeText: async () => {},
     });
-    expect(result.config.vendorRepos).toHaveLength(0);
+    expect((result as ProjectConfigFileResult).config.vendorRepos).toHaveLength(0);
+  });
+
+  describe("over a schema v2 author config", () => {
+    const v2YamlWith = (repos: string) =>
+      [
+        "schemaVersion: 2",
+        "project:",
+        "  template:",
+        "    output: Custom_Clash.ini",
+        "memberSets:",
+        "  standard:",
+        "    members:",
+        "      - builtin: DIRECT",
+        repos,
+        "proxyGroups:",
+        "  - id: proxy",
+        "    name: Proxy",
+        "    type: select",
+        "    members:",
+        "      - preset: standard",
+        "ruleProviders: []",
+        "routes:",
+        "  - id: final",
+        "    policy:",
+        "      builtin: DIRECT",
+        "    source:",
+        "      type: final",
+        "",
+      ].join("\n");
+
+    it("adds a repo with a deterministic stable id and preserves v2 structure", async () => {
+      let written = "";
+      const result = await addProjectVendorRepo({
+        root,
+        configFile,
+        input: { name: "GeekX", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } },
+        readText: async () => v2YamlWith("vendorRepos: []"),
+        writeText: async (_p, text) => {
+          written = text;
+        },
+      });
+      expect(result).toMatchObject({ ok: true, schemaVersion: 2 });
+      expect(written.startsWith("schemaVersion: 2")).toBe(true);
+      expect(written).toContain("memberSets:");
+      expect(written).toContain("id: geekx");
+      expect(written).toContain("path: vendor/GeekX");
+    });
+
+    it("removes a repo and keeps memberSets and proxy groups intact", async () => {
+      let written = "";
+      await removeProjectVendorRepo({
+        root,
+        configFile,
+        name: "Custom",
+        readText: async () =>
+          v2YamlWith([
+            "vendorRepos:",
+            "  - id: custom",
+            "    name: Custom",
+            "    url: x",
+            "    path: vendor/Custom",
+          ].join("\n")),
+        writeText: async (_p, text) => {
+          written = text;
+        },
+      });
+      expect(written.startsWith("schemaVersion: 2")).toBe(true);
+      expect(written).not.toContain("name: Custom");
+      expect(written).not.toContain("vendor/Custom");
+      expect(written).toContain("memberSets:");
+      expect(written).toContain("proxyGroups:");
+      expect(written).toContain("preset: standard");
+    });
+
+    it("rejects a mutation that would break v2 validation", async () => {
+      await expect(
+        addProjectVendorRepo({
+          root,
+          configFile,
+          input: { name: "Custom", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } },
+          readText: async () =>
+            v2YamlWith(["vendorRepos:", "  - id: custom", "    name: Custom", "    url: x", "    path: vendor/Custom"].join("\n")),
+          writeText: async () => {},
+        }),
+      ).rejects.toThrow(/already exists/);
+    });
   });
 });

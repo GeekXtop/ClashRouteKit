@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { parseIniToConfig } from "@clash-route-kit/core";
+import { parseIniToConfig, serializeRouteKitConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
 import { ImportModal } from "./components/ImportModal.js";
 import { LibraryPage } from "./components/LibraryPage.js";
@@ -9,7 +9,11 @@ import { ProjectPage } from "./features/project/ProjectPage.js";
 import { createBlankProjectConfig } from "./features/project/projectMeta.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
-import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
+import {
+  bundledProjectConfig,
+  bundledProjectConfigYaml,
+  bundledSchemaVersion,
+} from "./config.js";
 import { saveLocalProjectConfig } from "./localProject.js";
 import { notifyError } from "./notify.js";
 import {
@@ -29,9 +33,18 @@ import { useV2DraftActions } from "./v2/useV2DraftActions.js";
 import { fetchProjectDocument, saveV2Project, serializeV2Project } from "./v2/v2Project.js";
 
 export default function App() {
-  const [project, setProject] = useState(() =>
-    createProjectController({ yaml: bundledProjectConfigYaml, config: bundledProjectConfig }),
-  );
+  const [project, setProject] = useState(() => {
+    // bundle 内联配置按 schemaVersion 分发；解析失败（坏 YAML）时以空白项目
+    // 兜底保证首屏可渲染，真实项目随后由 fetchProjectDocument 加载并提示错误。
+    if (bundledSchemaVersion === 2) {
+      return createProjectControllerFromDocument({ schemaVersion: 2, yaml: bundledProjectConfigYaml });
+    }
+    if (bundledProjectConfig) {
+      return createProjectController({ yaml: bundledProjectConfigYaml, config: bundledProjectConfig });
+    }
+    const blank = createBlankProjectConfig();
+    return createProjectController({ yaml: serializeRouteKitConfig(blank), config: blank });
+  });
   const draftActions = useProjectDraftActions(setProject);
   const v2Actions = useV2DraftActions(setProject);
   const config = project.draftConfig;
