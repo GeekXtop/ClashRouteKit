@@ -1,0 +1,1653 @@
+{
+  "providers": [
+    {
+      "name": "Custom_Direct",
+      "output": "Custom_Direct_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Direct_Domain.yaml",
+      "inputRules": 0,
+      "outputRules": 0,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "LocalDirect",
+          "type": "clash-list",
+          "inputRules": 0,
+          "outputRules": 0
+        }
+      ]
+    },
+    {
+      "name": "Custom_Proxy",
+      "output": "Custom_Proxy_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Proxy_Domain.yaml",
+      "inputRules": 0,
+      "outputRules": 0,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "LocalProxy",
+          "type": "clash-list",
+          "inputRules": 0,
+          "outputRules": 0
+        }
+      ]
+    },
+    {
+      "name": "GoogleCN",
+      "output": "GoogleCN_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/GoogleCN_Domain.yaml",
+      "inputRules": 48,
+      "outputRules": 48,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "ACL4SSR_GoogleCN",
+          "type": "clash-list",
+          "inputRules": 48,
+          "outputRules": 48
+        }
+      ]
+    },
+    {
+      "name": "GameDownload",
+      "output": "GameDownload_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/GameDownload_Domain.yaml",
+      "inputRules": 20,
+      "outputRules": 20,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "ACL4SSR_GameDownload",
+          "type": "clash-list",
+          "inputRules": 20,
+          "outputRules": 20
+        }
+      ]
+    },
+    {
+      "name": "ProxyGFWlist",
+      "output": "ProxyGFWlist_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/ProxyGFWlist_Domain.yaml",
+      "inputRules": 4319,
+      "outputRules": 4319,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "ACL4SSR_ProxyGFWlist",
+          "type": "clash-list",
+          "inputRules": 4319,
+          "outputRules": 4319
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "output": "AI_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/AI_Domain.yaml",
+      "inputRules": 217,
+      "outputRules": 142,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "DlerRules_AI_Suite",
+          "type": "clash-provider",
+          "inputRules": 96,
+          "outputRules": 95
+        },
+        {
+          "name": "DLC_openai",
+          "type": "domain-list-community",
+          "inputRules": 22,
+          "outputRules": 22
+        },
+        {
+          "name": "DLC_anthropic",
+          "type": "domain-list-community",
+          "inputRules": 8,
+          "outputRules": 8
+        },
+        {
+          "name": "DLC_google_gemini",
+          "type": "domain-list-community",
+          "inputRules": 41,
+          "outputRules": 41
+        },
+        {
+          "name": "DLC_google_deepmind",
+          "type": "domain-list-community",
+          "inputRules": 41,
+          "outputRules": 41
+        },
+        {
+          "name": "DLC_jetbrains_ai",
+          "type": "domain-list-community",
+          "inputRules": 3,
+          "outputRules": 3
+        },
+        {
+          "name": "DLC_github_copilot",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "outputRules": 6
+        }
+      ]
+    },
+    {
+      "name": "Developer",
+      "output": "Developer_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Developer_Domain.yaml",
+      "inputRules": 165,
+      "outputRules": 156,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "LocalDeveloper",
+          "type": "clash-list",
+          "inputRules": 13,
+          "outputRules": 13
+        },
+        {
+          "name": "ACL4SSR_Developer",
+          "type": "clash-list",
+          "inputRules": 20,
+          "outputRules": 20
+        },
+        {
+          "name": "DLC_github",
+          "type": "domain-list-community",
+          "inputRules": 64,
+          "outputRules": 64
+        },
+        {
+          "name": "DLC_gitlab",
+          "type": "domain-list-community",
+          "inputRules": 5,
+          "outputRules": 5
+        },
+        {
+          "name": "DLC_npmjs",
+          "type": "domain-list-community",
+          "inputRules": 3,
+          "outputRules": 3
+        },
+        {
+          "name": "DLC_nodejs",
+          "type": "domain-list-community",
+          "inputRules": 1,
+          "outputRules": 1
+        },
+        {
+          "name": "DLC_docker",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "outputRules": 6
+        },
+        {
+          "name": "DLC_debian",
+          "type": "domain-list-community",
+          "inputRules": 2,
+          "outputRules": 2
+        },
+        {
+          "name": "DLC_ubuntu",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "outputRules": 4
+        },
+        {
+          "name": "DLC_python",
+          "type": "domain-list-community",
+          "inputRules": 6,
+          "outputRules": 6
+        },
+        {
+          "name": "DLC_golang",
+          "type": "domain-list-community",
+          "inputRules": 8,
+          "outputRules": 8
+        },
+        {
+          "name": "DLC_rust",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "outputRules": 4
+        },
+        {
+          "name": "DLC_jetbrains",
+          "type": "domain-list-community",
+          "inputRules": 25,
+          "outputRules": 25
+        },
+        {
+          "name": "DLC_sourceforge",
+          "type": "domain-list-community",
+          "inputRules": 4,
+          "outputRules": 4
+        }
+      ]
+    },
+    {
+      "name": "Crypto",
+      "output": "Crypto_Domain.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Crypto_Domain.yaml",
+      "inputRules": 324,
+      "outputRules": 277,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "DlerRules_Crypto",
+          "type": "clash-provider",
+          "inputRules": 253,
+          "outputRules": 239
+        },
+        {
+          "name": "DLC_binance",
+          "type": "domain-list-community",
+          "inputRules": 45,
+          "outputRules": 45
+        },
+        {
+          "name": "DLC_okx",
+          "type": "domain-list-community",
+          "inputRules": 10,
+          "outputRules": 10
+        },
+        {
+          "name": "DLC_bybit",
+          "type": "domain-list-community",
+          "inputRules": 16,
+          "outputRules": 16
+        }
+      ]
+    },
+    {
+      "name": "Custom_Direct_Classical_IP",
+      "output": "Custom_Direct_Classical_IP.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Direct_Classical_IP.yaml",
+      "inputRules": 12,
+      "outputRules": 12,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "Aethersailor_Custom_Direct_Classical_IP",
+          "type": "clash-provider",
+          "inputRules": 12,
+          "outputRules": 12
+        }
+      ]
+    },
+    {
+      "name": "Custom_Proxy_Classical_IP",
+      "output": "Custom_Proxy_Classical_IP.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Proxy_Classical_IP.yaml",
+      "inputRules": 1,
+      "outputRules": 1,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "Aethersailor_Custom_Proxy_Classical_IP",
+          "type": "clash-provider",
+          "inputRules": 1,
+          "outputRules": 1
+        }
+      ]
+    },
+    {
+      "name": "Steam_CDN_Classical",
+      "output": "Steam_CDN_Classical.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Steam_CDN_Classical.yaml",
+      "inputRules": 23,
+      "outputRules": 23,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "Aethersailor_Steam_CDN_Classical_IP",
+          "type": "clash-provider",
+          "inputRules": 23,
+          "outputRules": 23
+        }
+      ]
+    },
+    {
+      "name": "Custom_Port_Direct",
+      "output": "Custom_Port_Direct.yaml",
+      "path": "/home/runner/work/ClashRouteKit/ClashRouteKit/output/rules/Custom_Port_Direct.yaml",
+      "inputRules": 3,
+      "outputRules": 3,
+      "excludedRules": 0,
+      "sources": [
+        {
+          "name": "Aethersailor_Custom_Port_Direct",
+          "type": "clash-provider",
+          "inputRules": 3,
+          "outputRules": 3
+        }
+      ]
+    }
+  ],
+  "duplicates": [
+    {
+      "provider": "AI",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,ai.studio",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aicode.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aida.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aisandbox-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,aistudio.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,anthropic.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,antigravity-unleash.goog",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,antigravity.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bard.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,chatgpt.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claude.ai",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claude.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,claudeusercontent.com",
+          "sources": [
+            "DLC_anthropic",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,deepmind.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,deepmind.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,flow.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,geller-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gemini.gstatic.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,generativeai.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,generativelanguage.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,githubcopilot.com",
+          "sources": [
+            "DLC_github_copilot",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jetbrains.ai",
+          "sources": [
+            "DLC_jetbrains_ai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jules.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,jules.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,labs.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,labs.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,makersuite.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,notebook.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,notebooklm.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,notebooklm.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oaistatic.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oaiusercontent.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opal.google",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,opal.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,openai.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,sora.com",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,stitch.withgoogle.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,ai.google.dev",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,alkalicore-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,alkalimakersuite-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,antigravity-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,antigravity.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,cloudaicompanion.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,cloudcode-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,daily-cloudcode-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,notebooklm-pa.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,notebooklm.googleapis.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        },
+        {
+          "rule": "DOMAIN,o33249.ingest.sentry.io",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaiapi-site.azureedge.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,openaicomproductionae4b.blob.core.windows.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,production-openaicom-storage.azureedge.net",
+          "sources": [
+            "DLC_openai",
+            "DlerRules_AI_Suite"
+          ]
+        },
+        {
+          "rule": "DOMAIN,webchannel-alkalimakersuite-pa.clients6.google.com",
+          "sources": [
+            "DLC_google_deepmind",
+            "DLC_google_gemini"
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "Developer",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,crates.io",
+          "sources": [
+            "DLC_rust",
+            "LocalDeveloper"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,docker.com",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_docker"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,docker.io",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_docker"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gitlab.com",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_gitlab"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,gitlab.io",
+          "sources": [
+            "ACL4SSR_Developer",
+            "DLC_gitlab"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npm.community",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npmjs.com",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,npmjs.org",
+          "sources": [
+            "DLC_github",
+            "DLC_npmjs"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,pypi.org",
+          "sources": [
+            "DLC_python",
+            "LocalDeveloper"
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "Crypto",
+      "rules": [
+        {
+          "rule": "DOMAIN-SUFFIX,binance.cc",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.charity",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.cloud",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.co",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.info",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.me",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.net",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.org",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.us",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binance.vision",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binanceapi.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.be",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.biz",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.cc",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.co",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.info",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.ink",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.kim",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.link",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.live",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.mobi",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.net",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.pro",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.sh",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,binancezh.top",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bnbstatic.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bntrace.com",
+          "sources": [
+            "DLC_binance",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,bybit.com",
+          "sources": [
+            "DLC_bybit",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,okex.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,oklink.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        },
+        {
+          "rule": "DOMAIN-SUFFIX,okx.com",
+          "sources": [
+            "DLC_okx",
+            "DlerRules_Crypto"
+          ]
+        }
+      ]
+    }
+  ],
+  "overlaps": [
+    {
+      "rule": "DOMAIN-SUFFIX,aave.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,aex.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,ai.studio",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,anthropic.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bibox.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,binance.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,binance.org",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,binancezh.cc",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bitcointalk.org",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bitfinex.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bithumb.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bitmex.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bnbstatic.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,btc.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,bybit.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,cerebras.ai",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,chat.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,chatgpt.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,chatgpt.site",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,claude.ai",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,claude.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,coinbase.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,coingecko.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,coinmarketcap.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,deepmind.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,docker.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,docker.io",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,ethermine.org",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,etherscan.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,etherscan.io",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,f2pool.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,ftx.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,gate.io",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,gcr.io",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,git.io",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.blog",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,github.io",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubassets.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubcopilot.com",
+      "providers": [
+        "AI",
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,githubusercontent.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,gitlab.net",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,godoc.org",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,golang.org",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,grazie.ai",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,grazie.aws.intellij.net",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,grok.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,huobi.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,huobi.me",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,huobi.pro",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,huobi.sc",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,ipfs.io",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,jetbrains.ai",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,kraken.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,kucoin.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,localbitcoins.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,medium.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,meta.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,octocaptcha.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,okex.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,oklink.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,okx.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,openai.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,openart.ai",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,opensea.io",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,pancakeswap.finance",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,paxful.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,perplexity.ai",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,poe.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,poloniex.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,poolin.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,reddit.com",
+      "providers": [
+        "Developer",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,solana.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,sora.com",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,token.im",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,tradingview.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,tronscan.org",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,uniswap.org",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,x.ai",
+      "providers": [
+        "AI",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN-SUFFIX,zb.com",
+      "providers": [
+        "Crypto",
+        "ProxyGFWlist"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-proxy.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-telemetry-service.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-telemetry.githubusercontent.com",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilot-workspace.githubnext.com",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    },
+    {
+      "rule": "DOMAIN,copilotprodattachments.blob.core.windows.net",
+      "providers": [
+        "AI",
+        "Developer"
+      ]
+    }
+  ]
+}
