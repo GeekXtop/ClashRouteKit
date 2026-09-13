@@ -212,7 +212,7 @@ describe("repo management entry", () => {
     expect(await screen.findByRole("dialog", { name: "编辑上游仓库" })).toBeTruthy();
   });
 
-  it("removes a repo after confirmation", async () => {
+  it("removes a repo from the edit modal with confirmation", async () => {
     const fetcher = makeFetcher();
     render(
       <AppProviders>
@@ -220,7 +220,8 @@ describe("repo management entry", () => {
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "移除 ACL4SSR" }));
+    fireEvent.click(screen.getByRole("button", { name: "编辑 ACL4SSR" }));
+    fireEvent.click(await screen.findByRole("button", { name: "移除仓库" }));
     fireEvent.click(await screen.findByRole("button", { name: /^移\s*除$/ }));
     await waitFor(() => {
       const calls = fetcher.mock.calls.map((call) => {

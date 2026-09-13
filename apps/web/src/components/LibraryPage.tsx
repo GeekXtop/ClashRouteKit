@@ -75,7 +75,7 @@ export function LibraryPage({
   const [repoModal, setRepoModal] = useState<RepoModalState>({ open: false, mode: "add" });
   const [newListOpen, setNewListOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
-  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [defaultsSection, setDefaultsSection] = useState<ProjectDefaultsSection | null>(null);
   const [sidebarLocate, setSidebarLocate] = useState<{ name: string; nonce: number } | null>(null);
@@ -183,6 +183,19 @@ export function LibraryPage({
       notifyError(error instanceof Error ? error.message : String(error));
     } finally {
       setSyncingRepo(null);
+    }
+  }
+
+  async function syncAllRepos() {
+    setSyncingAll(true);
+    try {
+      await syncCatalogVendor(fetch);
+      notifySuccess("已同步全部上游仓库");
+      setRefreshKey((k) => k + 1);
+    } catch (error: unknown) {
+      notifyError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSyncingAll(false);
     }
   }
 
@@ -310,13 +323,13 @@ export function LibraryPage({
             providers={providers}
             selection={selection}
             syncingRepo={syncingRepo}
+            syncingAll={syncingAll}
             locateProvider={sidebarLocate}
             onSelect={setSelection}
             onSyncRepo={(name) => void syncRepo(name)}
-            onSyncAll={() => void syncCatalogVendor(fetch).then(() => setRefreshKey((k) => k + 1)).catch(() => {})}
+            onSyncAll={() => void syncAllRepos()}
             onEditRepo={openEditRepo}
             onAddRepo={() => setRepoModal({ open: true, mode: "add" })}
-            onRemoveRepo={(name) => setRemoveTarget(name)}
             onNewList={() => setNewListOpen(true)}
             onNewProvider={() => (v2?.actions ?? draftActions).createProvider()}
             onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
@@ -333,22 +346,6 @@ export function LibraryPage({
         onClose={() => setRepoModal((s) => ({ ...s, open: false }))}
         onRemove={repoModal.initial ? () => void removeRepo(repoModal.initial!.name) : undefined}
       />
-      <Modal
-        open={removeTarget !== null}
-        title={`移除上游仓库 ${removeTarget ?? ""}？`}
-        onCancel={() => setRemoveTarget(null)}
-        onOk={() => {
-          const name = removeTarget;
-          setRemoveTarget(null);
-          if (name) void removeRepo(name);
-        }}
-        okText="移除"
-        okButtonProps={{ danger: true }}
-        cancelText="取消"
-      >
-        <p>移除后该仓库的目录浏览与规则源将不再可用（vendor/ 内已同步的文件保留在本地）。</p>
-        <p>仓库列表清空后，目录浏览会回退到内置默认源；可随时重新添加。</p>
-      </Modal>
       <Modal open={newListOpen} title="新建 .list" onCancel={() => setNewListOpen(false)} onOk={() => void createList()} okText="新建" cancelText="取消">
         <Input
           aria-label="文件名"

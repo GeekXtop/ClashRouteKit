@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Collapse } from "antd";
-import { Pencil, Plus, RefreshCw, Settings, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Settings } from "lucide-react";
 import type { RuleProviderConfig } from "@clash-route-kit/core";
 import { attrSelector, locateElement } from "../domLocate.js";
 import { formatSyncedAt, type CatalogSourceInfo } from "../catalog.js";
@@ -19,16 +19,17 @@ function sameSelection(a: LibrarySelection | null, b: LibrarySelection): boolean
   return false;
 }
 
-function IconAction({ label, title, onClick, children }: { label: string; title?: string; onClick: () => void; children: ReactNode }) {
+function IconAction({ label, title, onClick, disabled, children }: { label: string; title?: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={title}
       className="rk-iconbtn"
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        if (!disabled) onClick();
       }}
     >
       {children}
@@ -42,6 +43,8 @@ export function LibrarySidebar(props: {
   providers: RuleProviderConfig[];
   selection: LibrarySelection | null;
   syncingRepo: string | null;
+  /** “全部同步”进行中：分组头图标旋转并禁用，防止重复触发。 */
+  syncingAll?: boolean;
   /** 汇总条定位目标：展开“规则源”分组并聚焦对应行。 */
   locateProvider?: { name: string; nonce: number } | null;
   onSelect: (sel: LibrarySelection) => void;
@@ -49,7 +52,6 @@ export function LibrarySidebar(props: {
   onSyncAll: () => void;
   onEditRepo: (name: string) => void;
   onAddRepo: () => void;
-  onRemoveRepo: (name: string) => void;
   onNewList: () => void;
   onNewProvider: () => void;
   onOpenRuleDefaults: () => void;
@@ -83,13 +85,6 @@ export function LibrarySidebar(props: {
       </IconAction>
       <IconAction label={`编辑 ${repo.id}`} onClick={() => props.onEditRepo(repo.id)}>
         <Pencil size={12} />
-      </IconAction>
-      <IconAction
-        label={`移除 ${repo.id}`}
-        title="移除上游仓库"
-        onClick={() => props.onRemoveRepo(repo.id)}
-      >
-        <Trash2 size={12} />
       </IconAction>
     </div>
   ));
@@ -132,8 +127,8 @@ export function LibrarySidebar(props: {
           label: "上游仓库",
           extra: (
             <>
-              <IconAction label="全部同步" onClick={props.onSyncAll}>
-                <RefreshCw size={13} />
+              <IconAction label="全部同步" onClick={props.onSyncAll} disabled={props.syncingAll}>
+                <RefreshCw size={13} className={props.syncingAll ? "spin" : ""} />
               </IconAction>
               <IconAction label="添加上游仓库" onClick={props.onAddRepo}>
                 <Plus size={14} />
