@@ -5,7 +5,6 @@ import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { LibraryPage } from "../src/components/LibraryPage.js";
 import type { useProjectDraftActions } from "../src/useProjectDraftActions.js";
-
 afterEach(cleanup);
 
 const config: RouteKitProjectConfig = {
@@ -118,4 +117,100 @@ it("deletes a local list file and refreshes the sidebar", async () => {
   )).toBe(true));
   await waitFor(() => expect(screen.queryByText("Direct.list")).toBeNull());
   expect(screen.getByText("选择左侧的仓库 / 本地 .list / 规则源")).toBeTruthy();
+});
+
+const healthConfig: RouteKitProjectConfig = {
+  ...config,
+  ruleProviders: [
+    { name: "Draft", output: "Draft.yaml", behavior: "domain", sources: [] },
+    {
+      name: "StaleOne",
+      output: "StaleOne.yaml",
+      behavior: "domain",
+      sources: [{ name: "s", type: "clash-list", path: "config/rules/Missing.list" }],
+    },
+    { name: "MrsThing", output: "Thing.mrs", behavior: "domain", enabled: false, sources: [] },
+  ],
+};
+
+describe("library health bar", () => {
+  it("shows the pass status for a healthy library", async () => {
+    render(
+      <AppProviders>
+        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      </AppProviders>,
+    );
+    await waitFor(() =>
+      expect(screen.getByText("规则库健康：无待补全来源、无失效来源、无阻断生成")).toBeTruthy(),
+    );
+  });
+
+  it("counts pending, stale and blocking entries and locates a pending provider", async () => {
+    render(
+      <AppProviders>
+        <LibraryPage config={healthConfig} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      </AppProviders>,
+    );
+    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "2 待补全来源" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1 失效来源" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1 阻断生成" })).toBeTruthy();
+    // .mrs providers surface as import problems in the sidebar, not pending providers
+    expect(screen.getByText("导入问题")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "2 待补全来源" }));
+    fireEvent.click(screen.getByRole("button", { name: "Draft 尚无可用数据来源" }));
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute("data-testid")).toBe("provider-row-Draft"),
+    );
+  });
+
+  it("opens rule defaults from a blocking defaults diagnostic", async () => {
+    const badDefaults: RouteKitProjectConfig = {
+      ...config,
+      defaults: { ruleSets: { ruleProviderInterval: 0 } },
+    };
+    render(
+      <AppProviders>
+        <LibraryPage config={badDefaults} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      </AppProviders>,
+    );
+    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "1 阻断生成" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "规则默认值 [defaults.route.interval] RuleSet interval 必须为正整数",
+      }),
+    );
+    expect(screen.getByRole("dialog", { name: "项目默认值" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "规则默认值" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+  });
+});
+
+describe("repo settings entry", () => {
+  it("opens the add-repo modal from the page header dropdown", async () => {
+    render(
+      <AppProviders>
+        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      </AppProviders>,
+    );
+    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "仓库设置" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "添加上游仓库" }));
+    expect(await screen.findByRole("dialog", { name: "添加上游仓库" })).toBeTruthy();
+  });
+
+  it("opens the edit-repo modal for a declared vendor repo", async () => {
+    render(
+      <AppProviders>
+        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      </AppProviders>,
+    );
+    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "仓库设置" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "编辑 ACL4SSR" }));
+    expect(await screen.findByRole("dialog", { name: "编辑上游仓库" })).toBeTruthy();
+  });
 });

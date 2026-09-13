@@ -107,21 +107,37 @@ export function RepoModal(props: {
         </div>
         <div>
           <div className="rk-field-label">数据目录（相对本地文件夹，如 data / Clash / rule；留空＝不浏览）</div>
-          <Input
-            aria-label="数据目录"
-            addonBefore={`${resolvedFolder || "文件夹"}/`}
-            value={reldir}
-            onChange={(e) => setReldir(e.target.value)}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input
+              aria-label="数据目录前缀"
+              readOnly
+              value={`${resolvedFolder || "文件夹"}/`}
+              style={{ width: "42%", color: "var(--rk-muted)" }}
+            />
+            <Input
+              aria-label="数据目录"
+              value={reldir}
+              onChange={(e) => setReldir(e.target.value)}
+              style={{ flex: 1 }}
+            />
+          </Space.Compact>
         </div>
         <div>
           <div className="rk-field-label">模板目录（可选，相对本地文件夹的 .ini 模板路径，如 Clash/config / cfg）</div>
-          <Input
-            aria-label="模板目录"
-            addonBefore={`${resolvedFolder || "文件夹"}/`}
-            value={templateReldir}
-            onChange={(e) => setTemplateReldir(e.target.value)}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input
+              aria-label="模板目录前缀"
+              readOnly
+              value={`${resolvedFolder || "文件夹"}/`}
+              style={{ width: "42%", color: "var(--rk-muted)" }}
+            />
+            <Input
+              aria-label="模板目录"
+              value={templateReldir}
+              onChange={(e) => setTemplateReldir(e.target.value)}
+              style={{ flex: 1 }}
+            />
+          </Space.Compact>
         </div>
         {props.mode === "edit" && props.onRemove ? (
           <Popconfirm

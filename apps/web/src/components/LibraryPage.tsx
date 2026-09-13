@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import { Empty, Input, Modal } from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Dropdown, Empty, Input, Modal } from "antd";
+import type { MenuProps } from "antd";
+import { Settings } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import {
   addVendorRepoRequest,
@@ -13,8 +16,10 @@ import {
   type VendorRepoInput,
 } from "../catalog.js";
 import { listRuleFiles } from "../ruleFiles.js";
+import { findStaleProviderSources, providerHasUsableSource } from "../libraryHealth.js";
 import { notifyError, notifySuccess } from "../notify.js";
 import { CatalogBrowser } from "./CatalogBrowser.js";
+import { LibraryHealthBar, type LibraryHealthItem } from "./LibraryHealthBar.js";
 import { LibrarySidebar, type LibrarySelection } from "./LibrarySidebar.js";
 import { ListFileEditor } from "./ListFileEditor.js";
 import { ProviderRecipeEditor } from "./ProviderRecipeEditor.js";
@@ -40,6 +45,8 @@ interface RepoModalState {
   };
 }
 
+const PROVIDER_PATH = /^ruleProviders\[(\d+)\]/;
+
 export function LibraryPage({
   config,
   draftActions,
@@ -61,6 +68,8 @@ export function LibraryPage({
   const [newListName, setNewListName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [defaultsSection, setDefaultsSection] = useState<ProjectDefaultsSection | null>(null);
+  const [sidebarLocate, setSidebarLocate] = useState<{ name: string; nonce: number } | null>(null);
+  const locateNonce = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -76,6 +85,92 @@ export function LibraryPage({
   }, [fetch, refreshKey]);
 
   const providers = config.ruleProviders ?? [];
+
+  // 页顶汇总卡三类数据源：
+  // - 待补全来源：sources 为空或缺路径的 provider（纯配置可算）；
+  // - 失效来源：Web 拿不到文件系统，用可计算的最接近语义（本地 .list 缺失 / vendor 仓库未声明）；
+  // - 阻断生成：validateLegacyProjectConfig 中 ruleProviders[]/defaults 桶的 error 诊断。
+  const diagnostics = useMemo(() => validateLegacyProjectConfig(config), [config]);
+  const pendingItems = useMemo<LibraryHealthItem[]>(
+    () =>
+      providers
+        .filter((provider) => !providerHasUsableSource(provider))
+        .map((provider) => ({
+          id: `pending:${provider.name}`,
+          title: provider.name,
+          detail: "尚无可用数据来源",
+          providerName: provider.name,
+        })),
+    [config],
+  );
+  const staleItems = useMemo<LibraryHealthItem[]>(() => {
+    const byProvider = new Map<string, string[]>();
+    for (const stale of findStaleProviderSources(config, listFiles)) {
+      const paths = byProvider.get(stale.providerName) ?? [];
+      paths.push(
+        stale.reason === "local-file-missing"
+          ? `${stale.path}（本地文件缺失）`
+          : `${stale.path}（所属仓库未声明）`,
+      );
+      byProvider.set(stale.providerName, paths);
+    }
+    return [...byProvider.entries()].map(([name, paths]) => ({
+      id: `stale:${name}`,
+      title: name,
+      detail: paths.join("；"),
+      providerName: name,
+    }));
+  }, [config, listFiles]);
+  const blockingItems = useMemo<LibraryHealthItem[]>(() => {
+    const items: LibraryHealthItem[] = [];
+    for (const diagnostic of diagnostics) {
+      if (diagnostic.severity !== "error") continue;
+      const path = diagnostic.path ?? "";
+      const providerMatch = PROVIDER_PATH.exec(path);
+      if (providerMatch) {
+        const provider = providers[Number(providerMatch[1])];
+        items.push({
+          id: `blocking:${items.length}:${diagnostic.code}:${path}`,
+          title: provider?.name ?? path,
+          detail: `[${diagnostic.code}] ${diagnostic.message}`,
+          providerName: provider?.name,
+        });
+        continue;
+      }
+      if (path.startsWith("defaults.")) {
+        items.push({
+          id: `blocking:${items.length}:${diagnostic.code}:${path}`,
+          title: "规则默认值",
+          detail: `[${diagnostic.code}] ${diagnostic.message}`,
+          defaultsSection: path.includes("ruleSets") ? "rule-sets" : "proxy-groups",
+        });
+      }
+    }
+    return items;
+  }, [diagnostics, providers]);
+
+  const repoMenuItems: MenuProps["items"] = [
+    ...config.vendorRepos.map((repo) => ({ key: `repo:${repo.name}`, label: `编辑 ${repo.name}` })),
+    ...(config.vendorRepos.length ? [{ type: "divider" as const }] : []),
+    { key: "repo:add", label: "添加上游仓库" },
+  ];
+
+  function handleRepoMenuClick({ key }: { key: string }) {
+    if (key === "repo:add") {
+      setRepoModal({ open: true, mode: "add" });
+      return;
+    }
+    openEditRepo(key.slice("repo:".length));
+  }
+
+  function handleHealthLocate(item: LibraryHealthItem) {
+    if (item.providerName) {
+      locateNonce.current += 1;
+      setSidebarLocate({ name: item.providerName, nonce: locateNonce.current });
+      return;
+    }
+    if (item.defaultsSection) setDefaultsSection(item.defaultsSection);
+  }
 
   async function syncRepo(name: string) {
     setSyncingRepo(name);
@@ -166,8 +261,6 @@ export function LibraryPage({
         <ProviderRecipeEditor
           provider={provider}
           onUpdate={(patch) => draftActions.updateProvider(provider.name, patch)}
-          onSetSources={(s) => draftActions.setProviderSources(provider.name, s)}
-          onSetListField={(field, values) => draftActions.setProviderListField(provider.name, field, values)}
           onDelete={() => {
             draftActions.deleteProvider(provider.name);
             setSelection(null);
@@ -184,25 +277,38 @@ export function LibraryPage({
   }
 
   return (
-    <div className="rk-library">
-      <div className="rk-pane">
-        <LibrarySidebar
-          repos={sources}
-          listFiles={listFiles}
-          providers={providers}
-          selection={selection}
-          syncingRepo={syncingRepo}
-          onSelect={setSelection}
-          onSyncRepo={(name) => void syncRepo(name)}
-          onSyncAll={() => void syncCatalogVendor(fetch).then(() => setRefreshKey((k) => k + 1)).catch(() => {})}
-          onAddRepo={() => setRepoModal({ open: true, mode: "add" })}
-          onEditRepo={openEditRepo}
-          onNewList={() => setNewListOpen(true)}
-          onNewProvider={() => draftActions.createProvider()}
-          onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
+    <div className="rk-page-col" style={{ height: "100%" }}>
+      <div className="rk-library-top">
+        <LibraryHealthBar
+          pending={pendingItems}
+          stale={staleItems}
+          blocking={blockingItems}
+          onLocate={handleHealthLocate}
         />
+        <Dropdown menu={{ items: repoMenuItems, onClick: handleRepoMenuClick }} trigger={["click"]}>
+          <Button icon={<Settings size={14} />}>仓库设置</Button>
+        </Dropdown>
       </div>
-      <div className="rk-pane">{renderDetail()}</div>
+      <div className="rk-library" style={{ flex: 1, minHeight: 0 }}>
+        <div className="rk-pane">
+          <LibrarySidebar
+            repos={sources}
+            listFiles={listFiles}
+            providers={providers}
+            selection={selection}
+            syncingRepo={syncingRepo}
+            locateProvider={sidebarLocate}
+            onSelect={setSelection}
+            onSyncRepo={(name) => void syncRepo(name)}
+            onSyncAll={() => void syncCatalogVendor(fetch).then(() => setRefreshKey((k) => k + 1)).catch(() => {})}
+            onEditRepo={openEditRepo}
+            onNewList={() => setNewListOpen(true)}
+            onNewProvider={() => draftActions.createProvider()}
+            onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
+          />
+        </div>
+        <div className="rk-pane">{renderDetail()}</div>
+      </div>
 
       <RepoModal
         open={repoModal.open}

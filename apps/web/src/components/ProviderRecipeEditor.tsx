@@ -3,14 +3,19 @@ import { Alert, Button, Input, Popconfirm, Select, Space, Switch, Tooltip } from
 import { Plus, X } from "lucide-react";
 import type { RuleProviderConfig, RuleProviderSource } from "@clash-route-kit/core";
 import { fetchCatalogEntries } from "../catalog.js";
+import {
+  providerHasUsableSource,
+  providerMustStayDisabled,
+  providerOutputIsMrs,
+  providerSourceValue,
+} from "../libraryHealth.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 const SOURCE_TYPES: RuleProviderSource["type"][] = ["clash-list", "clash-provider", "domain-list-community"];
 
-function sourceValue(source: RuleProviderSource): string {
-  return source.type === "domain-list-community" ? source.entry : source.path;
-}
+const EMPTY_DRAFT_NOTICE = "已保存为禁用草稿，补全来源后可启用";
+const MRS_DRAFT_NOTICE = "已保存为禁用草稿：.mrs 输出当前不支持生成（仅支持 .yaml）";
 
 function withValue(source: RuleProviderSource, value: string): RuleProviderSource {
   if (source.type === "domain-list-community") return { ...source, entry: value };
@@ -25,14 +30,14 @@ function makeSource(type: RuleProviderSource["type"]): RuleProviderSource {
 export function ProviderRecipeEditor(props: {
   provider: RuleProviderConfig;
   onUpdate: (patch: Partial<RuleProviderConfig>) => void;
-  onSetSources: (sources: RuleProviderSource[]) => void;
-  onSetListField: (field: "exclude" | "remove", values: string[]) => void;
   onDelete: () => void;
   fetcher?: Fetcher;
 }) {
   const [output, setOutput] = useState(props.provider.output);
   const [dlcEntries, setDlcEntries] = useState<string[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => setOutput(props.provider.output), [props.provider.output]);
+  useEffect(() => setNotice(null), [props.provider.name]);
   useEffect(() => {
     let alive = true;
     void fetchCatalogEntries("domain-list-community", props.fetcher ?? globalThis.fetch)
@@ -43,40 +48,84 @@ export function ProviderRecipeEditor(props: {
     };
   }, [props.fetcher]);
 
+  const mrsOutput = providerOutputIsMrs(props.provider);
+  const noUsableSource = !providerHasUsableSource(props.provider);
+  const cannotEnable = providerMustStayDisabled(props.provider);
+
+  // 空来源 / .mrs 输出的 provider 不允许以启用状态落盘：任何保存路径都强制降级为禁用草稿。
+  function commit(patch: Partial<RuleProviderConfig>) {
+    setNotice(null);
+    const nextSources = Object.prototype.hasOwnProperty.call(patch, "sources")
+      ? (patch.sources as RuleProviderSource[])
+      : props.provider.sources;
+    const nextOutput = Object.prototype.hasOwnProperty.call(patch, "output")
+      ? (patch.output as string)
+      : props.provider.output;
+    const stillMrs = nextOutput.toLowerCase().endsWith(".mrs");
+    const stillNoSource = !nextSources.some((source) => providerSourceValue(source).trim());
+    if (props.provider.enabled !== false && (stillNoSource || stillMrs)) {
+      props.onUpdate({ ...patch, enabled: false });
+      setNotice(stillMrs ? MRS_DRAFT_NOTICE : EMPTY_DRAFT_NOTICE);
+      return;
+    }
+    props.onUpdate(patch);
+  }
+
+  function commitOutput() {
+    const trimmed = output.trim();
+    if (trimmed && trimmed !== props.provider.output) commit({ output: trimmed });
+  }
+
+  function disableHint(): string {
+    if (mrsOutput) return ".mrs 输出不支持生成：无法启用";
+    return "来源为空：补全至少一个来源后才能启用";
+  }
+
   return (
     <div className="rk-page-col" style={{ height: "100%", padding: 12, overflow: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <strong>规则源 · {props.provider.name}</strong>
-        <Popconfirm title={`删除规则源 ${props.provider.name}？`} onConfirm={props.onDelete} okText="删除" cancelText="取消">
-          <Button danger size="small">
-            删除
-          </Button>
-        </Popconfirm>
+        <Space>
+          {mrsOutput ? <span className="rk-tag error">不支持生成</span> : null}
+          <Popconfirm title={`删除规则源 ${props.provider.name}？`} onConfirm={props.onDelete} okText="删除" cancelText="取消">
+            <Button danger size="small">
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
       </div>
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        {notice ? <Alert type="warning" showIcon message={notice} /> : null}
+        {mrsOutput ? (
+          <Alert type="error" showIcon message="导入问题：.mrs 输出不支持生成（当前仅支持生成 .yaml）" />
+        ) : null}
+        {props.provider.enabled !== false && noUsableSource ? (
+          <Alert type="error" showIcon message="启用前至少添加一个数据源" />
+        ) : null}
         <div>
           <div className="rk-field-label">执行状态</div>
           <Space>
-            <Switch
-              aria-label="启用规则源"
-              checked={props.provider.enabled !== false}
-              onChange={(enabled) => props.onUpdate({ enabled })}
-            />
+            <Tooltip title={cannotEnable ? disableHint() : ""}>
+              <Switch
+                aria-label="启用规则源"
+                checked={props.provider.enabled !== false}
+                disabled={cannotEnable}
+                onChange={(enabled) => commit({ enabled })}
+              />
+            </Tooltip>
             <span className="rk-lib-meta">
               {props.provider.enabled === false ? "禁用草稿，不参与生成" : "启用并参与生成"}
             </span>
           </Space>
+          {cannotEnable ? <div className="rk-setting-hint">{disableHint()}</div> : null}
         </div>
-        {props.provider.enabled !== false && props.provider.sources.length === 0 ? (
-          <Alert type="error" showIcon message="启用前至少添加一个数据源" />
-        ) : null}
         <div>
           <div className="rk-field-label">输出文件名</div>
           <Input
             aria-label="输出文件名"
             value={output}
             onChange={(e) => setOutput(e.target.value)}
-            onBlur={() => output.trim() && output !== props.provider.output && props.onUpdate({ output: output.trim() })}
+            onBlur={commitOutput}
           />
         </div>
         <div>
@@ -88,27 +137,33 @@ export function ProviderRecipeEditor(props: {
                 style={{ width: 180 }}
                 options={SOURCE_TYPES.map((t) => ({ value: t, label: t }))}
                 onChange={(type) =>
-                  props.onSetSources(props.provider.sources.map((s, i) => (i === index ? makeSource(type) : s)))
+                  commit({ sources: props.provider.sources.map((s, i) => (i === index ? makeSource(type) : s)) })
                 }
               />
               {source.type === "domain-list-community" ? (
                 <Select
                   showSearch
-                  value={sourceValue(source) || undefined}
+                  value={providerSourceValue(source) || undefined}
                   placeholder="搜索/选择 GEOSITE 条目"
                   style={{ width: 260 }}
                   options={dlcEntries.map((name) => ({ value: name, label: name }))}
                   onChange={(value) =>
-                    props.onSetSources(props.provider.sources.map((s, i) => (i === index ? withValue(s, value) : s)))
+                    commit({
+                      sources: props.provider.sources.map((s, i) => (i === index ? withValue(s, value) : s)),
+                    })
                   }
                 />
               ) : (
                 <Input
-                  value={sourceValue(source)}
+                  value={providerSourceValue(source)}
                   placeholder="仓库内相对路径"
                   style={{ width: 260 }}
                   onChange={(e) =>
-                    props.onSetSources(props.provider.sources.map((s, i) => (i === index ? withValue(s, e.target.value) : s)))
+                    commit({
+                      sources: props.provider.sources.map((s, i) =>
+                        i === index ? withValue(s, e.target.value) : s,
+                      ),
+                    })
                   }
                 />
               )}
@@ -116,7 +171,7 @@ export function ProviderRecipeEditor(props: {
                 type="button"
                 aria-label={`删除来源 ${index}`}
                 className="rk-iconbtn rk-del"
-                onClick={() => props.onSetSources(props.provider.sources.filter((_s, i) => i !== index))}
+                onClick={() => commit({ sources: props.provider.sources.filter((_s, i) => i !== index) })}
               >
                 <X size={13} />
               </button>
@@ -125,7 +180,7 @@ export function ProviderRecipeEditor(props: {
           <Button
             size="small"
             icon={<Plus size={13} />}
-            onClick={() => props.onSetSources([...props.provider.sources, makeSource("domain-list-community")])}
+            onClick={() => commit({ sources: [...props.provider.sources, makeSource("domain-list-community")] })}
           >
             添加来源
           </Button>
@@ -138,7 +193,7 @@ export function ProviderRecipeEditor(props: {
             mode="tags"
             style={{ width: "100%" }}
             value={props.provider.exclude ?? []}
-            onChange={(values) => props.onSetListField("exclude", values)}
+            onChange={(values) => commit({ exclude: values })}
           />
         </div>
         <div>
@@ -149,7 +204,7 @@ export function ProviderRecipeEditor(props: {
             mode="tags"
             style={{ width: "100%" }}
             value={props.provider.remove ?? []}
-            onChange={(values) => props.onSetListField("remove", values)}
+            onChange={(values) => commit({ remove: values })}
           />
         </div>
       </Space>

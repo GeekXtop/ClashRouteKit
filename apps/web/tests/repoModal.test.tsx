@@ -17,8 +17,11 @@ it("decouples name from local folder; dirs show the folder name (no vendor leak)
   fireEvent.change(screen.getByLabelText("Git URL"), {
     target: { value: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git" },
   });
-  // folder defaults to the URL repo basename and is the base for both dir fields — name stays separate
-  expect(screen.getAllByText("Custom_OpenClash_Rules/").length).toBe(2);
+  // folder defaults to the URL repo basename and prefixes both dir fields — name stays separate
+  const dirPrefix = screen.getByLabelText("数据目录前缀") as HTMLInputElement;
+  const templatePrefix = screen.getByLabelText("模板目录前缀") as HTMLInputElement;
+  expect(dirPrefix.value).toBe("Custom_OpenClash_Rules/");
+  expect(templatePrefix.value).toBe("Custom_OpenClash_Rules/");
   fireEvent.change(screen.getByLabelText("数据目录"), { target: { value: "rule" } });
   fireEvent.change(screen.getByLabelText("模板目录"), { target: { value: "cfg" } });
   fireEvent.click(screen.getByText("保存"));
@@ -33,4 +36,26 @@ it("decouples name from local folder; dirs show the folder name (no vendor leak)
       }),
     ),
   );
+});
+
+describe("deprecation baseline", () => {
+  it("renders and saves without antd deprecation warnings", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const onSubmit = vi.fn(async () => {});
+      render(
+        <AppProviders>
+          <RepoModal open mode="add" onSubmit={onSubmit} onClose={() => {}} />
+        </AppProviders>,
+      );
+      fireEvent.change(screen.getByLabelText("数据目录"), { target: { value: "data" } });
+      fireEvent.change(screen.getByLabelText("模板目录"), { target: { value: "cfg" } });
+      fireEvent.click(screen.getByText("保存"));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      const warned = warn.mock.calls.flat().join("\n");
+      expect(warned).not.toContain("[antd");
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

@@ -1,8 +1,10 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Collapse } from "antd";
 import { Pencil, Plus, RefreshCw, Settings } from "lucide-react";
 import type { RuleProviderConfig } from "@clash-route-kit/core";
+import { attrSelector, locateElement } from "../domLocate.js";
 import { formatSyncedAt, type CatalogSourceInfo } from "../catalog.js";
+import { providerHasUsableSource, providerOutputIsMrs } from "../libraryHealth.js";
 
 export type LibrarySelection =
   | { kind: "repo"; name: string }
@@ -40,16 +42,28 @@ export function LibrarySidebar(props: {
   providers: RuleProviderConfig[];
   selection: LibrarySelection | null;
   syncingRepo: string | null;
+  /** 汇总条定位目标：展开“规则源”分组并聚焦对应行。 */
+  locateProvider?: { name: string; nonce: number } | null;
   onSelect: (sel: LibrarySelection) => void;
   onSyncRepo: (name: string) => void;
   onSyncAll: () => void;
-  onAddRepo: () => void;
   onEditRepo: (name: string) => void;
   onNewList: () => void;
   onNewProvider: () => void;
   onOpenRuleDefaults: () => void;
 }) {
   const now = Date.now();
+  const [activeKeys, setActiveKeys] = useState<string[]>(["repos", "local", "providers"]);
+
+  useEffect(() => {
+    const target = props.locateProvider;
+    if (!target) return;
+    setActiveKeys((keys) => (keys.includes("providers") ? keys : [...keys, "providers"]));
+    const timer = setTimeout(() => {
+      locateElement(attrSelector("data-testid", `provider-row-${target.name}`));
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [props.locateProvider]);
 
   const repoRows = props.repos.map((repo) => (
     <div
@@ -84,31 +98,33 @@ export function LibrarySidebar(props: {
   const providerRows = props.providers.map((provider) => (
     <div
       key={provider.name}
-      className={`rk-lib-row ${sameSelection(props.selection, { kind: "provider", name: provider.name }) ? "on" : ""}`}
+      data-testid={`provider-row-${provider.name}`}
+      tabIndex={-1}
+      className={`rk-lib-row ${sameSelection(props.selection, { kind: "provider", name: provider.name }) ? "on" : ""} ${props.locateProvider?.name === provider.name ? "hit" : ""}`}
       onClick={() => props.onSelect({ kind: "provider", name: provider.name })}
     >
       <span className="rk-lib-name">{provider.name}</span>
-      {provider.sources.length === 0 ? <span className="rk-tag warn">待补全</span> : null}
+      {providerOutputIsMrs(provider) ? (
+        <span className="rk-tag error">导入问题</span>
+      ) : !providerHasUsableSource(provider) ? (
+        <span className="rk-tag warn">待补全</span>
+      ) : null}
     </div>
   ));
 
   return (
     <Collapse
-      defaultActiveKey={["repos", "local", "providers"]}
+      activeKey={activeKeys}
+      onChange={(keys) => setActiveKeys(Array.isArray(keys) ? keys : [keys])}
       ghost
       items={[
         {
           key: "repos",
           label: "上游仓库",
           extra: (
-            <>
-              <IconAction label="全部同步" onClick={props.onSyncAll}>
-                <RefreshCw size={13} />
-              </IconAction>
-              <IconAction label="添加上游仓库" onClick={props.onAddRepo}>
-                <Plus size={14} />
-              </IconAction>
-            </>
+            <IconAction label="全部同步" onClick={props.onSyncAll}>
+              <RefreshCw size={13} />
+            </IconAction>
           ),
           children: repoRows,
         },

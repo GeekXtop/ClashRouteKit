@@ -222,6 +222,16 @@ button.rk-nav-row {
   color: #92400e;
   background: #fffbeb;
 }
+.rk-tag.error {
+  border-color: #ff6b81;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+/* sidebar provider rows can be keyboard-focused via health-bar locate */
+.rk-lib-row.hit {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+}
 .rk-nav-sec,
 .rk-lib-sec {
   color: var(--rk-muted);
@@ -359,6 +369,93 @@ button.rk-nav-row {
   align-items: flex-start;
   gap: 8px;
   padding: 8px 10px 0;
+}
+/* library page top strip: health summary + repo settings entry */
+.rk-library-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.rk-health {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--rk-border);
+  border-radius: 8px;
+  background: var(--rk-surface);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.rk-health.ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #67c987;
+}
+.rk-health-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--rk-muted);
+}
+.rk-health-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--rk-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rk-text);
+  font: inherit;
+  padding: 0 8px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.rk-health-chip:hover {
+  border-color: var(--rk-border-strong);
+  background: var(--rk-surface-2);
+}
+.rk-health-chip[aria-expanded="true"] {
+  border-color: var(--rk-primary);
+}
+.rk-health-chip.zero {
+  color: var(--rk-muted);
+  cursor: default;
+  background: transparent;
+}
+.rk-health-count.warn {
+  color: #f0b132;
+  font-weight: 600;
+}
+.rk-health-count.error {
+  color: #ff6b81;
+  font-weight: 600;
+}
+.rk-health-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 120px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rk-health-item .rk-validation-locate,
+.rk-health-item .rk-validation-plain {
+  padding: 2px 0;
+}
+.rk-health-title {
+  flex: 0 0 auto;
+  color: var(--rk-text);
+}
+.rk-health-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rk-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rk-validation {
   flex: 1;

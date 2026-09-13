@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { LibrarySidebar } from "../src/components/LibrarySidebar.js";
 
@@ -22,7 +22,6 @@ it("edits and syncs a repo, selects a list file", () => {
         onSelect={onSelect}
         onSyncRepo={onSyncRepo}
         onSyncAll={() => {}}
-        onAddRepo={() => {}}
         onEditRepo={onEditRepo}
         onNewList={() => {}}
         onNewProvider={() => {}}
@@ -60,7 +59,6 @@ it("marks empty rule providers as incomplete", () => {
         onSelect={() => {}}
         onSyncRepo={() => {}}
         onSyncAll={() => {}}
-        onAddRepo={() => {}}
         onEditRepo={() => {}}
         onNewList={() => {}}
         onNewProvider={() => {}}
@@ -70,4 +68,68 @@ it("marks empty rule providers as incomplete", () => {
   );
 
   expect(screen.getByText("待补全")).toBeTruthy();
+});
+
+it("marks .mrs providers as import problems instead of pending", () => {
+  render(
+    <AppProviders>
+      <LibrarySidebar
+        repos={[]}
+        listFiles={[]}
+        providers={[
+          {
+            name: "MrsThing",
+            output: "Thing.mrs",
+            behavior: "domain",
+            sources: [{ name: "s", type: "clash-list", path: "config/rules/A.list" }],
+          },
+        ]}
+        selection={null}
+        syncingRepo={null}
+        onSelect={() => {}}
+        onSyncRepo={() => {}}
+        onSyncAll={() => {}}
+        onEditRepo={() => {}}
+        onNewList={() => {}}
+        onNewProvider={() => {}}
+        onOpenRuleDefaults={() => {}}
+      />
+    </AppProviders>,
+  );
+
+  expect(screen.getByText("导入问题")).toBeTruthy();
+  expect(screen.queryByText("待补全")).toBeNull();
+});
+
+it("locates a provider row: expands the providers panel and moves focus", async () => {
+  render(
+    <AppProviders>
+      <LibrarySidebar
+        repos={[]}
+        listFiles={[]}
+        providers={[
+          {
+            name: "Target",
+            output: "Target.yaml",
+            behavior: "domain",
+            sources: [{ name: "s", type: "clash-list", path: "config/rules/A.list" }],
+          },
+        ]}
+        selection={null}
+        syncingRepo={null}
+        locateProvider={{ name: "Target", nonce: 1 }}
+        onSelect={() => {}}
+        onSyncRepo={() => {}}
+        onSyncAll={() => {}}
+        onEditRepo={() => {}}
+        onNewList={() => {}}
+        onNewProvider={() => {}}
+        onOpenRuleDefaults={() => {}}
+      />
+    </AppProviders>,
+  );
+
+  await waitFor(() =>
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("provider-row-Target"),
+  );
 });
