@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { Button, Layout, Menu, Space, Tag } from "antd";
-import { Route, Upload } from "lucide-react";
+import { Layout, Menu, Space, Tag } from "antd";
+import { Route } from "lucide-react";
 import type { ProjectView } from "../projectController.js";
 
 const navItems: { key: ProjectView; label: string }[] = [
+  { key: "project", label: "项目" },
   { key: "library", label: "规则库" },
   { key: "routing", label: "路由" },
-  { key: "publish", label: "发布" },
+  { key: "output", label: "输出" },
 ];
 
 export function AppShell({
@@ -14,13 +15,11 @@ export function AppShell({
   selectedView,
   saveLabel,
   onSelectView,
-  onImport,
 }: {
   children: ReactNode;
   selectedView: ProjectView;
   saveLabel?: string;
   onSelectView: (view: ProjectView) => void;
-  onImport?: () => void;
 }) {
   return (
     <Layout style={{ height: "100vh" }}>
@@ -40,11 +39,6 @@ export function AppShell({
           <Tag color={saveLabel === "保存失败" ? "error" : saveLabel === "保存中…" ? "processing" : "success"}>
             {saveLabel}
           </Tag>
-        ) : null}
-        {onImport ? (
-          <Button size="small" icon={<Upload size={14} />} onClick={onImport}>
-            导入模板
-          </Button>
         ) : null}
       </Layout.Header>
       <Layout.Content style={{ overflow: "hidden" }}>{children}</Layout.Content>

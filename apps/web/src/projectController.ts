@@ -5,7 +5,7 @@ import {
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 
-export type ProjectView = "routing" | "library" | "publish";
+export type ProjectView = "project" | "library" | "routing" | "output";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
 export type ProjectValidationStatus = "idle" | "running" | "success" | "error";
 
@@ -93,7 +93,7 @@ export function createProjectController(snapshot: ProjectConfigSnapshot): Projec
       status: "idle",
       output: "尚未运行检查",
     },
-    selectedView: "library",
+    selectedView: "project",
     selectedRuleSetId: firstRuleSetId(snapshot.config),
     selectedCustomProxyGroupName: firstCustomProxyGroupName(snapshot.config),
     selectedProviderName: firstProviderName(snapshot.config),

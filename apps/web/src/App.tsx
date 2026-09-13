@@ -3,8 +3,10 @@ import { parseIniToConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
 import { ImportModal } from "./components/ImportModal.js";
 import { LibraryPage } from "./components/LibraryPage.js";
-import { PublishPage } from "./components/PublishPage.js";
 import { RoutingPage } from "./components/RoutingPage.js";
+import { OutputPage } from "./features/output/OutputPage.js";
+import { ProjectPage } from "./features/project/ProjectPage.js";
+import { createBlankProjectConfig } from "./features/project/projectMeta.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
@@ -17,6 +19,7 @@ import {
   setProjectSelection,
   setProjectStatus,
   updateProjectValidation,
+  type ProjectView,
 } from "./projectController.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
 
@@ -28,6 +31,7 @@ export default function App() {
   const config = project.draftConfig;
   const [importOpen, setImportOpen] = useState(false);
   const [importSources, setImportSources] = useState<CatalogSourceInfo[]>([]);
+  const [lastWorkView, setLastWorkView] = useState<Exclude<ProjectView, "project">>("routing");
 
   function openImport() {
     setImportOpen(true);
@@ -43,6 +47,13 @@ export default function App() {
       draftActions.importTemplate(parseIniToConfig(text));
     }
     setImportOpen(false);
+  }
+
+  function handleSelectView(view: ProjectView) {
+    if (view !== "project") {
+      setLastWorkView(view);
+    }
+    setProject((current) => setProjectSelection(current, { selectedView: view }));
   }
 
   function refreshConfig() {
@@ -66,6 +77,17 @@ export default function App() {
           }),
         ),
       );
+  }
+
+  function createBlankProject() {
+    setProject((current) => setProjectStatus(current, "saving", "正在创建空白项目"));
+    void saveLocalProjectConfig(createBlankProjectConfig())
+      .then((result) => setProject((current) => createProjectController(result)))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        setProject((current) => setProjectStatus(current, "error", message));
+        notifyError(message);
+      });
   }
 
   useEffect(() => {
@@ -114,13 +136,22 @@ export default function App() {
 
   return (
     <>
-      <AppShell
-        selectedView={project.selectedView}
-        saveLabel={saveLabel}
-        onSelectView={(view) => setProject((current) => setProjectSelection(current, { selectedView: view }))}
-        onImport={openImport}
-      >
-        {project.selectedView === "routing" ? (
+      <AppShell selectedView={project.selectedView} saveLabel={saveLabel} onSelectView={handleSelectView}>
+        {project.selectedView === "project" ? (
+          <ProjectPage
+            config={config}
+            originalYaml={project.originalYaml}
+            status={project.status}
+            message={project.message}
+            dirty={project.dirty}
+            validation={project.validation}
+            lastWorkView={lastWorkView}
+            onNavigate={handleSelectView}
+            onOpenImport={openImport}
+            onRunCheck={runCheck}
+            onCreateBlankProject={createBlankProject}
+          />
+        ) : project.selectedView === "routing" ? (
           <RoutingPage
             config={config}
             selectedRuleSetId={project.selectedRuleSetId}
@@ -130,9 +161,10 @@ export default function App() {
         ) : project.selectedView === "library" ? (
           <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={refreshConfig} />
         ) : (
-          <PublishPage
+          <OutputPage
             config={config}
             originalConfig={project.originalConfig}
+            originalYaml={project.originalYaml}
             validation={project.validation}
             onRunCheck={runCheck}
           />

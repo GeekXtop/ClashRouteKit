@@ -35,16 +35,16 @@ describe("project controller", () => {
 
     expect(controller.dirty).toBe(false);
     expect(controller.draftYaml).toBe(serializeRouteKitConfig(config));
-    expect(controller.selectedView).toBe("library");
+    expect(controller.selectedView).toBe("project");
     expect(controller.selectedRuleSetId).toBe("developer-geosite-github");
     expect(controller.selectedCustomProxyGroupName).toBe("Proxy");
     expect(canSaveProject(controller).ok).toBe(false);
   });
 
-  it("defaults the landing view to library", () => {
+  it("defaults the landing view to project", () => {
     const config = createConfig();
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
-    expect(controller.selectedView).toBe("library");
+    expect(controller.selectedView).toBe("project");
   });
 
   it("tracks dirty state after draft config changes", () => {
@@ -178,7 +178,7 @@ describe("project controller", () => {
     const controller = createProjectController({ yaml: serializeRouteKitConfig(config), config });
 
     const selected = setProjectSelection(controller, {
-      selectedView: "publish",
+      selectedView: "output",
       selectedRuleSetId: "streaming-geosite-youtube",
     });
     const validated = updateProjectValidation(selected, {
@@ -186,7 +186,7 @@ describe("project controller", () => {
       output: "[check] ok",
     });
 
-    expect(validated.selectedView).toBe("publish");
+    expect(validated.selectedView).toBe("output");
     expect(validated.selectedRuleSetId).toBe("streaming-geosite-youtube");
     expect(validated.validation).toEqual({ status: "success", output: "[check] ok" });
   });
