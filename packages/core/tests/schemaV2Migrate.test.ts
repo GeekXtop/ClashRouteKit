@@ -12,7 +12,12 @@ import YAML from "yaml";
 import { renderIni } from "../src/index.js";
 import { parseRouteKitConfig } from "../src/configDocument.js";
 import { normalizeAuthorProjectConfig } from "../src/config/schemaV2/normalize.js";
+import { parseAuthorProjectConfigV2 } from "../src/config/schemaV2/parser.js";
 import { planLegacyMigration } from "../src/config/schemaV2/migrate.js";
+import {
+  validateAuthorProjectConfigV2,
+  validateNormalizedProject,
+} from "../src/config/schemaV2/validate.js";
 import { toRouteKitConfig } from "../src/config/schemaV2/toRouteKitConfig.js";
 import type { RouteKitProjectConfig } from "../src/types.js";
 
@@ -147,9 +152,12 @@ describe("planLegacyMigration", () => {
     expect(plan.draft.ruleProviders[0]?.id).toBe("custom-direct");
     expect(plan.draft.ruleProviders[0]?.sources[0]?.id).toBe("local-list");
     expect(plan.draft.vendorRepos?.[0]?.id).toBe("acl4ssr-repo");
+    // 全局唯一分配（proxyGroups → memberSets → ruleProviders → routes）：
+    // 路由 "custom-direct" 与 provider "Custom Direct"（id "custom-direct"）
+    // 同名，provider 先分配拿到裸 slug，路由顺延 "-2"，不再跨集合撞名。
     expect(plan.draft.routes.map((route) => route.id)).toEqual([
       "openai",
-      "custom-direct",
+      "custom-direct-2",
       "telegram",
       "final",
     ]);
@@ -260,6 +268,43 @@ describe("planLegacyMigration", () => {
     expect(second.issues).toEqual(first.issues);
   });
 
+  it("assigns globally unique ids when a group and a route share a name", () => {
+    const talkatoneFixture = () => {
+      const fixture = legacyFixture();
+      fixture.customProxyGroups.push({
+        name: "Talkatone",
+        type: "select",
+        options: ["DIRECT"],
+      });
+      fixture.ruleSets.unshift({
+        id: "Talkatone",
+        policy: "Talkatone",
+        source: { type: "geosite", value: "talkatone" },
+      });
+      return fixture;
+    };
+
+    const plan = planLegacyMigration(talkatoneFixture());
+
+    // 组先于路由分配拿到裸 slug "talkatone"，同名路由顺延为 "talkatone-2"，
+    // 且路由 policy 仍解析到该组。
+    expect(plan.draft.proxyGroups.at(-1)?.id).toBe("talkatone");
+    expect(plan.draft.routes[0]?.id).toBe("talkatone-2");
+    expect(plan.draft.routes[0]?.policy).toEqual({ group: "talkatone" });
+
+    // proxyGroups / memberSets / ruleProviders / routes 四个集合的 id 全局互不相同。
+    const allIds = [
+      ...plan.draft.proxyGroups.map((group) => group.id),
+      ...Object.keys(plan.draft.memberSets ?? {}),
+      ...plan.draft.ruleProviders.map((provider) => provider.id),
+      ...plan.draft.routes.map((route) => route.id),
+    ];
+    expect(new Set(allIds).size).toBe(allIds.length);
+
+    // 确定性：两次独立分析结果一致。
+    expect(planLegacyMigration(talkatoneFixture()).draft).toEqual(plan.draft);
+  });
+
   it("migrates the real blueprint config/routes.yaml.example with INI equivalence", () => {
     const blueprintPath = path.resolve("config/routes.yaml.example");
     const v1 = parseRouteKitConfig(readFileSync(blueprintPath, "utf8"));
@@ -278,5 +323,27 @@ describe("planLegacyMigration", () => {
       publishBaseUrl: v1.publishBaseUrl,
     });
     expect(renderIni(bridged)).toBe(renderIni(v1));
+  });
+
+  it("passes the full v2 validation chain with zero errors on the real blueprint", () => {
+    const blueprintPath = path.resolve("config/routes.yaml.example");
+    const v1 = parseRouteKitConfig(readFileSync(blueprintPath, "utf8"));
+    const plan = planLegacyMigration(v1);
+
+    // 完整校验链：parse → 作者配置校验 → normalize → 规范化层校验。
+    const parsed = parseAuthorProjectConfigV2(plan.yaml);
+    const authorDiagnostics = validateAuthorProjectConfigV2(parsed);
+    const { project, diagnostics: normalizeDiagnostics } =
+      normalizeAuthorProjectConfig(parsed);
+    const normalizedDiagnostics = validateNormalizedProject(project);
+
+    const all = [
+      ...authorDiagnostics,
+      ...normalizeDiagnostics,
+      ...normalizedDiagnostics,
+    ];
+    // 真实蓝本（52 组，含 16+ 个空 options + nodeFilters 的叶子组）迁移后
+    // 必须零 error 才能写盘；warning/info 允许保留。
+    expect(all.filter((diagnostic) => diagnostic.severity === "error")).toEqual([]);
   });
 });

@@ -6,7 +6,9 @@
  * - validateAuthorProjectConfigV2：作者配置层——重复 ID（集合内 + 跨集合）、
  *   引用完整性、provider 数据源与 behavior 一致性、node filter、FINAL 数量；
  * - validateNormalizedProject：规范化层——策略组循环引用、展开后空成员组
- *   （builtin 也算成员，仅真正 0 成员才报）；preset 循环与缺失引用已在
+ *   （builtin 也算成员；0 成员且未配置 nodeFilters 才报——空 members +
+ *   非空 nodeFilters 是合法的"按过滤器选择订阅节点"组，与 v1 renderIni 把
+ *   options 与 nodeFilters 拼接渲染的语义一致）；preset 循环与缺失引用已在
  *   normalize 层报告，这里不重复。
  */
 import type { Diagnostic } from "../diagnostics.js";
@@ -168,16 +170,19 @@ function addMemberReferenceDiagnostics(
 }
 
 /**
- * behavior 与数据源类型一致性：
- * - domain 只接受 domain 类来源（domain-list-community）；
- * - ipcidr 不能使用 domain-list-community（domain 条目无法归一为 IP-CIDR 规则）；
+ * behavior 与数据源类型一致性（对齐 v1 渲染 / generate 的真实收集语义）：
+ * - domain 接受全部三类来源：v1 生成链（generateOutputs.readRules 对任意
+ *   behavior 读取三类 source，rules.ts 的 normalizeDomainRule 只保留
+ *   DOMAIN-SUFFIX / DOMAIN 规则、其余行静默过滤）语义无损；
+ * - ipcidr 不能使用 domain-list-community：domain-list-community 条目会被
+ *   convertDomainListCommunity 归一为 DOMAIN 系规则，而 normalizeIpcidrRule
+ *   只保留 IP-CIDR / IP-CIDR6，组合必然产出空 provider；
  * - classical 的规则归一可吸收任意来源类型。
  */
 function behaviorMatchesSource(
   behavior: RuleProviderV2["behavior"],
   source: ProviderSourceV2,
 ): boolean {
-  if (behavior === "domain") return source.type === "domain-list-community";
   if (behavior === "ipcidr") return source.type !== "domain-list-community";
   return true;
 }
@@ -327,8 +332,11 @@ export function validateAuthorProjectConfigV2(
 }
 
 /**
- * 校验规范化后的项目：策略组循环引用（组内 group 成员引用图）与展开后空成员组。
- * preset 循环 / 缺失引用由 normalizeAuthorProjectConfig 报告，这里不重复。
+ * 校验规范化后的项目：策略组循环引用（组内 group 成员引用图）与展开后空成员组
+ * （0 成员且未配置 nodeFilters 才报——空 members + 非空 nodeFilters 是合法的
+ * "按过滤器选择订阅节点"组，对应 v1 renderCustomProxyGroup 对空 options +
+ * nodeFilters 的拼接渲染）。preset 循环 / 缺失引用由 normalizeAuthorProjectConfig
+ * 报告，这里不重复。
  */
 export function validateNormalizedProject(
   project: NormalizedProject,
@@ -352,12 +360,13 @@ export function validateNormalizedProject(
   }
 
   for (const group of project.groups) {
-    if (group.members.length > 0) continue;
+    // 空 members + 非空 nodeFilters 合法：v1 按 nodeFilters 从订阅节点中筛选。
+    if (group.members.length > 0 || group.nodeFilters.length > 0) continue;
     diagnostics.push({
       code: "validate.group.empty-members",
       severity: "error",
       path: `proxyGroups.${group.id}`,
-      message: `策略组 ${group.name} 展开后没有任何成员`,
+      message: `策略组 ${group.name} 展开后没有任何成员，且未配置节点过滤器`,
     });
   }
 

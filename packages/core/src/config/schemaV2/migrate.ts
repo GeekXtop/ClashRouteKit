@@ -8,7 +8,10 @@
  * 确定性规则（可复现，测试锁定）：
  * - slug：显示名（或 v1 id）空白转 "-"、小写、去掉非 [a-z0-9_-] 字符、折叠连续 "-"、
  *   去首尾 "-"；结果不满足 v2 ID 模式则回退 "group-N" / "provider-N" / "route-N"
- *   （N 为 v1 原序号，1 起）；冲突追加 "-2"、"-3"。各实体集合独立去重。
+ *   （N 为 v1 原序号，1 起）；冲突追加 "-2"、"-3"。去重在 proxyGroups →
+ *   memberSets → ruleProviders → routes 四个集合间全局进行（v2 validate 的
+ *   validate.id.duplicate 拦截跨集合撞名，迁移分配必须全局唯一才能过校验）；
+ *   vendorRepos 不参与跨集合查重，保持集合内独立去重。
  * - 重复成员提取：≥2 个策略组拥有完全相同的非空有序 options（解析为 typed members
  *   后比较）时，按首次出现顺序提取为 memberSet "set-1"、"set-2"…，这些组的 members
  *   改为 [{ preset: "set-N" }]；空 options（url-test 叶子组的常态）与仅一组的列表
@@ -91,13 +94,13 @@ function slugifyName(name: string): string {
 }
 
 /**
- * 集合内唯一 id 分配器：slug 为空时用 fallback(index)（N 为 v1 原序号），
- * 冲突时追加 "-2"、"-3" 直至可用。
+ * 全局唯一 id 分配器：proxyGroups → memberSets → ruleProviders → routes 四个集合
+ * 共用一个已用 id 集合，撞名（含跨集合）时按序追加 "-2"、"-3" 直至可用，
+ * 两次运行结果一致。调用方自行拼好默认候选（slug 为空时回退 "xxx-N" 序号名）。
  */
-function createIdAllocator(fallback: (index: number) => string) {
+function createGlobalIdAllocator() {
   const used = new Set<string>();
-  return (slug: string, index: number): string => {
-    let candidate = slug === "" ? fallback(index) : slug;
+  return (candidate: string): string => {
     if (used.has(candidate)) {
       let suffix = 2;
       while (used.has(`${candidate}-${suffix}`)) suffix += 1;
@@ -127,10 +130,11 @@ function pushRuntimeSettingIssue(
 
 function toProxyGroupIds(
   groups: CustomProxyGroup[],
-  issues: Diagnostic[],
+  allocateId: (candidate: string) => string,
 ): { ids: string[]; nameToId: Map<string, string> } {
-  const allocateId = createIdAllocator((index) => `group-${index + 1}`);
-  const ids = groups.map((group, index) => allocateId(slugifyName(group.name), index));
+  const ids = groups.map((group, index) =>
+    allocateId(slugifyName(group.name) || `group-${index + 1}`),
+  );
   const nameToId = new Map<string, string>();
   groups.forEach((group, index) => {
     // 同名组以先出现者为准（v1 以显示名充当关系键，INI 渲染两者同名）。
@@ -190,10 +194,13 @@ function toNodeFilters(
 
 /**
  * 重复成员提取：按 typed members 的 JSON 键分组，出现 ≥2 次的非空列表
- * 依首次出现顺序提取为 "set-N"。返回每个组对应的 setId（未提取的组无条目）。
+ * 依首次出现顺序提取为 "set-N"（经全局分配器去重，组占用 "set-N" 时顺延
+ * "set-N-2"，组内 preset 引用同步使用分配后的 id）。
+ * 返回每个组对应的 setId（未提取的组无条目）。
  */
 function extractMemberSets(
   typedMembersByGroup: readonly TypedMember[][],
+  allocateId: (candidate: string) => string,
 ): { memberSets: Record<string, MemberSet>; setIdByGroupIndex: Map<number, string> } {
   const indexesByKey = new Map<string, number[]>();
   typedMembersByGroup.forEach((members, index) => {
@@ -210,7 +217,7 @@ function extractMemberSets(
   for (const indexes of indexesByKey.values()) {
     if (indexes.length < 2) continue;
     setCounter += 1;
-    const setId = `set-${setCounter}`;
+    const setId = allocateId(`set-${setCounter}`);
     memberSets[setId] = { members: cloneTypedMembers(typedMembersByGroup[indexes[0]]) };
     for (const index of indexes) setIdByGroupIndex.set(index, setId);
   }
@@ -247,12 +254,12 @@ function toProxyGroups(
 function toRuleProviders(
   config: RouteKitProjectConfig,
   issues: Diagnostic[],
+  allocateId: (candidate: string) => string,
 ): { providers: RuleProviderV2[]; outputToProvider: Map<string, ProviderInfo> } {
-  const allocateId = createIdAllocator((index) => `provider-${index + 1}`);
   const providers: RuleProviderV2[] = [];
   const outputToProvider = new Map<string, ProviderInfo>();
   (config.ruleProviders ?? []).forEach((provider, index) => {
-    const id = allocateId(slugifyName(provider.name), index);
+    const id = allocateId(slugifyName(provider.name) || `provider-${index + 1}`);
     const sourceIdSeen = new Set<string>();
     const sources: ProviderSourceV2[] = provider.sources.map((source, sourceIndex) => {
       let candidate = slugifyName(source.name);
@@ -397,8 +404,8 @@ function toRoutes(
   nameToId: Map<string, string>,
   outputToProvider: ReadonlyMap<string, ProviderInfo>,
   issues: Diagnostic[],
+  allocateId: (candidate: string) => string,
 ): RouteV2[] {
-  const allocateId = createIdAllocator((index) => `route-${index + 1}`);
   const routes: RouteV2[] = [];
   config.ruleSets.forEach((ruleSet, index) => {
     if (ruleSet.enabled === false) {
@@ -413,7 +420,7 @@ function toRoutes(
       return;
     }
     routes.push({
-      id: allocateId(slugifyName(ruleSet.id), index),
+      id: allocateId(slugifyName(ruleSet.id) || `route-${index + 1}`),
       policy: toPolicyTarget(ruleSet, index, nameToId, issues),
       source: toRouteSource(ruleSet, index, outputToProvider, config, issues),
       ...(ruleSet.section === undefined ? {} : { section: ruleSet.section }),
@@ -422,11 +429,12 @@ function toRoutes(
   return routes;
 }
 
-function toVendorRepos(repos: VendorRepoConfig[], issues: Diagnostic[]): VendorRepoV2[] {
-  const allocateId = createIdAllocator((index) => `vendor-${index + 1}`);
+/** vendorRepos 不参与四集合的全局查重，保持集合内独立去重。 */
+function toVendorRepos(repos: VendorRepoConfig[]): VendorRepoV2[] {
+  const allocateId = createGlobalIdAllocator();
   return repos.map((repo, index) => ({
     ...repo,
-    id: allocateId(slugifyName(repo.name), index),
+    id: allocateId(slugifyName(repo.name) || `vendor-${index + 1}`),
   }));
 }
 
@@ -477,14 +485,19 @@ export function planLegacyMigration(config: RouteKitProjectConfig): MigrationPla
   const issues: Diagnostic[] = [];
   collectProjectLevelIssues(config, issues);
 
-  const { ids: groupIds, nameToId } = toProxyGroupIds(config.customProxyGroups, issues);
+  // 全局唯一 id 分配，顺序固定：proxyGroups → memberSets → ruleProviders → routes。
+  const allocateId = createGlobalIdAllocator();
+  const { ids: groupIds, nameToId } = toProxyGroupIds(config.customProxyGroups, allocateId);
   const typedMembersByGroup = config.customProxyGroups.map((group, index) =>
     toTypedMembers(group, index, nameToId, issues),
   );
-  const { memberSets, setIdByGroupIndex } = extractMemberSets(typedMembersByGroup);
+  const { memberSets, setIdByGroupIndex } = extractMemberSets(
+    typedMembersByGroup,
+    allocateId,
+  );
 
-  const { providers, outputToProvider } = toRuleProviders(config, issues);
-  const routes = toRoutes(config, nameToId, outputToProvider, issues);
+  const { providers, outputToProvider } = toRuleProviders(config, issues, allocateId);
+  const routes = toRoutes(config, nameToId, outputToProvider, issues, allocateId);
 
   const project: ProjectV2 = {
     template: { output: config.template.output },
@@ -507,7 +520,7 @@ export function planLegacyMigration(config: RouteKitProjectConfig): MigrationPla
     ruleProviders: providers,
     ...(config.vendorRepos.length === 0
       ? {}
-      : { vendorRepos: toVendorRepos(config.vendorRepos, issues) }),
+      : { vendorRepos: toVendorRepos(config.vendorRepos) }),
   };
 
   return {

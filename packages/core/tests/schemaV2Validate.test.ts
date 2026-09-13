@@ -205,16 +205,50 @@ describe("validateAuthorProjectConfigV2", () => {
     ]);
   });
 
-  it("rejects provider sources inconsistent with the provider behavior", () => {
+  it("accepts domain providers fed by all three source kinds (v1 keeps only DOMAIN rules)", () => {
     const config = validConfig();
     config.ruleProviders = [
       provider("ads", {
         sources: [
           {
-            id: "ads-raw",
-            name: "ads raw list",
+            id: "ads-list",
+            name: "ads list",
             type: "clash-list",
             path: "rules/ads.list",
+          },
+          {
+            id: "ads-provider",
+            name: "ads provider",
+            type: "clash-provider",
+            path: "rules/ads.yaml",
+          },
+          {
+            id: "ads-dlc",
+            name: "ads dlc",
+            type: "domain-list-community",
+            entry: "google",
+          },
+        ],
+      }),
+    ];
+
+    // v1 生成链（rules.ts normalizeDomainRule）对任意来源只保留
+    // DOMAIN-SUFFIX / DOMAIN，domain provider 接受三类 source 语义无损。
+    expect(validateAuthorProjectConfigV2(config)).toEqual([]);
+  });
+
+  it("rejects ipcidr providers fed by domain-list-community sources", () => {
+    const config = validConfig();
+    config.ruleProviders = [
+      ...config.ruleProviders,
+      provider("ips", {
+        behavior: "ipcidr",
+        sources: [
+          {
+            id: "ips-dlc",
+            name: "ips dlc",
+            type: "domain-list-community",
+            entry: "google",
           },
         ],
       }),
@@ -224,8 +258,8 @@ describe("validateAuthorProjectConfigV2", () => {
       expect.objectContaining({
         code: "validate.provider.behavior-mismatch",
         severity: "error",
-        path: "ruleProviders[0].sources[0]",
-        related: ["ads-raw"],
+        path: "ruleProviders[1].sources[0]",
+        related: ["ips-dlc"],
       }),
     ]);
   });
@@ -295,7 +329,7 @@ describe("validateNormalizedProject", () => {
     ]);
   });
 
-  it("reports groups whose members expand to nothing", () => {
+  it("reports groups whose members expand to nothing without node filters", () => {
     const config = validConfig();
     config.proxyGroups = [
       ...config.proxyGroups,
@@ -308,9 +342,27 @@ describe("validateNormalizedProject", () => {
         code: "validate.group.empty-members",
         severity: "error",
         path: "proxyGroups.lonely",
-        message: "策略组 lonely 展开后没有任何成员",
+        message: "策略组 lonely 展开后没有任何成员，且未配置节点过滤器",
       }),
     ]);
+  });
+
+  it("allows filter-only groups with no members (v1 subscription node filter)", () => {
+    const config = validConfig();
+    config.proxyGroups = [
+      ...config.proxyGroups,
+      // v1 常态：空 options + nodeFilters 的 url-test 叶子组，按过滤器选订阅节点。
+      group("filtered-hk", {
+        type: "url-test",
+        members: [],
+        nodeFilters: [{ match: ".*" }],
+      }),
+    ];
+
+    const { project, diagnostics } = normalizeAuthorProjectConfig(config);
+    // normalize 层对空成员 + 过滤器的组不报任何诊断。
+    expect(diagnostics).toEqual([]);
+    expect(validateNormalizedProject(project)).toEqual([]);
   });
 
   it("treats builtin-only groups as non-empty", () => {
