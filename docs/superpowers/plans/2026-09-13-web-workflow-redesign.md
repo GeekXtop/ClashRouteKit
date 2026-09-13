@@ -64,8 +64,8 @@
 
 ## Verification（整体验收）
 
-- [ ] `pnpm test` 全绿（≥ Phase C 收尾 504）。
-- [ ] `pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 通过。
-- [ ] `pnpm dev` 四页走查：导入在项目页、路由页无重复预览、输出页默认设备配置标签。
-- [ ] v1→v2 迁移复核全流程（含失败不写入）与 v1 编辑回归测试通过。
-- [ ] `git status` 干净（除 `.claude/settings.json` 与 ignored）。
+- [x] `pnpm test` 全绿（≥ Phase C 收尾 504）。
+- [x] `pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 通过。
+- [x] `pnpm dev` 四页走查：导入在项目页、路由页无重复预览、输出页默认设备配置标签。
+- [x] v1→v2 迁移复核全流程（含失败不写入）与 v1 编辑回归测试通过。
+- [x] `git status` 干净（除 `.claude/settings.json` 与 ignored）。

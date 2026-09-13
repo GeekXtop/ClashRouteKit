@@ -151,3 +151,14 @@
 - 已验证：`pnpm test` 71 文件 504 测试（Phase C 前 404 → +100）、typecheck、build、check、generate、migrate 冒烟、dev 与 serve 双路 HTTP 冒烟全部通过；远端 CI（publish 工作流）对已推送 main 首跑成功。
 - 已提交：`6bdf6d8` 骨架与配置模块、`4427b65` 模块迁移、`45ffbc0` HTTP 装配迁移、`6920390` 用例下沉与本地设置接线；计划 checklist 全勾（docs/superpowers/plans/2026-09-13-local-server-boundary.md）。
 - 下一步：Phase D（Web 工作流四页信息架构 + 迁移复核 + 稳定 ID mutation）。
+
+## 2026-09-13 - Phase D：Web 工作流重构完成
+
+- 已完成：一级导航"项目 / 规则库 / 路由 / 输出"；项目页（空态导入向导入口、Schema 状态卡、四任务域摘要、继续编辑、重新导入）；发布页改造为输出页同页双标签"设备配置（默认）/ GitHub 发布（可选）"，顶栏导入按钮移除。
+- 已完成：路由页去重复（删除 GroupContextPanel 只读预览与常驻 INI 预览，策略组紧凑列表 + "被 N 条路由使用"计数 + 筛选定位，"查看生成结果"按需模态，校验汇总条 + 错误就近定位）；规则库页健康汇总条（待补全/失效/阻断三类）+ 空来源与 .mrs 强制禁用草稿 + 仓库设置收纳 + RepoModal addonBefore 弃用警告清零。
+- 已完成：v2 通路端到端——local-server 迁移分析/应用端点（备份 + 原子写入 + 校验链拒绝）、config GET/PUT 按 schemaVersion 分发、迁移复核三步向导（摘要/问题复核、浏览器端 v2→INI 语义对比、确认应用失败不写入）、v2 稳定 ID 编辑通路（组/路由/provider/memberSets mutation、双抽屉分支、渲染投影）、移除"v2 即将支持"占位。
+- 已修复：core 迁移规划器三处数据级缺陷（ID 全局唯一化、空成员组+nodeFilters 合法语义、behavior 规则对齐 v1 渲染）——修复前真实配置迁移 plan 被 422 拒绝 43 条 error，修复后全链 0 诊断。
+- 已验证：`pnpm test` 84 文件 670 测试（Phase D 前 504 → +166）、typecheck、build、check、generate 全绿；浏览器走查：项目页/迁移向导（真实配置摘要 52/52/12/4、0 错误 0 警告 1 提示）/路由页/输出页全部符合规格；dev 进程与浏览器标签已清理。
+- 未尽事项：360px 移动端深度走查与键盘焦点逐项核查（规格第 10 节）未逐条执行，组件级测试已覆盖主要断言；OutputPage 的 v2 渲染仍走投影（publishBaseUrl 占位，待 Phase E 本地设置接入）。
+- 已提交：9ab7e21 四页导航、e2f7f22 路由页重构、35c1f25 规则库增强、29c06c4 迁移端点、0c35685 复核向导、527bb0b config v2 分发、96475b4 core 语义修复、60d0c85 v2 数据层、4173e2b v2 UI 接线。
+- 下一步：Phase E（设备配置默认本地模板闭环、GitHub 发布真实分支流向与 Actions 状态、workflow concurrency）。
