@@ -10,19 +10,21 @@ import { createBlankProjectConfig } from "./features/project/projectMeta.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
 import { bundledProjectConfig, bundledProjectConfigYaml } from "./config.js";
-import { loadLocalProjectConfig, saveLocalProjectConfig } from "./localProject.js";
+import { saveLocalProjectConfig } from "./localProject.js";
 import { notifyError } from "./notify.js";
 import {
   canSaveProject,
   createProjectController,
-  markProjectMigrated,
+  createProjectControllerFromDocument,
   markProjectSaved,
+  markV2ProjectSaved,
   setProjectSelection,
   setProjectStatus,
   updateProjectValidation,
   type ProjectView,
 } from "./projectController.js";
 import { useProjectDraftActions } from "./useProjectDraftActions.js";
+import { fetchProjectDocument, saveV2Project, serializeV2Project } from "./v2/v2Project.js";
 
 export default function App() {
   const [project, setProject] = useState(() =>
@@ -58,19 +60,17 @@ export default function App() {
   }
 
   function refreshConfig() {
-    void loadLocalProjectConfig()
-      .then((result) => setProject(createProjectController(result)))
+    void fetchProjectDocument()
+      .then((document) => setProject(createProjectControllerFromDocument(document)))
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
   }
 
   /**
-   * 迁移应用成功后的刷新：优先重载配置；v2 文件在服务端 GET /api/project/config
-   * 仍保持 v1 形状时无法解析（400），此时本地把快照标记为 Schema v2 并阻断 v1 保存。
+   * 迁移应用成功后的刷新：GET /api/project/config 现按 schemaVersion 分发
+   * （v2 返回 { schemaVersion: 2, yaml }），直接经 v2 装载链重建快照。
    */
   function handleMigrated() {
-    void loadLocalProjectConfig()
-      .then((result) => setProject(createProjectController(result)))
-      .catch(() => setProject((current) => markProjectMigrated(current)));
+    refreshConfig();
   }
 
   function runCheck() {
@@ -104,9 +104,9 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     setProject((current) => setProjectStatus(current, "loading", "正在读取本地 config/routes.yaml"));
-    void loadLocalProjectConfig()
-      .then((result) => {
-        if (alive) setProject(createProjectController(result));
+    void fetchProjectDocument()
+      .then((document) => {
+        if (alive) setProject(createProjectControllerFromDocument(document));
       })
       .catch((error: unknown) => {
         if (!alive) return;
@@ -131,6 +131,24 @@ export default function App() {
     }
     const timer = setTimeout(() => {
       setProject((current) => setProjectStatus(current, "saving", "正在保存"));
+      if (project.schemaVersion === 2 && project.v2) {
+        // v2 保存链路：以序列化后的 v2 作者配置整体提交（v1 投影不参与保存）。
+        void saveV2Project(serializeV2Project(project.v2.config))
+          .then((result) => {
+            if (result.ok) {
+              setProject((current) => markV2ProjectSaved(current, result.yaml));
+            } else {
+              setProject((current) => setProjectStatus(current, "error", result.reason));
+              notifyError(result.reason);
+            }
+          })
+          .catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error);
+            setProject((current) => setProjectStatus(current, "error", message));
+            notifyError(message);
+          });
+        return;
+      }
       void saveLocalProjectConfig(project.draftConfig)
         .then((result) => setProject((current) => markProjectSaved(current, result)))
         .catch((error: unknown) => {

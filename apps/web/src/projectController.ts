@@ -1,10 +1,18 @@
 import {
   serializeRouteKitConfig,
   validateLegacyProjectConfig,
+  type AuthorProjectConfigV2,
   type Diagnostic,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import { detectSchemaVersion, type ProjectSchemaVersion } from "./features/project/projectMeta.js";
+import {
+  analyzeV2Config,
+  loadV2Project,
+  serializeV2Project,
+  type ProjectDocument,
+  type V2ProjectState,
+} from "./v2/v2Project.js";
 
 export type ProjectView = "project" | "library" | "routing" | "output";
 export type ProjectStatus = "loading" | "ready" | "saving" | "error";
@@ -25,6 +33,12 @@ export interface ProjectControllerState {
   message: string;
   /** 项目作者配置的 schema 版本（1 = 无 schemaVersion 的 v1 文档）。 */
   schemaVersion: ProjectSchemaVersion;
+  /**
+   * Schema v2 项目状态：v2 文档成功装载时存在（config + 诊断 + 摘要）。
+   * v1 项目恒为 undefined；装载失败（结构错误）时也为 undefined，
+   * 此时 canSaveProject 拒绝保存并提示。
+   */
+  v2?: V2ProjectState;
   validation: ProjectValidationState;
   selectedView: ProjectView;
   selectedRuleSetId: string;
@@ -205,18 +219,142 @@ export function markProjectSaved(
   };
 }
 
+/**
+ * Schema v2 项目的 v1 只读投影：v2 页面接线完成前，v1 页面以空投影渲染
+ * （各页面已有 SchemaV2Notice 提示），v1 草稿字段仅作占位，永不参与 v2 保存。
+ */
+function v2ReadOnlyProjection(templateOutput: string): RouteKitProjectConfig {
+  return {
+    publishBaseUrl: "",
+    template: { output: templateOutput },
+    vendorRepos: [],
+    customProxyGroups: [],
+    ruleSets: [],
+    ruleProviders: [],
+  };
+}
+
+/**
+ * Schema v2 项目控制器：装载失败（YAML / 结构错误）时不抛出，
+ * v2 状态留空并置 error 状态提示；canSaveProject 会拒绝保存。
+ */
+export function createV2ProjectController(yaml: string): ProjectControllerState {
+  let v2: V2ProjectState | undefined;
+  let status: ProjectStatus = "ready";
+  let message = "已读取本地 config/routes.yaml（Schema v2）";
+  try {
+    v2 = loadV2Project(yaml);
+  } catch (error) {
+    status = "error";
+    message = error instanceof Error ? error.message : String(error);
+  }
+  const projection = v2ReadOnlyProjection(
+    v2?.config.project?.template?.output ?? "Custom_Clash.ini",
+  );
+  return {
+    originalYaml: yaml,
+    originalConfig: projection,
+    draftConfig: projection,
+    draftYaml: yaml,
+    dirty: false,
+    status,
+    message,
+    schemaVersion: 2,
+    v2,
+    validation: {
+      status: "idle",
+      output: "尚未运行检查",
+    },
+    selectedView: "project",
+    selectedRuleSetId: "",
+    selectedCustomProxyGroupName: "",
+    selectedProviderName: "",
+    selectedRuleFile: "",
+  };
+}
+
+/** 按 GET /api/project/config 的分发结果创建对应版本的控制器。 */
+export function createProjectControllerFromDocument(
+  document: ProjectDocument,
+): ProjectControllerState {
+  return document.schemaVersion === 2
+    ? createV2ProjectController(document.yaml)
+    : createProjectController(document);
+}
+
+/**
+ * 应用一次 v2 mutation 结果：重算诊断与摘要、重新序列化草稿 yaml，
+ * 并以序列化结果对比装载基线计算脏状态。
+ */
+export function applyV2Config(
+  state: ProjectControllerState,
+  config: AuthorProjectConfigV2,
+): ProjectControllerState {
+  if (state.schemaVersion !== 2 || !state.v2) return state;
+  const { diagnostics, normalizedSummary } = analyzeV2Config(config);
+  const yaml = serializeV2Project(config);
+  return {
+    ...state,
+    v2: { config, diagnostics, normalizedSummary },
+    draftYaml: yaml,
+    dirty: yaml !== state.originalYaml,
+    status: state.status === "saving" ? "ready" : state.status,
+  };
+}
+
+/** v2 保存成功后的基线重置：以服务器规范化后的 yaml 为新基线。 */
+export function markV2ProjectSaved(state: ProjectControllerState, yaml: string): ProjectControllerState {
+  if (state.schemaVersion !== 2 || !state.v2) return state;
+  const warnings = state.v2.diagnostics.filter(
+    (diagnostic) => diagnostic.severity === "warning",
+  );
+  return {
+    ...state,
+    originalYaml: yaml,
+    draftYaml: yaml,
+    dirty: false,
+    status: "ready",
+    message:
+      warnings.length > 0
+        ? `已保存，${warnings.length} 条配置警告待处理`
+        : "已保存 config/routes.yaml，可运行检查、生成和提交",
+  };
+}
+
 export function canSaveProject(state: ProjectControllerState): SaveReadiness {
+  if (state.schemaVersion === 2) {
+    const v2 = state.v2;
+    if (!v2) {
+      return {
+        ok: false,
+        reason: "Schema v2 配置未成功装载，无法保存",
+        diagnostics: projectDiagnostics(state.draftConfig),
+        warnings: [],
+      };
+    }
+    const warnings = v2.diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
+    if (!state.dirty) {
+      return {
+        ok: false,
+        reason: "没有未保存的修改",
+        diagnostics: v2.diagnostics,
+        warnings,
+      };
+    }
+    const error = v2.diagnostics.find((diagnostic) => diagnostic.severity === "error");
+    if (error) {
+      return {
+        ok: false,
+        reason: error.message,
+        diagnostics: v2.diagnostics,
+        warnings,
+      };
+    }
+    return { ok: true, warnings };
+  }
+
   const diagnostics = projectDiagnostics(state.draftConfig);
   const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
-  if (state.schemaVersion === 2) {
-    // v2 项目文件不能被 v1 序列化覆盖写回；v2 实体编辑由后续任务提供。
-    return {
-      ok: false,
-      reason: "Schema v2 项目暂不支持 v1 编辑保存",
-      diagnostics,
-      warnings,
-    };
-  }
   if (!state.dirty) {
     return {
       ok: false,
@@ -237,18 +375,4 @@ export function canSaveProject(state: ProjectControllerState): SaveReadiness {
   }
 
   return { ok: true, warnings };
-}
-
-/**
- * 迁移复核应用成功后的本地标记：把快照切到 Schema v2 并清空脏状态，
- * 阻断后续 v1 自动保存。配置重载由 App 层 refresh 链路负责。
- */
-export function markProjectMigrated(state: ProjectControllerState): ProjectControllerState {
-  return {
-    ...state,
-    schemaVersion: 2,
-    dirty: false,
-    status: "ready",
-    message: "已迁移到 Schema v2（v2 实体编辑即将支持）",
-  };
 }

@@ -5,7 +5,6 @@ import {
   applyDraftConfig,
   canSaveProject,
   createProjectController,
-  markProjectMigrated,
   markProjectSaved,
   setProjectSelection,
   updateProjectValidation,
@@ -312,20 +311,5 @@ describe("project controller schema version", () => {
       ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
     });
     expect(next.schemaVersion).toBe(1);
-  });
-
-  it("blocks v1 save on migrated snapshots and marks the project as schema v2", () => {
-    const config = createConfig();
-    const migrated = markProjectMigrated(
-      createProjectController({ yaml: serializeRouteKitConfig(config), config }),
-    );
-    expect(migrated.schemaVersion).toBe(2);
-    expect(migrated.dirty).toBe(false);
-
-    const readiness = canSaveProject({ ...migrated, dirty: true });
-    expect(readiness.ok).toBe(false);
-    if (!readiness.ok) {
-      expect(readiness.reason).toBe("Schema v2 项目暂不支持 v1 编辑保存");
-    }
   });
 });
