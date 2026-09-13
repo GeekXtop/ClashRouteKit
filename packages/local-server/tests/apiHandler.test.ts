@@ -53,6 +53,27 @@ const yamlWithRepos = (repos: string) =>
 
 const baseOptions = { root: "E:/repo", configFile: "config/routes.yaml" };
 
+const validV2Yaml = [
+  "schemaVersion: 2",
+  "project:",
+  "  template:",
+  "    output: Custom_Clash.ini",
+  "proxyGroups:",
+  "  - id: proxy",
+  "    name: Proxy",
+  "    type: select",
+  "    members:",
+  "      - builtin: DIRECT",
+  "routes:",
+  "  - id: final",
+  "    policy:",
+  "      group: proxy",
+  "    source:",
+  "      type: final",
+  "ruleProviders: []",
+  "",
+].join("\n");
+
 const files: Record<string, string> = {
   "routes.yaml": validConfigYaml,
   openai: "openai.com\nfull:chatgpt.com\n",
@@ -134,10 +155,33 @@ describe("createRouteKitApiHandler", () => {
     const res = await callHandler(handler, "/api/project/config");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
-    const payload = JSON.parse(res.body) as { yaml: string; config: RouteKitProjectConfig; mtime: number };
+    const payload = JSON.parse(res.body) as {
+      yaml: string;
+      config: RouteKitProjectConfig;
+      mtime: number;
+      schemaVersion: number;
+    };
+    expect(payload.schemaVersion).toBe(1);
     expect(payload.yaml).toBe(validConfigYaml);
     expect(payload.config.ruleSets[0]?.id).toBe("final");
     expect(typeof payload.mtime).toBe("number");
+  });
+
+  it("returns schemaVersion 2 with yaml and without v1 fields for a migrated config", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => validV2Yaml,
+    });
+    const res = await callHandler(handler, "/api/project/config");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+    const payload = JSON.parse(res.body) as Record<string, unknown> & {
+      schemaVersion: number;
+      yaml: string;
+    };
+    expect(payload.schemaVersion).toBe(2);
+    expect(payload.yaml).toBe(validV2Yaml);
+    expect("config" in payload).toBe(false);
   });
 
   it("responds 500 with an error payload when the config file cannot be read", async () => {
@@ -215,6 +259,121 @@ describe("createRouteKitApiHandler", () => {
     const res = await callHandler(handler, "/api/project/config", "PUT", "{not-json");
     expect(res.status).toBe(400);
     expect((JSON.parse(res.body) as { ok: boolean }).ok).toBe(false);
+  });
+
+  it("saves a v2 config via PUT with schemaVersion 2 and pins it at the top", async () => {
+    const writes: Array<{ filePath: string; text: string }> = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      writeText: async (filePath, text) => {
+        writes.push({ filePath, text });
+      },
+    });
+    // 客户端 yaml 里 schemaVersion 不在首位，服务端保存后应固定置顶
+    const reordered = validV2Yaml.replace("schemaVersion: 2\n", "").replace(
+      "proxyGroups:",
+      "schemaVersion: 2\nproxyGroups:",
+    );
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: reordered }),
+    );
+    expect(res.status).toBe(200);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      schemaVersion: number;
+      yaml: string;
+      mtime: number;
+      diagnostics: Array<{ severity: string }>;
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.schemaVersion).toBe(2);
+    expect(payload.yaml.startsWith("schemaVersion: 2\n")).toBe(true);
+    expect(payload.diagnostics.every((diagnostic) => diagnostic.severity !== "error")).toBe(true);
+    expect(writes[0]?.filePath).toBe(path.resolve("E:/repo", "config/routes.yaml"));
+    expect(writes[0]?.text).toBe(payload.yaml);
+  });
+
+  it("routes a yaml-only PUT body with a v2 document to the v2 save path", async () => {
+    let written = "";
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      writeText: async (_filePath, text) => {
+        written = text;
+      },
+    });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ yaml: validV2Yaml }),
+    );
+    expect(res.status).toBe(200);
+    expect((JSON.parse(res.body) as { ok: boolean }).ok).toBe(true);
+    expect(written.startsWith("schemaVersion: 2\n")).toBe(true);
+  });
+
+  it("responds 422 with diagnostics for an invalid v2 config and writes nothing", async () => {
+    const writes: string[] = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      writeText: async (filePath) => {
+        writes.push(filePath);
+      },
+    });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: validV2Yaml.replace("group: proxy", "group: ghost") }),
+    );
+    expect(res.status).toBe(422);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      diagnostics: Array<{ severity: string }>;
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.diagnostics.some((diagnostic) => diagnostic.severity === "error")).toBe(true);
+    expect(writes).toEqual([]);
+  });
+
+  it("responds 400 with diagnostics for broken v2 yaml", async () => {
+    const writes: string[] = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      writeText: async (filePath) => {
+        writes.push(filePath);
+      },
+    });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: "proxyGroups: [unclosed\n" }),
+    );
+    expect(res.status).toBe(400);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      output: string;
+      diagnostics: Array<{ code: string }>;
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.diagnostics[0]?.code).toBe("config.yaml.invalid");
+    expect(writes).toEqual([]);
+  });
+
+  it("rejects PUT /api/project/config with schemaVersion 2 but no yaml", async () => {
+    const handler = createRouteKitApiHandler({ ...baseOptions, writeText: async () => {} });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2 }),
+    );
+    expect(res.status).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Missing v2 config yaml" });
   });
 
   it("responds 405 for unsupported methods on /api/project/config", async () => {
@@ -515,27 +674,6 @@ describe("POST /api/project/migrate", () => {
     "",
   ].join("\n");
 
-  const v2Yaml = [
-    "schemaVersion: 2",
-    "project:",
-    "  template:",
-    "    output: Custom_Clash.ini",
-    "proxyGroups:",
-    "  - id: proxy",
-    "    name: Proxy",
-    "    type: select",
-    "    members:",
-    "      - builtin: DIRECT",
-    "routes:",
-    "  - id: final",
-    "    policy:",
-    "      group: proxy",
-    "    source:",
-    "      type: final",
-    "ruleProviders: []",
-    "",
-  ].join("\n");
-
   it("returns a read-only migration plan with summary for a v1 config", async () => {
     const handler = createRouteKitApiHandler({
       ...baseOptions,
@@ -557,7 +695,7 @@ describe("POST /api/project/migrate", () => {
   it("reports currentSchemaVersion 2 without a plan", async () => {
     const handler = createRouteKitApiHandler({
       ...baseOptions,
-      readText: async () => v2Yaml,
+      readText: async () => validV2Yaml,
     });
     const res = await callHandler(handler, "/api/project/migrate", "POST");
     expect(res.status).toBe(200);

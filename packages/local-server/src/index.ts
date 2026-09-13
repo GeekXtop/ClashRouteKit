@@ -1,14 +1,22 @@
 export { writeFileAtomic } from "./config/atomic.js";
 export {
+  readAuthorProjectFile,
   projectConfigPath,
   readAuthorProject,
   readConfig,
   readProjectConfigFile,
+  saveAuthorProject,
   writeProjectConfigFile,
+  type AuthorProjectFileOptions,
   type ProjectConfigFileOptions,
   type ProjectConfigFileResult,
   type ProjectOptions,
+  type ReadAuthorProjectFileResult,
   type ReadText,
+  type SaveAuthorProjectOptions,
+  type SaveAuthorProjectRejection,
+  type SaveAuthorProjectResult,
+  type SaveAuthorProjectSuccess,
   type WriteProjectConfigFileOptions,
   type WriteText,
 } from "./config/configRepository.js";

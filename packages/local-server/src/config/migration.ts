@@ -1,19 +1,17 @@
 import { readFile, stat } from "node:fs/promises";
-import YAML from "yaml";
 import {
-  ConfigDiagnosticError,
   hasDiagnosticErrors,
-  normalizeAuthorProjectConfig,
   parseAuthorProjectConfig,
-  parseAuthorProjectConfigV2,
   planLegacyMigration,
-  validateAuthorProjectConfigV2,
-  validateNormalizedProject,
-  type AuthorProjectConfigV2,
   type Diagnostic,
   type MigrationPlan,
 } from "@clash-route-kit/core";
 import { writeFileAtomic } from "./atomic.js";
+import {
+  serializeAuthorProjectV2,
+  toConfigDiagnosticError,
+  validateAuthorProjectV2Yaml,
+} from "./authorProjectV2.js";
 import {
   projectConfigPath,
   type ProjectOptions,
@@ -68,18 +66,6 @@ export interface ApplyMigrationRejection {
 
 export type ApplyMigrationResult = ApplyMigrationSuccess | ApplyMigrationRejection;
 
-function toConfigDiagnosticError(error: unknown): ConfigDiagnosticError {
-  if (error instanceof ConfigDiagnosticError) return error;
-  return new ConfigDiagnosticError([
-    {
-      code: "config.yaml.invalid",
-      severity: "error",
-      path: "config",
-      message: `配置解析失败：${error instanceof Error ? error.message : String(error)}`,
-    },
-  ]);
-}
-
 /**
  * 只读迁移分析：读当前配置 → parseAuthorProjectConfig 分发。
  * v1 返回 planLegacyMigration 的完整计划；v2 返回 currentSchemaVersion: 2 且 plan 为 null。
@@ -105,34 +91,6 @@ export async function analyzeMigration(
     throw new Error("parseAuthorProjectConfig returned schemaVersion 1 without a v1 config");
   }
   return { currentSchemaVersion: 1, plan: planLegacyMigration(v1) };
-}
-
-interface DraftValidation {
-  parsed: AuthorProjectConfigV2;
-  diagnostics: Diagnostic[];
-}
-
-/**
- * 对重新序列化后的 v2 YAML 走完整校验链（parser → author validate →
- * normalize → normalized validate），返回解析结果与全部诊断。
- * 纯函数：不触碰文件系统；parser 结构错误转为 ConfigDiagnosticError 上抛由调用方决策。
- */
-function validateDraftYaml(yamlText: string): DraftValidation {
-  let draft: AuthorProjectConfigV2;
-  try {
-    draft = parseAuthorProjectConfigV2(yamlText);
-  } catch (error) {
-    throw toConfigDiagnosticError(error);
-  }
-  const normalized = normalizeAuthorProjectConfig(draft);
-  return {
-    parsed: draft,
-    diagnostics: [
-      ...validateAuthorProjectConfigV2(draft),
-      ...normalized.diagnostics,
-      ...validateNormalizedProject(normalized.project),
-    ],
-  };
 }
 
 async function resolveBackupPath(
@@ -169,12 +127,10 @@ export async function applyMigration(options: ApplyMigrationOptions): Promise<Ap
   const configPath = projectConfigPath(options);
 
   // 1. 服务端重新序列化（schemaVersion: 2 固定首位），不信任客户端传来的 YAML 文本。
-  const { schemaVersion: _clientVersion, ...draftRest } = options.plan.draft;
-  const draft: AuthorProjectConfigV2 = { schemaVersion: 2, ...draftRest };
-  const yamlText = YAML.stringify(draft, { lineWidth: 0 }).replace(/\n?$/, "\n");
+  const yamlText = serializeAuthorProjectV2(options.plan.draft);
 
   // 2. 完整校验链；error 拒绝且不触碰文件系统。
-  const validation = validateDraftYaml(yamlText);
+  const validation = validateAuthorProjectV2Yaml(yamlText);
   if (hasDiagnosticErrors(validation.diagnostics)) {
     return { ok: false, diagnostics: validation.diagnostics };
   }

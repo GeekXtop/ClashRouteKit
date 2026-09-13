@@ -7,10 +7,12 @@ import {
   parseRouteKitConfig,
   serializeRouteKitConfig,
   validateLegacyProjectConfig,
+  type Diagnostic,
   type ParsedAuthorProjectConfig,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import { writeFileAtomic } from "./atomic.js";
+import { serializeAuthorProjectV2, validateAuthorProjectV2Yaml } from "./authorProjectV2.js";
 
 /**
  * 项目定位所需的最小字段集；与 apps/cli 的 ProgramOptions 结构一致，
@@ -79,6 +81,99 @@ export async function readProjectConfigFile(
     yaml,
     config: parseRouteKitConfig(yaml),
     mtime: await statMtime(configPath),
+  };
+}
+
+export interface AuthorProjectFileOptions extends ProjectOptions {
+  readText?: ReadText;
+  statMtime?: (filePath: string) => Promise<number>;
+}
+
+/**
+ * readAuthorProjectFile 结果：按顶层 schemaVersion 分发——
+ * v1 保留既有响应形状（yaml / config / mtime）并追加 schemaVersion: 1；
+ * v2 返回 { schemaVersion: 2, yaml, mtime }，不含 v1 解析字段（config）。
+ */
+export type ReadAuthorProjectFileResult =
+  | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig; mtime: number }
+  | { schemaVersion: 2; yaml: string; mtime: number };
+
+/**
+ * GET /api/project/config 的读取路径：经 parseAuthorProjectConfig 分发 v1/v2，
+ * 修复"迁移后 GET 返回错误"的缺口。既有 readProjectConfigFile（vendorSync、
+ * catalog 端点消费，依赖 v1 config）保持不变。
+ */
+export async function readAuthorProjectFile(
+  options: AuthorProjectFileOptions,
+): Promise<ReadAuthorProjectFileResult> {
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
+  const statMtime =
+    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
+  const configPath = projectConfigPath(options);
+  const yaml = await readText(configPath);
+  const parsed = parseAuthorProjectConfig(yaml);
+  const mtime = await statMtime(configPath);
+  if (parsed.schemaVersion === 2) {
+    return { schemaVersion: 2, yaml, mtime };
+  }
+  if (parsed.v1 === undefined) {
+    throw new Error("parseAuthorProjectConfig returned schemaVersion 1 without a v1 config");
+  }
+  return { schemaVersion: 1, yaml, config: parsed.v1, mtime };
+}
+
+export interface SaveAuthorProjectOptions extends ProjectOptions {
+  /** 客户端提交的完整 v2 YAML 文本（顶层 schemaVersion: 2）。 */
+  yaml: string;
+  writeText?: WriteText;
+  statMtime?: (filePath: string) => Promise<number>;
+}
+
+export interface SaveAuthorProjectSuccess {
+  ok: true;
+  schemaVersion: 2;
+  /** 实际写入配置文件的 v2 YAML（schemaVersion: 2 固定在文件顶部）。 */
+  yaml: string;
+  mtime: number;
+  /** 校验链中 warning 及以下的诊断。 */
+  diagnostics: Diagnostic[];
+}
+
+export interface SaveAuthorProjectRejection {
+  ok: false;
+  /** 全部校验诊断（含 error）；此时未写盘。 */
+  diagnostics: Diagnostic[];
+}
+
+export type SaveAuthorProjectResult = SaveAuthorProjectSuccess | SaveAuthorProjectRejection;
+
+/**
+ * v2 作者配置保存（plan Task 4 服务端补全）：与迁移 apply 共用
+ * authorProjectV2 的完整校验链，存在 error 级诊断返回 ok:false 且不写盘；
+ * 通过后以 schemaVersion: 2 置顶重新序列化并经 writeFileAtomic 原子写入。
+ * 解析失败（YAML 语法、v2 结构错误、schemaVersion 非 2）抛 ConfigDiagnosticError，
+ * 由 API 层转换为 400 + diagnostics。
+ */
+export async function saveAuthorProject(
+  options: SaveAuthorProjectOptions,
+): Promise<SaveAuthorProjectResult> {
+  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFileAtomic(filePath, text));
+  const statMtime =
+    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
+
+  const validation = validateAuthorProjectV2Yaml(options.yaml);
+  if (hasDiagnosticErrors(validation.diagnostics)) {
+    return { ok: false, diagnostics: validation.diagnostics };
+  }
+  const yaml = serializeAuthorProjectV2(validation.parsed);
+  const configPath = projectConfigPath(options);
+  await writeText(configPath, yaml);
+  return {
+    ok: true,
+    schemaVersion: 2,
+    yaml,
+    mtime: await statMtime(configPath),
+    diagnostics: validation.diagnostics.filter((diagnostic) => diagnostic.severity !== "error"),
   };
 }
 
