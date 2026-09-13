@@ -1,21 +1,25 @@
 import { access, readdir } from "node:fs/promises";
 import path from "node:path";
-import type {
-  Diagnostic,
-  RouteKitProjectConfig,
-  RuleProviderSource,
+import {
+  ConfigDiagnosticError,
+  hasDiagnosticErrors,
+  validateLegacyProjectConfig,
+  type Diagnostic,
+  type RouteKitProjectConfig,
+  type RuleProviderSource,
 } from "@clash-route-kit/core";
-import type { ProgramOptions } from "./program.js";
+import { readConfig, type ProjectOptions } from "../config/configRepository.js";
 
-function sourcePath(root: string, source: RuleProviderSource): string {
+function workspaceSourcePath(root: string, source: RuleProviderSource): string {
   if (source.type === "domain-list-community") {
     return path.resolve(root, source.basePath ?? "vendor/domain-list-community/data", source.entry);
   }
   return path.resolve(root, source.basePath ?? ".", source.path);
 }
 
+/** GEOSITE 目录与 provider 源文件的工作区校验；自 apps/cli workspaceValidation.ts 原样下沉。 */
 export async function validateLegacyWorkspace(
-  options: ProgramOptions,
+  options: ProjectOptions,
   config: RouteKitProjectConfig,
 ): Promise<Diagnostic[]> {
   const diagnostics: Diagnostic[] = [];
@@ -46,7 +50,7 @@ export async function validateLegacyWorkspace(
   for (const [providerIndex, provider] of (config.ruleProviders ?? []).entries()) {
     if (provider.enabled === false) continue;
     for (const [sourceIndex, source] of provider.sources.entries()) {
-      const filePath = sourcePath(options.root, source);
+      const filePath = workspaceSourcePath(options.root, source);
       try {
         await access(filePath);
       } catch {
@@ -61,4 +65,27 @@ export async function validateLegacyWorkspace(
   }
 
   return diagnostics;
+}
+
+/** Core 静态校验 + 工作区诊断；checkConfig 与 generateOutputs 写盘前共用同一诊断集合。 */
+export async function projectDiagnostics(
+  options: ProjectOptions,
+  config: RouteKitProjectConfig,
+): Promise<Diagnostic[]> {
+  return [
+    ...validateLegacyProjectConfig(config),
+    ...await validateLegacyWorkspace(options, config),
+  ];
+}
+
+export function assertNoErrors(diagnostics: readonly Diagnostic[]): void {
+  if (hasDiagnosticErrors(diagnostics)) {
+    throw new ConfigDiagnosticError(diagnostics);
+  }
+}
+
+/** check 用例：读取项目配置并返回全部诊断；error 是否阻断由调用方判定。 */
+export async function checkConfig(options: ProjectOptions): Promise<Diagnostic[]> {
+  const config = await readConfig(options);
+  return projectDiagnostics(options, config);
 }

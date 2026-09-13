@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
-import { validateLegacyWorkspace } from "../src/workspaceValidation.js";
+import { validateLegacyWorkspace } from "../src/index.js";
 
 function config(values: string[]): RouteKitProjectConfig {
   return {

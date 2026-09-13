@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createHostingHandler } from "../src/serveHosting.js";
+import { createHostingHandler } from "@clash-route-kit/local-server";
 
 function fakeRes() {
   const res: any = { statusCode: 200, headers: {} as Record<string, string>, body: "" };

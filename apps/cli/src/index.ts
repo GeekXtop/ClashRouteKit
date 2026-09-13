@@ -1,5 +1,6 @@
 import path from "node:path";
 import { formatDiagnostic, hasDiagnosticErrors } from "@clash-route-kit/core";
+import { loadLocalSettings } from "@clash-route-kit/local-server";
 import {
   buildSubconverterUrl,
   checkConfig,
@@ -7,7 +8,6 @@ import {
   importIni,
   migrateConfig,
   previewRules,
-  readConfig,
   resolveProjectRoot,
   syncVendor,
 } from "./program.js";
@@ -101,12 +101,14 @@ async function main(): Promise<void> {
   }
 
   if (command === "subconvert-url") {
+    // SubConverter 端点默认经本地设置解析：CLI 参数（无）> env > local.yaml > 默认值。
+    const settings = await loadLocalSettings({ root });
     console.log(
       await buildSubconverterUrl({
         root,
         configFile,
         subscriptionUrl: process.env.CLASH_ROUTE_KIT_SUBSCRIPTION_URL,
-        subconverterBaseUrl: process.env.CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL,
+        subconverterBaseUrl: settings.subconverterUrl,
         target: process.env.CLASH_ROUTE_KIT_SUBCONVERTER_TARGET,
       }),
     );
@@ -119,15 +121,27 @@ async function main(): Promise<void> {
       const index = args.indexOf(name);
       return index >= 0 ? args[index + 1] : undefined;
     };
-    const config = await readConfig({ root, configFile });
+    // host/port/publicBaseUrl 默认值经本地设置解析；
+    // 优先级：CLI 显式参数 > 环境变量 > .clashroutekit/local.yaml > 默认值。
+    const hostFlag = flag("--host");
+    const portFlag = flag("--port");
+    const settings = await loadLocalSettings({
+      root,
+      overrides: {
+        serve: {
+          host: hostFlag,
+          port: portFlag === undefined ? undefined : Number(portFlag),
+          publicBaseUrl: flag("--public-base"),
+        },
+      },
+    });
     const { startServe } = await import("./serve.js");
     await startServe({
       root,
       configFile,
-      host: flag("--host") ?? process.env.CLASH_ROUTE_KIT_HOST ?? "0.0.0.0",
-      port: Number(flag("--port") ?? process.env.CLASH_ROUTE_KIT_PORT ?? 8787),
-      publicBase:
-        flag("--public-base") ?? process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? config.publishBaseUrl,
+      host: settings.serve.host,
+      port: settings.serve.port,
+      publicBase: settings.serve.publicBaseUrl,
       webRoot: flag("--web-root") ?? path.resolve(root, "apps/web/dist"),
     });
     return;

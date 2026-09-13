@@ -1,6 +1,7 @@
 export { writeFileAtomic } from "./config/atomic.js";
 export {
   projectConfigPath,
+  readConfig,
   readProjectConfigFile,
   writeProjectConfigFile,
   type ProjectConfigFileOptions,
@@ -38,6 +39,27 @@ export {
   type CatalogSourceInfo,
   type CatalogSourcesOptions,
 } from "./catalog/catalog.js";
+export {
+  assertNoErrors,
+  checkConfig,
+  projectDiagnostics,
+  validateLegacyWorkspace,
+} from "./check/checkConfig.js";
+export {
+  createDefaultDependencies,
+  DEFAULT_PROJECT_CONFIG_FILE,
+  type DefaultDependencies,
+} from "./dependencies.js";
+export {
+  generateOutputs,
+  resolveInputPath,
+  type DuplicateRuleSummary,
+  type GenerateResult,
+  type ProviderDuplicateSummary,
+  type ProviderOutputSummary,
+  type ProviderOverlapSummary,
+  type SourceContributionSummary,
+} from "./generate/generateOutputs.js";
 export {
   defaultRunCommand,
   readGitRemote,
@@ -77,6 +99,11 @@ export {
   type VendorRepoMutationOptions,
   type VendorRepoUpdateResult,
 } from "./vendor/vendorSync.js";
+export {
+  syncVendor,
+  type SyncVendorOptions,
+  type VendorSyncResult,
+} from "./vendor/syncVendor.js";
 export {
   createRouteKitApiHandler,
   type ApiHandlerOptions,

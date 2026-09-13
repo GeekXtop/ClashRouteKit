@@ -43,6 +43,17 @@ export function projectConfigPath(options: ProjectOptions): string {
   return path.resolve(options.root, options.configFile);
 }
 
+/**
+ * 读取项目配置（严格解析）并应用 CLASH_ROUTE_KIT_PUBLISH_BASE_URL 环境变量覆盖
+ * publishBaseUrl（供 publish 构建使用）；自 apps/cli program.ts 原样下沉。
+ */
+export async function readConfig(options: ProjectOptions): Promise<RouteKitProjectConfig> {
+  const text = await readFile(path.join(options.root, options.configFile), "utf8");
+  const config = parseRouteKitConfig(text);
+  const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+  return publishBaseUrl ? { ...config, publishBaseUrl } : config;
+}
+
 export async function readProjectConfigFile(
   options: ProjectConfigFileOptions,
 ): Promise<ProjectConfigFileResult> {

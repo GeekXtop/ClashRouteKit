@@ -62,16 +62,16 @@
 
 ## Tasks
 
-1. [ ] 包骨架 + 原子写 + configRepository + localSettings（含优先级与 ignored）+ 测试。
-2. [ ] git / catalog / vendor 模块与测试迁移。
-3. [ ] HTTP 装配迁移、serveApi 薄化、vite 改公开入口。
-4. [ ] 本地设置接线到 hosting/CLI + README + 全量门禁。
+1. [x] 包骨架 + 原子写 + configRepository + localSettings（含优先级与 ignored）+ 测试。
+2. [x] git / catalog / vendor 模块与测试迁移。
+3. [x] HTTP 装配迁移、serveApi 薄化、vite 改公开入口。
+4. [x] 本地设置接线到 hosting/CLI + README + 全量门禁。
 
 ## Verification（整体验收）
 
-- [ ] `pnpm test` 全绿且用例总数 ≥ Phase B 收尾（404）。
-- [ ] `pnpm typecheck`、`pnpm build` 通过。
-- [ ] `pnpm check`、`pnpm generate`、`pnpm migrate` 冒烟通过。
-- [ ] `grep -r "apps/cli/src" apps/web/vite.config.ts` 无相对导入残留。
-- [ ] `git status` 干净（除 `.claude/settings.json` 与 ignored 文件）。
-- [ ] `pnpm dev` 启动后 Web 控制台可加载项目配置（浏览器或 HTTP 冒烟）。
+- [x] `pnpm test` 全绿且用例总数 ≥ Phase B 收尾（404）。
+- [x] `pnpm typecheck`、`pnpm build` 通过。
+- [x] `pnpm check`、`pnpm generate`、`pnpm migrate` 冒烟通过。
+- [x] `grep -r "apps/cli/src" apps/web/vite.config.ts` 无相对导入残留。
+- [x] `git status` 干净（除 `.claude/settings.json` 与 ignored 文件）。
+- [x] `pnpm dev` 启动后 Web 控制台可加载项目配置（浏览器或 HTTP 冒烟）。

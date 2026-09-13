@@ -8,7 +8,7 @@ import { defineConfig, type Plugin } from "vite";
 // 直接加载本包 src 内部以 .js 后缀引用的 .ts 源码）。这里沿用配置文件相对内联的
 // 方式指向 local-server 公开源码入口，保证 dev 始终命中 src 而非 dist；
 // 同名包别名仍注册在 resolve.alias 中，供客户端侧解析使用。
-import { createLocalServerContext } from "../../packages/local-server/src/index.js";
+import { createLocalServerContext, loadLocalSettings } from "../../packages/local-server/src/index.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
@@ -59,11 +59,15 @@ function routesConfigInlinePlugin(): Plugin {
 function routeKitApiPlugin(): Plugin {
   return {
     name: "route-kit-local-api",
-    configureServer(server) {
+    // local-server 的默认依赖注入让 dev 下 check/generate/sync-vendor/git-* 全部可用；
+    // publicBase 经 loadLocalSettings 解析（env CLASH_ROUTE_KIT_PUBLISH_BASE_URL >
+    // .clashroutekit/local.yaml > 默认值）。
+    async configureServer(server) {
+      const settings = await loadLocalSettings({ root: projectRoot });
       const { hostingHandler, apiHandler } = createLocalServerContext({
         root: projectRoot,
         configFile,
-        publicBase: process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "http://127.0.0.1:8787",
+        publicBase: settings.serve.publicBaseUrl,
       });
       server.middlewares.use(hostingHandler);
       server.middlewares.use(apiHandler);

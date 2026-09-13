@@ -28,6 +28,27 @@ Web UI 不需要 GitHub OAuth，也不会在浏览器保存 GitHub token。它�
 
 默认使用方式不需要 Docker。Docker 或 devcontainer 只适合作为可选开发环境，不是本项目的发布路径。
 
+## 本地运行设置
+
+`serve` / `subconvert-url` 等本地命令的默认地址来自 `.clashroutekit/local.yaml`（git ignored，不提交）。完整示例：
+
+```yaml
+serve:
+  host: 127.0.0.1
+  port: 8787
+  publicBaseUrl: http://127.0.0.1:8787
+subconverterUrl: http://127.0.0.1:25500/sub
+```
+
+优先级从高到低固定为：
+
+1. CLI 显式参数（`serve --host / --port / --public-base`）。
+2. 环境变量（`CLASH_ROUTE_KIT_HOST` / `CLASH_ROUTE_KIT_PORT` / `CLASH_ROUTE_KIT_PUBLISH_BASE_URL` / `CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL`）。
+3. `.clashroutekit/local.yaml`。
+4. 内置默认值（`127.0.0.1:8787` 与 `http://127.0.0.1:25500/sub`）。
+
+该文件只存放本地地址、端口和 SubConverter 端点；订阅 URL 与 Token 仍然不允许写入该文件或项目配置。
+
 ## 产出与发布
 
 - `output/templates/Custom_Clash.ini`：给 SubConverter-Extended 使用的 INI。

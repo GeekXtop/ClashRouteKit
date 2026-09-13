@@ -22,7 +22,7 @@ export interface RouteKitActionResult {
   diagnostics?: Diagnostic[];
 }
 
-/** 门禁校验依赖：默认实现由 CLI 层（apps/cli program.ts 的 checkConfig）注入。 */
+/** 门禁校验依赖：默认实现由 createDefaultDependencies 提供（checkConfig 已下沉本包），可显式注入覆盖。 */
 export type CheckConfigFn = (options: ProjectOptions) => Promise<Diagnostic[]>;
 
 export interface GenerateOutputsResult {
@@ -40,7 +40,7 @@ export interface GenerateOutputsResult {
   overlaps: Array<{ rule: string; providers: string[] }>;
 }
 
-/** 输出生成依赖：默认实现由 CLI 层（apps/cli program.ts 的 generateOutputs）注入。 */
+/** 输出生成依赖：默认实现由 createDefaultDependencies 提供（generateOutputs 已下沉本包），可显式注入覆盖。 */
 export type GenerateOutputsFn = (options: ProjectOptions) => Promise<GenerateOutputsResult>;
 
 export interface VendorSyncActionResult {
@@ -50,7 +50,7 @@ export interface VendorSyncActionResult {
   error?: string;
 }
 
-/** 上游同步依赖：默认实现由 CLI 层（apps/cli program.ts 的 syncVendor）注入。 */
+/** 上游同步依赖：默认实现由 createDefaultDependencies 提供（syncVendor 已下沉本包），可显式注入覆盖。 */
 export type SyncVendorFn = (options: ProjectOptions & { only?: string }) => Promise<VendorSyncActionResult[]>;
 
 export interface RouteKitActionDependencies {
@@ -87,7 +87,7 @@ function formatCheckOutput(diagnostics: readonly Diagnostic[]): string {
     : diagnostics.map((diagnostic) => `[check] ${formatDiagnostic(diagnostic)}`).join("\n");
 }
 
-/** local-server 不导入 apps/*：CLI 的默认实现必须在组装层注入，缺失时快速失败。 */
+/** local-server 不导入 apps/*：默认实现来自 createDefaultDependencies，显式传入 undefined 时快速失败。 */
 function injected<T>(value: T | undefined, name: string): T {
   if (!value) {
     throw new Error(`runRouteKitAction(${name}) requires an injected ${name} dependency`);

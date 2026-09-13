@@ -1,93 +1,37 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
 import path from "node:path";
-import { promisify } from "node:util";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import {
-  ConfigDiagnosticError,
-  collectRuleProviderRules,
-  convertDomainListCommunity,
-  generateRuleProvider,
-  hasDiagnosticErrors,
   parseAuthorProjectConfig,
   parseIniToConfig,
-  parseRouteKitConfig,
   planLegacyMigration,
-  renderIni,
   serializeRouteKitConfig,
-  summarizeRuleProvider,
-  validateLegacyProjectConfig,
-  type Diagnostic,
   type ImportedConfig,
   type MigrationPlan,
-  type ProviderRule,
-  type ProviderSummary,
   type RouteKitProjectConfig,
-  type RuleProviderSource,
-  type SourceBase,
-  type VendorRepoConfig,
 } from "@clash-route-kit/core";
-import YAML from "yaml";
-import { writeFileAtomic } from "@clash-route-kit/local-server";
-import { validateLegacyWorkspace } from "./workspaceValidation.js";
+import {
+  readConfig,
+  resolveInputPath,
+  writeFileAtomic,
+  type ProjectOptions as ProgramOptions,
+} from "@clash-route-kit/local-server";
 
-const execFileAsync = promisify(execFile);
-
-export interface ProgramOptions {
-  root: string;
-  configFile: string;
-}
-
-export interface SourceContributionSummary {
-  name: string;
-  type: RuleProviderSource["type"];
-  inputRules: number;
-  outputRules: number;
-}
-
-export interface ProviderOutputSummary extends ProviderSummary {
-  name: string;
-  output: string;
-  path: string;
-  sources: SourceContributionSummary[];
-}
-
-export interface DuplicateRuleSummary {
-  rule: string;
-  sources: string[];
-}
-
-export interface ProviderDuplicateSummary {
-  provider: string;
-  rules: DuplicateRuleSummary[];
-}
-
-export interface ProviderOverlapSummary {
-  rule: string;
-  providers: string[];
-}
-
-export interface GenerateResult {
-  templatePath: string;
-  rulePaths: string[];
-  reportPath: string;
-  providers: ProviderOutputSummary[];
-  duplicates: ProviderDuplicateSummary[];
-  overlaps: ProviderOverlapSummary[];
-}
-
-export interface VendorSyncResult {
-  name: string;
-  action: "clone" | "pull" | "error";
-  path: string;
-  error?: string;
-}
-
-export interface SyncVendorOptions extends ProgramOptions {
-  runGit?: (args: string[], cwd: string) => Promise<void>;
-  only?: string;
-}
+// check / generate / sync-vendor 的用例实现已按规格第 8/8.2 节下沉到
+// @clash-route-kit/local-server（local-server 承担全部 Node IO 与工作区校验）。
+// 本文件保留：既有导出名 re-export（cli.test.ts 等调用方无需改动导入路径），
+// 以及 subconvert-url / import / preview / migrate 的命令级逻辑（本阶段不动）。
+export { checkConfig, generateOutputs, readConfig, syncVendor } from "@clash-route-kit/local-server";
+export type { ProjectOptions as ProgramOptions } from "@clash-route-kit/local-server";
+export type {
+  DuplicateRuleSummary,
+  GenerateResult,
+  ProviderDuplicateSummary,
+  ProviderOutputSummary,
+  ProviderOverlapSummary,
+  SourceContributionSummary,
+} from "@clash-route-kit/local-server";
+export type { SyncVendorOptions, VendorSyncResult } from "@clash-route-kit/local-server";
 
 export interface SubconverterUrlOptions extends ProgramOptions {
   subscriptionUrl?: string;
@@ -123,78 +67,6 @@ export async function buildSubconverterUrl(options: SubconverterUrlOptions): Pro
   return endpoint.toString();
 }
 
-function resolveBasePath(root: string, source: SourceBase, fallbackBasePath?: string): string {
-  if (source.basePath) return resolveInputPath(root, source.basePath);
-  if (fallbackBasePath) return resolveInputPath(root, fallbackBasePath);
-  return root;
-}
-
-async function defaultRunGit(args: string[], cwd: string): Promise<void> {
-  await execFileAsync("git", args, { cwd });
-}
-
-export async function syncVendor(options: SyncVendorOptions): Promise<VendorSyncResult[]> {
-  const runGit = options.runGit ?? defaultRunGit;
-  const config = await readConfig(options);
-  const repos = readVendorRepos(config, options.configFile);
-  const selected = options.only ? repos.filter((repo) => repo.name === options.only) : repos;
-  const results: VendorSyncResult[] = [];
-  await mkdir(path.join(options.root, "vendor"), { recursive: true });
-
-  for (const repo of selected) {
-    const repoPath = path.join(options.root, repo.path);
-    try {
-      const gitDir = path.join(repoPath, ".git");
-      if (existsSync(gitDir)) {
-        if (repo.branch) {
-          await runGit(["-C", repoPath, "fetch", "--depth", "1", "origin", repo.branch], options.root);
-          await runGit(["-C", repoPath, "checkout", "-B", repo.branch, "FETCH_HEAD"], options.root);
-        } else {
-          await runGit(["-C", repoPath, "pull", "--ff-only"], options.root);
-        }
-        results.push({ name: repo.name, action: "pull", path: repoPath });
-        continue;
-      }
-
-      if (existsSync(repoPath)) {
-        throw new Error(`Vendor path exists but is not a git repository: ${repoPath}`);
-      }
-
-      const cloneArgs = ["clone", "--depth", "1"];
-      if (repo.branch) cloneArgs.push("--branch", repo.branch);
-      cloneArgs.push(repo.url, repoPath);
-      await runGit(cloneArgs, options.root);
-      results.push({ name: repo.name, action: "clone", path: repoPath });
-    } catch (error: unknown) {
-      results.push({
-        name: repo.name,
-        action: "error",
-        path: repoPath,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  return results;
-}
-
-function readVendorRepos(config: RouteKitProjectConfig, configFile: string): VendorRepoConfig[] {
-  if (!Array.isArray(config.vendorRepos)) {
-    throw new Error(`Missing vendorRepos in ${configFile}`);
-  }
-
-  return config.vendorRepos;
-}
-
-function resolveInputPath(root: string, inputPath: string): string {
-  return path.isAbsolute(inputPath) ? inputPath : path.resolve(root, inputPath);
-}
-
-function resolveSourceFile(root: string, source: SourceBase, sourcePath: string): string {
-  if (path.isAbsolute(sourcePath)) return sourcePath;
-  return path.join(resolveBasePath(root, source), sourcePath);
-}
-
 export function resolveProjectRoot(start: string, configFile: string): string {
   if (path.isAbsolute(configFile)) {
     return path.dirname(configFile);
@@ -212,236 +84,6 @@ export function resolveProjectRoot(start: string, configFile: string): string {
     }
     current = parent;
   }
-}
-
-export async function readConfig(options: ProgramOptions): Promise<RouteKitProjectConfig> {
-  const text = await readFile(path.join(options.root, options.configFile), "utf8");
-  const config = parseRouteKitConfig(text);
-  const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
-  return publishBaseUrl ? { ...config, publishBaseUrl } : config;
-}
-
-async function readClashList(root: string, source: Extract<RuleProviderSource, { type: "clash-list" }>): Promise<string[]> {
-  const text = await readFile(resolveSourceFile(root, source, source.path), "utf8");
-  return text
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"));
-}
-
-async function readClashProvider(root: string, source: Extract<RuleProviderSource, { type: "clash-provider" }>): Promise<string[]> {
-  const text = await readFile(resolveSourceFile(root, source, source.path), "utf8");
-  const parsed = YAML.parse(text) as { payload?: unknown };
-  if (!Array.isArray(parsed.payload)) return [];
-  return parsed.payload.filter((entry): entry is string => typeof entry === "string");
-}
-
-async function readDomainListCommunity(root: string, source: Extract<RuleProviderSource, { type: "domain-list-community" }>): Promise<string[]> {
-  const basePath = resolveBasePath(root, source, "vendor/domain-list-community/data");
-  const entryPath = path.join(basePath, source.entry);
-  const sourceUrl = pathToFileURL(entryPath).toString();
-
-  return convertDomainListCommunity(await readFile(entryPath, "utf8"), {
-    sourceUrl,
-    fetchText: async (url) => readFile(fileURLToPath(url), "utf8"),
-  });
-}
-
-async function readRules(root: string, source: RuleProviderSource): Promise<string[]> {
-  if (source.type === "clash-list") {
-    return readClashList(root, source);
-  }
-  if (source.type === "clash-provider") {
-    return readClashProvider(root, source);
-  }
-  if (source.type === "domain-list-community") {
-    return readDomainListCommunity(root, source);
-  }
-
-  throw new Error(`Unsupported rule provider source type: ${(source satisfies never)}`);
-}
-
-async function projectDiagnostics(
-  options: ProgramOptions,
-  config: RouteKitProjectConfig,
-): Promise<Diagnostic[]> {
-  return [
-    ...validateLegacyProjectConfig(config),
-    ...await validateLegacyWorkspace(options, config),
-  ];
-}
-
-function assertNoErrors(diagnostics: readonly Diagnostic[]): void {
-  if (hasDiagnosticErrors(diagnostics)) {
-    throw new ConfigDiagnosticError(diagnostics);
-  }
-}
-
-function sourceLabel(source: RuleProviderSource): string {
-  if (source.type === "domain-list-community") {
-    return `domain-list-community:${source.entry}`;
-  }
-  return source.path;
-}
-
-function duplicateRulesBySource(
-  provider: string,
-  sourceRules: Array<{ source: string; rules: ProviderRule[] }>,
-): ProviderDuplicateSummary | null {
-  const rulesByKey = new Map<string, { rule: string; sources: string[] }>();
-  for (const source of sourceRules) {
-    for (const rule of source.rules) {
-      const existing = rulesByKey.get(rule.key) ?? { rule: rule.rule, sources: [] };
-      existing.sources.push(source.source);
-      rulesByKey.set(rule.key, existing);
-    }
-  }
-
-  const duplicateRules = [...rulesByKey.values()]
-    .filter((rule) => rule.sources.length > 1)
-    .map((rule) => ({
-      rule: rule.rule,
-      sources: rule.sources.sort(),
-    }))
-    .sort((left, right) => left.rule.localeCompare(right.rule));
-
-  return duplicateRules.length > 0 ? { provider, rules: duplicateRules } : null;
-}
-
-function overlapRulesByProvider(
-  providerRules: Array<{ provider: string; rules: ProviderRule[] }>,
-): ProviderOverlapSummary[] {
-  const rulesByKey = new Map<string, { rule: string; providers: string[] }>();
-  for (const provider of providerRules) {
-    for (const rule of provider.rules) {
-      const existing = rulesByKey.get(rule.key) ?? { rule: rule.rule, providers: [] };
-      existing.providers.push(provider.provider);
-      rulesByKey.set(rule.key, existing);
-    }
-  }
-
-  return [...rulesByKey.values()]
-    .filter((rule) => rule.providers.length > 1)
-    .map((rule) => ({
-      rule: rule.rule,
-      providers: rule.providers.sort(),
-    }))
-    .sort((left, right) => left.rule.localeCompare(right.rule));
-}
-
-export async function generateOutputs(options: ProgramOptions): Promise<GenerateResult> {
-  const config = await readConfig(options);
-  assertNoErrors(await projectDiagnostics(options, config));
-  const templatePath = path.join(options.root, "output/templates", config.template.output);
-  const reportPath = path.join(options.root, "output/reports/rule-report.json");
-  await mkdir(path.dirname(templatePath), { recursive: true });
-  await writeFile(
-    templatePath,
-    renderIni(config, {
-      enableRuleGenerator: config.template.enableRuleGenerator,
-      overwriteOriginalRules: config.template.overwriteOriginalRules,
-      clashRuleBase: config.template.clashRuleBase,
-    }),
-    "utf8",
-  );
-
-  const rulePaths: string[] = [];
-  const providers: ProviderOutputSummary[] = [];
-  const duplicates: ProviderDuplicateSummary[] = [];
-  const finalProviderRules: Array<{ provider: string; rules: ProviderRule[] }> = [];
-  const enabledProviders = (config.ruleProviders ?? [])
-    .filter((provider) => provider.enabled !== false);
-  for (const provider of enabledProviders) {
-    const rules: string[] = [];
-    const sources: SourceContributionSummary[] = [];
-    const sourceRulesForReport: Array<{ source: string; rules: ProviderRule[] }> = [];
-    for (const source of provider.sources) {
-      const sourceRules = await readRules(options.root, source);
-      const sourceSummary = summarizeRuleProvider(provider.behavior, {
-        source: sourceLabel(source),
-        rules: sourceRules,
-      });
-      sourceRulesForReport.push({
-        source: source.name,
-        rules: collectRuleProviderRules(provider.behavior, {
-          source: sourceLabel(source),
-          rules: sourceRules,
-        }),
-      });
-      sources.push({
-        name: source.name,
-        type: source.type,
-        inputRules: sourceSummary.inputRules,
-        outputRules: sourceSummary.outputRules,
-      });
-      rules.push(...sourceRules);
-    }
-
-    const rulePath = path.join(options.root, "output/rules", provider.output);
-    await mkdir(path.dirname(rulePath), { recursive: true });
-    const exclude = [
-      ...(config.globalRemove ?? []),
-      ...(provider.exclude ?? []),
-      ...(provider.remove ?? []),
-    ];
-    await writeFile(
-      rulePath,
-      generateRuleProvider(provider.behavior, {
-        source: provider.sources.map(sourceLabel).join(", "),
-        rules,
-        exclude,
-      }),
-      "utf8",
-    );
-    rulePaths.push(rulePath);
-    const duplicateSummary = duplicateRulesBySource(provider.name, sourceRulesForReport);
-    if (duplicateSummary) duplicates.push(duplicateSummary);
-    finalProviderRules.push({
-      provider: provider.name,
-      rules: collectRuleProviderRules(provider.behavior, {
-        source: provider.name,
-        rules,
-        exclude,
-      }),
-    });
-    providers.push({
-      name: provider.name,
-      output: provider.output,
-      path: rulePath,
-      ...summarizeRuleProvider(provider.behavior, {
-        source: provider.name,
-        rules,
-        exclude,
-      }),
-      sources,
-    });
-  }
-
-  const overlaps = overlapRulesByProvider(finalProviderRules);
-  await mkdir(path.dirname(reportPath), { recursive: true });
-  await writeFile(
-    reportPath,
-    JSON.stringify(
-      {
-        providers,
-        duplicates,
-        overlaps,
-      },
-      null,
-      2,
-    ),
-    "utf8",
-  );
-
-  return {
-    templatePath,
-    rulePaths,
-    reportPath,
-    providers,
-    duplicates,
-    overlaps,
-  };
 }
 
 export interface ImportResult extends ImportedConfig {
@@ -503,11 +145,6 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
     throw new Error(`Unsupported ruleSet source: ${String(unsupported)}`);
   }
   return lines;
-}
-
-export async function checkConfig(options: ProgramOptions): Promise<Diagnostic[]> {
-  const config = await readConfig(options);
-  return projectDiagnostics(options, config);
 }
 
 export interface MigrateOptions extends ProgramOptions {

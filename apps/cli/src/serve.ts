@@ -1,8 +1,12 @@
 import { createServer, type Server } from "node:http";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { createHostingHandler, type HostingOptions } from "./serveHosting.js";
-import { createRouteKitApiHandler } from "./serveApi.js";
+import {
+  createDefaultDependencies,
+  createHostingHandler,
+  createRouteKitApiHandler,
+  type HostingOptions,
+} from "@clash-route-kit/local-server";
 
 export interface ServeOptions extends HostingOptions {
   port: number;
@@ -10,8 +14,16 @@ export interface ServeOptions extends HostingOptions {
 }
 
 export function createServeServer(options: ServeOptions): Server {
+  // HTTP 装配由 local-server 提供；check/generate/syncVendor 用 createDefaultDependencies
+  // 补齐默认实现（原先由 program.ts 注入，现已下沉 local-server）。
+  const defaults = createDefaultDependencies(options.root, options.configFile);
   const hosting = createHostingHandler(options);
-  const api = createRouteKitApiHandler(options);
+  const api = createRouteKitApiHandler({
+    ...options,
+    checkConfig: defaults.checkConfig,
+    generateOutputs: defaults.generateOutputs,
+    syncVendor: defaults.syncVendor,
+  });
   return createServer((request, response) => {
     hosting(request, response, () => {
       api(request, response, () => {
