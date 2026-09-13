@@ -39,8 +39,8 @@
 
 ## Verification（整体验收）
 
-- [ ] `pnpm test` 全绿（≥670）。
-- [ ] `pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 通过。
-- [ ] publish.yml 含 concurrency；非 main 分支发布被阻止（组件测试覆盖）。
-- [ ] `pnpm dev` 走查输出页：设备配置默认标签、模板来源切换、发布按钮真实文案与状态展示。
-- [ ] 记录与推送完成。
+- [x] `pnpm test` 全绿（≥670）。
+- [x] `pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 通过。
+- [x] publish.yml 含 concurrency；非 main 分支发布被阻止（组件测试覆盖）。
+- [x] `pnpm dev` 走查输出页：设备配置默认标签、模板来源切换、发布按钮真实文案与状态展示。
+- [x] 记录与推送完成。

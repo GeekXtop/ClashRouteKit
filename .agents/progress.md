@@ -162,3 +162,14 @@
 - 未尽事项：360px 移动端深度走查与键盘焦点逐项核查（规格第 10 节）未逐条执行，组件级测试已覆盖主要断言；OutputPage 的 v2 渲染仍走投影（publishBaseUrl 占位，待 Phase E 本地设置接入）。
 - 已提交：9ab7e21 四页导航、e2f7f22 路由页重构、35c1f25 规则库增强、29c06c4 迁移端点、0c35685 复核向导、527bb0b config v2 分发、96475b4 core 语义修复、60d0c85 v2 数据层、4173e2b v2 UI 接线。
 - 下一步：Phase E（设备配置默认本地模板闭环、GitHub 发布真实分支流向与 Actions 状态、workflow concurrency）。
+
+## 2026-09-13 - Phase E：输出与 GitHub 发布闭环完成（路线图收官）
+
+- 已完成：GitHub 发布真实流向——主按钮"提交并推送 main"、非 main 分支禁用并提示、推送后轮询 /api/git/publish-status（5s×12 次）展示 Actions 排队/运行/成功/失败与运行链接、仅 success 才标记远程模板"最新"；publish.yml 配置 concurrency（同 ref 取消旧运行）。
+- 已完成：local-server 新增 getGitBranch / getWorkflowRunStatus（GitHub API，token 仅环境变量注入）/ getPublishStatus 聚合端点。
+- 已完成：设备配置标签——TemplateSourceStatus 统一模板状态（本地探测 + 远程可用性派生，两标签共享单点数据）；模板来源切换（默认本地实时，远程可用才可选）；生成失败三分类（模板不可达 / SubConverter 不可达 / 输入缺失）且保留表单；高级转换选项默认折叠。
+- 已修复：CI 重大隐患——根 .gitignore 的 vendor/ 与 output/ 未锚定，静默忽略 packages/local-server/src/vendor/ 与 apps/web/src/features/output/ 整目录（本地全绿、CI fresh clone 连续失败三次）；锚定为 /vendor/ 与 /output/ 并补提交源码后 CI 恢复绿色。
+- 已验证：`pnpm test` 85 文件 705 测试（Phase E 前 670 → +35）、typecheck、build、check、generate、migrate 全绿；CI 对 main 推送真实运行成功。
+- 已提交：d0802af 发布流向与状态、6b4e629 gitignore 锚定修复、（本次）设备配置与模板状态。
+- 总路线图状态：Phase A 配置健康门禁、Phase B Schema v2 与 Core、Phase C local-server 边界与本地设置、Phase D Web 工作流四页与 v2 编辑、Phase E 输出与发布闭环全部完成并推送；全部工作在 origin/main。
+- 后续可选项：360px 移动端与键盘焦点逐项走查（规格第 10 节）；OutputPage v2 渲染的 publishBaseUrl 接本地设置；低优先级遗留（保存 API 错误响应携带结构化 diagnostics）。

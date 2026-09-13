@@ -27,6 +27,8 @@ export interface BuildSubconverterUrlInput {
   endpoint?: string;
   target?: string;
   configVersion?: string | number;
+  /** 直接指定模板 URL（如 GitHub 远程模板）；缺省由 publishBaseUrl + templateOutput 构造 */
+  templateUrl?: string;
   convert?: SubconverterConvertOptions;
 }
 
@@ -97,7 +99,10 @@ export function buildSubconverterUrl(input: BuildSubconverterUrlInput): string {
   const endpoint = normalizeEndpoint(input.subconverterUrl ?? input.endpoint);
   endpoint.searchParams.set("target", input.target ?? "clash");
   endpoint.searchParams.set("url", subscriptionUrl);
-  endpoint.searchParams.set("config", templateUrl(input.publishBaseUrl, input.templateOutput, input.configVersion));
+  endpoint.searchParams.set(
+    "config",
+    input.templateUrl?.trim() || templateUrl(input.publishBaseUrl, input.templateOutput, input.configVersion),
+  );
   const convert = input.convert;
   if (convert) {
     if (convert.emoji !== undefined) endpoint.searchParams.set("emoji", String(convert.emoji));

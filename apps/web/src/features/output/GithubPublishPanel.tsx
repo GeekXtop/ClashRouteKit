@@ -1,23 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Button, Space, Tag } from "antd";
 import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
 import { requestLocalAction, type LocalRouteKitAction } from "../../actions.js";
-import {
-  createRawUrlTemplates,
-  fetchGitRemote,
-  fetchPublishStatus,
-  parseGitHubRemote,
-  type WorkflowRunState,
-  type WorkflowRunStatus,
-} from "../../publishWorkflow.js";
+import type { WorkflowRunState } from "../../publishWorkflow.js";
 import { notifyError, notifySuccess } from "../../notify.js";
 import { createLineDiff } from "../../yamlDiff.js";
+import {
+  useTemplateSourceStatus,
+  type TemplateSourceStatusController,
+} from "./templateSourceStatus.js";
 import { UrlRow } from "./UrlRow.js";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
-const POLL_INTERVAL_MS = 5_000;
-const MAX_POLLS = 12;
 
 const workflowStateMeta: Record<WorkflowRunState, { label: string; color: string }> = {
   success: { label: "Actions 成功", color: "success" },
@@ -33,80 +27,27 @@ function formatWorkflowTime(iso: string): string {
   return Number.isNaN(time) ? iso : new Date(time).toLocaleString();
 }
 
-/** GitHub 发布标签页：真实分支流向（仅 main）、提交推送动作、Actions 状态轮询与 INI 变更预览。 */
+/**
+ * GitHub 发布标签页：真实分支流向（仅 main）、提交推送动作、Actions 状态轮询与 INI 变更预览。
+ * 远程模板状态统一消费 TemplateSourceStatus；独立渲染（无共享 controller）时内部自建一份。
+ */
 export function GithubPublishPanel(props: {
   config: RouteKitProjectConfig;
   originalConfig?: RouteKitProjectConfig;
   fetcher?: Fetcher;
+  /** OutputPage 提供的共享模板状态；缺省时面板内部自建（独立使用场景，enabled=false 关掉共享实例外的重复抓取） */
+  templateStatus?: TemplateSourceStatusController;
 }) {
   const fetcher = props.fetcher ?? globalThis.fetch;
-  const [repoLabel, setRepoLabel] = useState<string | null>(null);
-  const [rawUrl, setRawUrl] = useState<string | null>(null);
-  const [branch, setBranch] = useState<string | null>(null);
-  const [workflow, setWorkflow] = useState<WorkflowRunStatus | null>(null);
-  const [polling, setPolling] = useState(false);
-  const [pollTimedOut, setPollTimedOut] = useState(false);
+  const internalStatus = useTemplateSourceStatus({
+    publishBaseUrl: props.config.publishBaseUrl,
+    templateOutput: props.config.template.output,
+    fetcher,
+    enabled: !props.templateStatus,
+  });
+  const status = props.templateStatus ?? internalStatus;
+  const { branch, workflow, polling, pollTimedOut } = status;
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    void fetchGitRemote(fetcher)
-      .then((remote) => {
-        const repo = parseGitHubRemote(remote);
-        if (alive && repo) {
-          setRepoLabel(`${repo.owner}/${repo.repo}`);
-          setRawUrl(createRawUrlTemplates(repo, props.config.template.output).template);
-        }
-      })
-      .catch(() => {});
-    void fetchPublishStatus(fetcher)
-      .then((status) => {
-        if (!alive) return;
-        setBranch(status.branch);
-        setWorkflow(status.workflow);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 推送成功后的 Actions 轮询：每 5s 一次、最多 12 次，success/failed 终态提前结束；卸载即清理。
-  useEffect(() => {
-    if (!polling) return;
-    let alive = true;
-    let attempts = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const tick = async () => {
-      attempts += 1;
-      try {
-        const status = await fetchPublishStatus(fetcher);
-        if (!alive) return;
-        setBranch(status.branch);
-        setWorkflow(status.workflow);
-        if (status.workflow.state === "success" || status.workflow.state === "failed") {
-          setPolling(false);
-          return;
-        }
-      } catch {
-        // 单次查询失败继续轮询，由次数上限收敛
-      }
-      if (!alive) return;
-      if (attempts >= MAX_POLLS) {
-        setPolling(false);
-        setPollTimedOut(true);
-        return;
-      }
-      timer = setTimeout(() => void tick(), POLL_INTERVAL_MS);
-    };
-    timer = setTimeout(() => void tick(), POLL_INTERVAL_MS);
-    return () => {
-      alive = false;
-      if (timer) clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [polling]);
 
   const iniDiff = useMemo(() => {
     const before = renderIni(props.originalConfig ?? props.config);
@@ -136,8 +77,7 @@ export function GithubPublishPanel(props: {
         }
       }
       notifySuccess("已提交并推送 main，等待 GitHub Actions 发布");
-      setPollTimedOut(false);
-      setPolling(true);
+      status.startPolling();
     } catch (error: unknown) {
       notifyError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -155,9 +95,9 @@ export function GithubPublishPanel(props: {
       </div>
       <Space size={12} wrap style={{ marginBottom: 10 }}>
         <span className="rk-lib-meta">
-          {repoLabel ? (
+          {status.repoLabel ? (
             <>
-              origin <code>{repoLabel}</code>
+              origin <code>{status.repoLabel}</code>
             </>
           ) : (
             "未检测到 GitHub origin"
@@ -184,7 +124,7 @@ export function GithubPublishPanel(props: {
           无法确认当前分支，发布已暂停；请确认本地服务可用后刷新
         </p>
       ) : null}
-      {rawUrl ? (
+      {status.rawTemplateUrl ? (
         <>
           <div className="rk-field-label">
             发布 raw 模板 URL（推送后生效）
@@ -194,7 +134,7 @@ export function GithubPublishPanel(props: {
               </Tag>
             ) : null}
           </div>
-          <UrlRow label="发布 raw" url={rawUrl} />
+          <UrlRow label="发布 raw" url={status.rawTemplateUrl} />
         </>
       ) : (
         <p className="rk-lib-meta">未检测到 GitHub origin，当前仅本机 LAN 可用</p>

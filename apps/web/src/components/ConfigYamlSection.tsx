@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { Button, Input, Select, Switch } from "antd";
+import { Alert, Button, Collapse, Input, Select, Switch } from "antd";
 import { Plus, X } from "lucide-react";
 import QRCode from "qrcode";
 import { buildSubconverterUrl, type ProviderSubscription, type SubconverterConvertOptions } from "../subscriptions.js";
+import {
+  createLocalTemplateUrl,
+  probeTemplateUrl,
+  probeUrl,
+  SUBCONVERTER_PROBE_TIMEOUT_MS,
+} from "../features/output/templateSourceStatus.js";
+
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 let idSeed = 0;
 
@@ -16,17 +24,36 @@ const CONVERT_TOGGLES: { key: keyof SubconverterConvertOptions; label: string }[
   { key: "ruleProvider", label: "使用规则集" },
 ];
 
+export type GenerateFailureKind = "input" | "template" | "subconverter";
+
+const GENERATE_FAILURE_MESSAGES: Record<GenerateFailureKind, string> = {
+  input: "输入缺失",
+  template: "模板不可达",
+  subconverter: "SubConverter 不可达（检查 .clashroutekit/local.yaml 或端点）",
+};
+
+interface GenerateFailure {
+  kind: GenerateFailureKind;
+  detail?: string;
+}
+
 export function ConfigYamlSection(props: {
   publishBaseUrl: string;
   templateOutput: string;
   subconverterUrl: string;
+  /** 覆盖生成使用的模板 URL（如选择 GitHub 远程模板）；缺省用本地实时模板 */
+  templateUrl?: string;
+  fetcher?: Fetcher;
 }) {
+  const fetcher = props.fetcher ?? globalThis.fetch;
   const [subs, setSubs] = useState<ProviderSubscription[]>([]);
   const [endpoint, setEndpoint] = useState(props.subconverterUrl);
   const [convert, setConvert] = useState<SubconverterConvertOptions>({ emoji: false, sort: false });
   const [configName, setConfigName] = useState("");
   const [generatedUrl, setGeneratedUrl] = useState("");
   const [qr, setQr] = useState("");
+  const [failure, setFailure] = useState<GenerateFailure | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   function patch(id: string, change: Partial<ProviderSubscription>) {
     setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, ...change } : s)));
@@ -35,19 +62,45 @@ export function ConfigYamlSection(props: {
     setConvert((c) => ({ ...c, ...change }));
   }
 
-  function generate() {
-    const enabled = subs.filter((s) => s.enabled && s.url.trim());
-    const url = buildSubconverterUrl({
-      providers: enabled,
-      publishBaseUrl: props.publishBaseUrl,
-      templateOutput: props.templateOutput,
-      subconverterUrl: endpoint,
-      convert: { ...convert, filename: configName.trim() || undefined },
-    });
-    setGeneratedUrl(url);
-    void QRCode.toDataURL(`clash://install-config?url=${encodeURIComponent(url)}`)
-      .then(setQr)
-      .catch(() => setQr(""));
+  function selectedTemplateUrl(): string {
+    return props.templateUrl?.trim()
+      || createLocalTemplateUrl(props.publishBaseUrl, props.templateOutput);
+  }
+
+  /** 生成失败只设置 failure 提示，绝不改动任何表单状态。 */
+  async function generate() {
+    setFailure(null);
+    setGenerating(true);
+    try {
+      const enabled = subs.filter((s) => s.enabled && s.url.trim());
+      if (!enabled.length) {
+        setFailure({ kind: "input", detail: "请先添加至少一条启用的订阅 URL 再生成。" });
+        return;
+      }
+      const template = selectedTemplateUrl();
+      if ((await probeTemplateUrl(template, fetcher)) === "unreachable") {
+        setFailure({ kind: "template", detail: `模板 URL 无法访问：${template}` });
+        return;
+      }
+      const url = buildSubconverterUrl({
+        providers: enabled,
+        publishBaseUrl: props.publishBaseUrl,
+        templateOutput: props.templateOutput,
+        subconverterUrl: endpoint,
+        convert: { ...convert, filename: configName.trim() || undefined },
+        ...(props.templateUrl?.trim() ? { templateUrl: template } : {}),
+      });
+      if ((await probeUrl(url, fetcher, SUBCONVERTER_PROBE_TIMEOUT_MS)) === "unreachable") {
+        setFailure({ kind: "subconverter" });
+        return;
+      }
+      setGeneratedUrl(url);
+      void QRCode.toDataURL(`clash://install-config?url=${encodeURIComponent(url)}`)
+        .then(setQr)
+        .catch(() => setQr(""));
+    } finally {
+      setGenerating(false);
+    }
   }
 
   const downloadName = `${configName.trim() || "config"}.yaml`;
@@ -86,39 +139,63 @@ export function ConfigYamlSection(props: {
       <div className="rk-field-label" style={{ marginTop: 12 }}>SubConverter 端点</div>
       <Input value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
 
-      <div className="rk-field-label" style={{ marginTop: 12 }}>User-Agent</div>
-      <Select
-        style={{ width: "100%" }}
-        allowClear
-        showSearch
-        placeholder="默认（不指定）"
-        value={convert.ua || undefined}
-        options={UA_PRESETS.map((u) => ({ value: u, label: u }))}
-        onChange={(value) => patchConvert({ ua: value })}
+      <Collapse
+        ghost
+        style={{ marginTop: 12 }}
+        items={[
+          {
+            key: "advanced",
+            label: "高级转换选项",
+            children: (
+              <>
+                <div className="rk-field-label">User-Agent</div>
+                <Select
+                  style={{ width: "100%" }}
+                  allowClear
+                  showSearch
+                  placeholder="默认（不指定）"
+                  value={convert.ua || undefined}
+                  options={UA_PRESETS.map((u) => ({ value: u, label: u }))}
+                  onChange={(value) => patchConvert({ ua: value })}
+                />
+
+                <div className="rk-field-label" style={{ marginTop: 10 }}>开关</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                  {CONVERT_TOGGLES.map((t) => (
+                    <label key={t.key} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Switch size="small" checked={Boolean(convert[t.key])} onChange={(checked) => patchConvert({ [t.key]: checked })} />
+                      <span className="rk-lib-meta">{t.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="rk-field-label" style={{ marginTop: 10 }}>筛选节点（名称匹配，& = 同时包含）</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="例：香港 ／ 台湾&bgp ／ 新加坡&bgp&奈飞" value={convert.include ?? []} onChange={(v) => patchConvert({ include: v })} />
+
+                <div className="rk-field-label" style={{ marginTop: 10 }}>排除节点</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="例：过期 ／ 官网&流量" value={convert.exclude ?? []} onChange={(v) => patchConvert({ exclude: v })} />
+
+                <div className="rk-field-label" style={{ marginTop: 10 }}>自定义参数（key=value）</div>
+                <Select mode="tags" style={{ width: "100%" }} placeholder="如 rename=match@replace" value={convert.customParams ?? []} onChange={(v) => patchConvert({ customParams: v })} />
+              </>
+            ),
+          },
+        ]}
       />
 
-      <div className="rk-field-label" style={{ marginTop: 10 }}>开关</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-        {CONVERT_TOGGLES.map((t) => (
-          <label key={t.key} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Switch size="small" checked={Boolean(convert[t.key])} onChange={(checked) => patchConvert({ [t.key]: checked })} />
-            <span className="rk-lib-meta">{t.label}</span>
-          </label>
-        ))}
-      </div>
-
-      <div className="rk-field-label" style={{ marginTop: 10 }}>筛选节点（名称匹配，& = 同时包含）</div>
-      <Select mode="tags" style={{ width: "100%" }} placeholder="例：香港 ／ 台湾&bgp ／ 新加坡&bgp&奈飞" value={convert.include ?? []} onChange={(v) => patchConvert({ include: v })} />
-
-      <div className="rk-field-label" style={{ marginTop: 10 }}>排除节点</div>
-      <Select mode="tags" style={{ width: "100%" }} placeholder="例：过期 ／ 官网&流量" value={convert.exclude ?? []} onChange={(v) => patchConvert({ exclude: v })} />
-
-      <div className="rk-field-label" style={{ marginTop: 10 }}>自定义参数（key=value）</div>
-      <Select mode="tags" style={{ width: "100%" }} placeholder="如 rename=match@replace" value={convert.customParams ?? []} onChange={(v) => patchConvert({ customParams: v })} />
-
       <div style={{ marginTop: 14 }}>
-        <Button type="primary" onClick={generate}>生成 config.yaml</Button>
+        <Button type="primary" loading={generating} onClick={() => void generate()}>生成 config.yaml</Button>
       </div>
+      {failure ? (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginTop: 12 }}
+          data-testid="generate-failure"
+          message={GENERATE_FAILURE_MESSAGES[failure.kind]}
+          description={failure.detail}
+        />
+      ) : null}
       {generatedUrl ? (
         <div style={{ marginTop: 12, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
           <a href={generatedUrl} download={downloadName}>
