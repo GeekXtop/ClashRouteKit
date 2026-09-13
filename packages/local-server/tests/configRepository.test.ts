@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { readProjectConfigFile, writeProjectConfigFile } from "../src/index.js";
+import { readAuthorProject, readProjectConfigFile, writeProjectConfigFile } from "../src/index.js";
 
 const tempRoots: string[] = [];
 
@@ -92,5 +92,47 @@ describe("config repository", () => {
       }),
     ).rejects.toMatchObject({ name: "ConfigDiagnosticError" });
     expect(await readdir(configDir)).toEqual(["routes.yaml"]);
+  });
+
+  it("readAuthorProject dispatches v1 and v2 documents by schemaVersion", async () => {
+    const root = await makeTempRoot();
+    const configDir = path.join(root, "config");
+    await mkdir(configDir);
+    const configPath = path.join(configDir, "routes.yaml");
+
+    await writeFile(configPath, CONFIG_YAML, "utf8");
+    const v1 = await readAuthorProject(baseOptions(root));
+    expect(v1.schemaVersion).toBe(1);
+    expect(v1.v1?.customProxyGroups[0]?.name).toBe("Proxy");
+    expect(v1.v2).toBeUndefined();
+
+    await writeFile(
+      configPath,
+      [
+        "schemaVersion: 2",
+        "project:",
+        "  template:",
+        "    output: Custom_Clash.ini",
+        "proxyGroups:",
+        "  - id: proxy",
+        "    name: Proxy",
+        "    type: select",
+        "    members:",
+        "      - builtin: DIRECT",
+        "routes:",
+        "  - id: final",
+        "    policy:",
+        "      group: proxy",
+        "    source:",
+        "      type: final",
+        "ruleProviders: []",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const v2 = await readAuthorProject(baseOptions(root));
+    expect(v2.schemaVersion).toBe(2);
+    expect(v2.v2?.proxyGroups[0]?.id).toBe("proxy");
+    expect(v2.v1).toBeUndefined();
   });
 });

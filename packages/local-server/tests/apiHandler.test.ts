@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import { parseRouteKitConfig, planLegacyMigration } from "@clash-route-kit/core";
 import { describe, expect, it } from "vitest";
 import { clearCatalogIndexCache, createLocalServerContext, createRouteKitApiHandler } from "../src/index.js";
 
@@ -489,6 +490,198 @@ describe("createRouteKitApiHandler", () => {
     const handler = createRouteKitApiHandler(baseOptions);
     const res = await callHandler(handler, "/console/output");
     expect(res.nextCalled).toBe(true);
+  });
+});
+
+describe("POST /api/project/migrate", () => {
+  const migrateYaml = [
+    "publishBaseUrl: http://127.0.0.1:8787",
+    "template:",
+    "  output: Custom_Clash.ini",
+    "vendorRepos: []",
+    "customProxyGroups:",
+    "  - name: Proxy",
+    "    type: select",
+    "    options: [DIRECT]",
+    "  - name: Auto",
+    "    type: url-test",
+    "    options: [Proxy]",
+    "ruleSets:",
+    "  - id: final",
+    "    policy: Proxy",
+    "    source:",
+    "      type: final",
+    "ruleProviders: []",
+    "",
+  ].join("\n");
+
+  const v2Yaml = [
+    "schemaVersion: 2",
+    "project:",
+    "  template:",
+    "    output: Custom_Clash.ini",
+    "proxyGroups:",
+    "  - id: proxy",
+    "    name: Proxy",
+    "    type: select",
+    "    members:",
+    "      - builtin: DIRECT",
+    "routes:",
+    "  - id: final",
+    "    policy:",
+    "      group: proxy",
+    "    source:",
+    "      type: final",
+    "ruleProviders: []",
+    "",
+  ].join("\n");
+
+  it("returns a read-only migration plan with summary for a v1 config", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => migrateYaml,
+    });
+    const res = await callHandler(handler, "/api/project/migrate", "POST");
+    expect(res.status).toBe(200);
+    const payload = JSON.parse(res.body) as {
+      currentSchemaVersion: number;
+      plan: { summary: Record<string, number>; yaml: string } | null;
+    };
+    expect(payload.currentSchemaVersion).toBe(1);
+    expect(payload.plan).not.toBeNull();
+    expect(payload.plan?.summary.groups).toBe(2);
+    expect(payload.plan?.summary.routes).toBe(1);
+    expect(payload.plan?.yaml).toContain("schemaVersion: 2");
+  });
+
+  it("reports currentSchemaVersion 2 without a plan", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => v2Yaml,
+    });
+    const res = await callHandler(handler, "/api/project/migrate", "POST");
+    expect(res.status).toBe(200);
+    const payload = JSON.parse(res.body) as { currentSchemaVersion: number; plan: unknown };
+    expect(payload.currentSchemaVersion).toBe(2);
+    expect(payload.plan).toBeNull();
+  });
+
+  it("responds 400 with diagnostics when the config cannot be parsed", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => "schemaVersion: 3\nproxyGroups: []\n",
+    });
+    const res = await callHandler(handler, "/api/project/migrate", "POST");
+    expect(res.status).toBe(400);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      diagnostics: Array<{ code: string }>;
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.diagnostics[0]?.code).toBe("schema.version.unsupported");
+  });
+
+  it("responds 405 for non-POST requests", async () => {
+    const handler = createRouteKitApiHandler(baseOptions);
+    const res = await callHandler(handler, "/api/project/migrate", "GET");
+    expect(res.status).toBe(405);
+  });
+});
+
+describe("POST /api/project/migrate/apply", () => {
+  const applyYaml = [
+    "publishBaseUrl: http://127.0.0.1:8787",
+    "template:",
+    "  output: Custom_Clash.ini",
+    "vendorRepos: []",
+    "customProxyGroups:",
+    "  - name: Proxy",
+    "    type: select",
+    "    options: [DIRECT]",
+    "ruleSets:",
+    "  - id: final",
+    "    policy: Proxy",
+    "    source:",
+    "      type: final",
+    "ruleProviders: []",
+    "",
+  ].join("\n");
+
+  it("applies a valid plan: backs up and writes v2 YAML", async () => {
+    const writes: Array<{ filePath: string; text: string }> = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => applyYaml,
+      writeText: async (filePath, text) => {
+        writes.push({ filePath, text });
+      },
+    });
+    const res = await callHandler(
+      handler,
+      "/api/project/migrate/apply",
+      "POST",
+      JSON.stringify({ plan: planLegacyMigration(parseRouteKitConfig(applyYaml)) }),
+    );
+    expect(res.status).toBe(200);
+    const payload = JSON.parse(res.body) as { ok: boolean; backupPath: string; yaml: string };
+    expect(payload.ok).toBe(true);
+    expect(payload.backupPath).toContain(".bak-");
+    expect(payload.yaml.startsWith("schemaVersion: 2\n")).toBe(true);
+    expect(writes.map((write) => write.filePath)).toEqual([
+      payload.backupPath,
+      path.resolve(baseOptions.root, baseOptions.configFile),
+    ]);
+  });
+
+  it("responds 422 with diagnostics for an invalid plan and writes nothing", async () => {
+    const writes: Array<{ filePath: string }> = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => applyYaml,
+      writeText: async (filePath) => {
+        writes.push({ filePath });
+      },
+    });
+    const plan = planLegacyMigration(parseRouteKitConfig(applyYaml));
+    const tampered = {
+      ...plan,
+      draft: {
+        ...plan.draft,
+        routes: plan.draft.routes.map((route) =>
+          route.id === "final" ? { ...route, policy: { group: "ghost" } } : route,
+        ),
+      },
+    };
+    const res = await callHandler(
+      handler,
+      "/api/project/migrate/apply",
+      "POST",
+      JSON.stringify({ plan: tampered }),
+    );
+    expect(res.status).toBe(422);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      diagnostics: Array<{ severity: string }>;
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.diagnostics.some((diagnostic) => diagnostic.severity === "error")).toBe(true);
+    expect(writes).toEqual([]);
+  });
+
+  it("responds 400 without a plan payload", async () => {
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => applyYaml,
+    });
+    const res = await callHandler(handler, "/api/project/migrate/apply", "POST", JSON.stringify({}));
+    expect(res.status).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Missing plan" });
+  });
+
+  it("responds 405 for non-POST requests", async () => {
+    const handler = createRouteKitApiHandler(baseOptions);
+    const res = await callHandler(handler, "/api/project/migrate/apply", "GET");
+    expect(res.status).toBe(405);
   });
 });
 

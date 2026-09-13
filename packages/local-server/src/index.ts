@@ -1,6 +1,7 @@
 export { writeFileAtomic } from "./config/atomic.js";
 export {
   projectConfigPath,
+  readAuthorProject,
   readConfig,
   readProjectConfigFile,
   writeProjectConfigFile,
@@ -11,6 +12,17 @@ export {
   type WriteProjectConfigFileOptions,
   type WriteText,
 } from "./config/configRepository.js";
+export type { ParsedAuthorProjectConfig } from "@clash-route-kit/core";
+export {
+  analyzeMigration,
+  applyMigration,
+  type AnalyzeMigrationOptions,
+  type ApplyMigrationOptions,
+  type ApplyMigrationRejection,
+  type ApplyMigrationResult,
+  type ApplyMigrationSuccess,
+  type MigrationAnalysis,
+} from "./config/migration.js";
 export {
   loadLocalSettings,
   resolveLocalSettingsPath,

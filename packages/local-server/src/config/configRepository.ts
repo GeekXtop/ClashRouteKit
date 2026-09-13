@@ -3,9 +3,11 @@ import path from "node:path";
 import {
   ConfigDiagnosticError,
   hasDiagnosticErrors,
+  parseAuthorProjectConfig,
   parseRouteKitConfig,
   serializeRouteKitConfig,
   validateLegacyProjectConfig,
+  type ParsedAuthorProjectConfig,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import { writeFileAtomic } from "./atomic.js";
@@ -52,6 +54,17 @@ export async function readConfig(options: ProjectOptions): Promise<RouteKitProje
   const config = parseRouteKitConfig(text);
   const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
   return publishBaseUrl ? { ...config, publishBaseUrl } : config;
+}
+
+/**
+ * 经 core parseAuthorProjectConfig 按顶层 schemaVersion 分发读取作者配置
+ * （v1 → v1 config，schemaVersion: 2 → v2 config）。
+ * 供迁移端点与 v2 编辑路径使用；既有 readConfig / readProjectConfigFile
+ * 保持 v1 形状不变，v1 编辑路径零回归。
+ */
+export async function readAuthorProject(options: ProjectOptions): Promise<ParsedAuthorProjectConfig> {
+  const text = await readFile(path.join(options.root, options.configFile), "utf8");
+  return parseAuthorProjectConfig(text);
 }
 
 export async function readProjectConfigFile(
