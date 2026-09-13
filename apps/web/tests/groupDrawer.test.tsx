@@ -6,25 +6,27 @@ import { GroupDrawer } from "../src/components/GroupDrawer.js";
 
 afterEach(cleanup);
 
-it("shows the group name and routes inbound jumps", () => {
-  const onJumpToRule = vi.fn();
+it("shows the usage count and filters the route list on demand", () => {
+  const onFilterInRouteList = vi.fn();
   render(
     <AppProviders>
       <GroupDrawer
         open
         group={{ name: "Proxy", type: "select", options: ["Direct"] }}
         groups={[{ name: "Proxy", type: "select", options: [] }]}
-        inbound={[{ id: "geosite-gfw", enabled: true, source: "[]GEOSITE,gfw" }]}
+        inboundCount={1}
         onSave={() => {}}
         onCancel={() => {}}
         onDelete={() => {}}
-        onJumpToRule={onJumpToRule}
+        onFilterInRouteList={onFilterInRouteList}
       />
     </AppProviders>,
   );
   expect(screen.getByDisplayValue("Proxy")).toBeTruthy();
-  fireEvent.click(screen.getByText("geosite-gfw"));
-  expect(onJumpToRule).toHaveBeenCalledWith("geosite-gfw");
+  expect(screen.getByText("被 1 条路由使用")).toBeTruthy();
+  expect(screen.queryByText("geosite-gfw")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "在路由列表中筛选" }));
+  expect(onFilterInRouteList).toHaveBeenCalledWith("Proxy");
 });
 
 it("shows inherited health-check fields for fallback groups without URLTest tolerance", () => {
@@ -40,11 +42,11 @@ it("shows inherited health-check fields for fallback groups without URLTest tole
             urlTest: { tolerance: 80 },
           },
         }}
-        inbound={[]}
+        inboundCount={0}
         onSave={() => {}}
         onCancel={() => {}}
         onDelete={() => {}}
-        onJumpToRule={() => {}}
+        onFilterInRouteList={() => {}}
       />
     </AppProviders>,
   );
@@ -64,11 +66,11 @@ it("keeps group edits local until Save is clicked", async () => {
         open
         group={{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }}
         groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
-        inbound={[]}
+        inboundCount={0}
         onSave={onSave}
         onCancel={() => {}}
         onDelete={() => {}}
-        onJumpToRule={() => {}}
+        onFilterInRouteList={() => {}}
       />
     </AppProviders>,
   );
@@ -99,11 +101,11 @@ it("discards edits when Cancel is clicked", () => {
         open
         group={{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }}
         groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
-        inbound={[]}
+        inboundCount={0}
         onSave={onSave}
         onCancel={onCancel}
         onDelete={() => {}}
-        onJumpToRule={() => {}}
+        onFilterInRouteList={() => {}}
       />
     </AppProviders>,
   );
@@ -127,11 +129,11 @@ it("saves a custom blank timeout as null", () => {
           timeout: 8,
         }}
         groups={[{ name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] }]}
-        inbound={[]}
+        inboundCount={0}
         onSave={onSave}
         onCancel={() => {}}
         onDelete={() => {}}
-        onJumpToRule={() => {}}
+        onFilterInRouteList={() => {}}
       />
     </AppProviders>,
   );
@@ -151,11 +153,11 @@ it("keeps duplicate-name validation inside the Drawer", () => {
           { name: "Proxy", type: "select", options: ["DIRECT"] },
           { name: "Auto", type: "url-test", options: [], nodeFilters: [".*"] },
         ]}
-        inbound={[]}
+        inboundCount={0}
         onSave={onSave}
         onCancel={() => {}}
         onDelete={() => {}}
-        onJumpToRule={() => {}}
+        onFilterInRouteList={() => {}}
       />
     </AppProviders>,
   );

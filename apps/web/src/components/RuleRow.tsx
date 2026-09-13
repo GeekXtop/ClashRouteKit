@@ -1,7 +1,7 @@
 import type { DragEvent } from "react";
 import { Switch, Tag } from "antd";
-import { GripVertical, Pencil } from "lucide-react";
-import type { RuleSet } from "@clash-route-kit/core";
+import { CircleAlert, GripVertical, Pencil } from "lucide-react";
+import type { Diagnostic, RuleSet } from "@clash-route-kit/core";
 import type { PolicyTone } from "../proxyGroups.js";
 
 export function RuleRow({
@@ -9,6 +9,8 @@ export function RuleRow({
   sourceText,
   tone,
   selected,
+  located = false,
+  issues = [],
   onSelect,
   onToggle,
   onEdit,
@@ -19,6 +21,8 @@ export function RuleRow({
   sourceText: string;
   tone: PolicyTone;
   selected: boolean;
+  located?: boolean;
+  issues?: readonly Diagnostic[];
   onSelect: () => void;
   onToggle: () => void;
   onEdit: () => void;
@@ -34,7 +38,8 @@ export function RuleRow({
   return (
     <div
       data-testid={`route-row-${ruleSet.id}`}
-      className={`rk-rule-row tone-${tone} ${selected ? "sel" : ""}`}
+      tabIndex={-1}
+      className={`rk-rule-row tone-${tone} ${selected ? "sel" : ""} ${located ? "hit" : ""}`}
       draggable={dragHandlers.draggable}
       onDragStart={dragHandlers.onDragStart}
       onDragOver={dragHandlers.onDragOver}
@@ -44,6 +49,15 @@ export function RuleRow({
       <GripVertical size={14} className="rk-grip" />
       <span className="rk-src">{sourceText}</span>
       {incompleteProvider ? <span className="rk-tag warn">规则源待补全</span> : null}
+      {issues.length > 0 ? (
+        <span
+          className="rk-diag"
+          title={issues.map((issue) => issue.message).join("\n")}
+        >
+          <CircleAlert size={12} aria-hidden />
+          {issues[0]!.message}
+        </span>
+      ) : null}
       <Tag style={{ marginLeft: "auto" }}>{ruleSet.policy}</Tag>
       {!isFinal ? (
         <Switch

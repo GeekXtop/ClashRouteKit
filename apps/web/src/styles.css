@@ -147,6 +147,19 @@ body {
 .rk-nav-row:hover .rk-nav-edit {
   opacity: 1;
 }
+/* nav rows are <button> so keyboard focus follows the same interaction */
+button.rk-nav-row {
+  width: calc(100% - 12px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.rk-nav-row.hit,
+.rk-rule-row.hit {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+}
 .rk-nav-edit {
   opacity: 0;
 }
@@ -159,6 +172,29 @@ body {
   color: var(--rk-accent);
   font-family: ui-monospace, monospace;
   font-size: 12px;
+}
+/* inline diagnostics on rule rows / group entries: icon + text, not color alone */
+.rk-diag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 46%;
+  overflow: hidden;
+  color: #f0b132;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-nav-icon {
+  color: var(--rk-muted);
+  flex: 0 0 auto;
+}
+.rk-nav-issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #f0b132;
+  font-size: 11px;
 }
 .rk-nav-name,
 .rk-lib-name {
@@ -307,11 +343,6 @@ body {
   min-height: 0;
   max-height: none;
 }
-.rk-preview-dock .ant-collapse-content-box {
-  height: min(34vh, 360px);
-  min-height: 180px;
-}
-.rk-preview-dock .rk-ini-scroll,
 .rk-fill-preview .rk-ini-fill {
   height: 100%;
   max-height: none;
@@ -320,6 +351,91 @@ body {
   background: rgba(99, 102, 241, 0.3);
   color: var(--rk-text);
   border-radius: 3px;
+}
+
+/* routing page top strip: validation summary + on-demand INI entry */
+.rk-routing-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px 0;
+}
+.rk-validation {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--rk-border);
+  border-radius: 8px;
+  background: var(--rk-surface);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.rk-validation.ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #67c987;
+}
+.rk-validation.issues .rk-validation-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f0b132;
+}
+.rk-validation-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 96px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rk-validation-item.error .rk-validation-sev {
+  color: #ff6b81;
+  border-color: #ff6b81;
+}
+.rk-validation-item.warning .rk-validation-sev {
+  color: #f0b132;
+  border-color: #f0b132;
+}
+.rk-validation-item.info .rk-validation-sev {
+  color: var(--rk-accent);
+  border-color: var(--rk-border-strong);
+}
+.rk-validation-sev {
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+.rk-validation-locate,
+.rk-validation-plain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+.rk-validation-locate {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.rk-validation-locate:hover .rk-validation-text {
+  text-decoration: underline;
+}
+.rk-validation-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rk-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* catalog rule preview: blends with the pane (no card), fills remaining height */
 .rk-catalog-rules {
@@ -369,112 +485,10 @@ body {
 .rk-nav-type {
   color: var(--rk-accent);
 }
-
-/* selected proxy-group context: relationships first, direct RuleSets below */
-.rk-group-context {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-.rk-group-context-summary {
-  flex: 0 1 auto;
-  max-height: 48%;
-  overflow: auto;
-  padding: 12px;
-  border-bottom: 1px solid var(--rk-border);
-}
-.rk-group-context-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.rk-group-context-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-.rk-group-context-grid > section,
-.rk-group-health {
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--rk-border);
-  border-radius: 8px;
-  background: var(--rk-surface);
-}
-.rk-group-context-rules {
-  flex: 1;
-  min-height: 0;
-}
-.rk-group-ref {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  margin-top: 5px;
-  padding: 6px 8px;
-  color: var(--rk-text);
-  border: 1px solid var(--rk-border);
-  border-radius: 7px;
-  background: var(--rk-bg);
-  cursor: pointer;
-}
-.rk-group-ref:hover {
-  border-color: var(--rk-primary);
-}
-.rk-group-token-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-.rk-group-sub-label {
-  margin-top: 10px;
-}
-.rk-group-filter {
-  max-width: 100%;
-  overflow: hidden;
-  padding: 2px 6px;
-  color: var(--rk-accent);
-  border: 1px solid var(--rk-border);
-  border-radius: 5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rk-group-health {
-  margin-top: 10px;
-}
-.rk-group-effective-row {
-  display: grid;
-  grid-template-columns: minmax(92px, auto) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 12px;
-}
-.rk-group-effective-label,
-.rk-setting-hint {
-  color: var(--rk-muted);
-}
-.rk-group-effective-value {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--rk-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .rk-setting-hint {
   margin: 4px 2px 0;
   font-size: 11px;
-}
-
-@media (max-width: 920px) {
-  .rk-group-context-grid {
-    grid-template-columns: 1fr;
-  }
+  color: var(--rk-muted);
 }
 
 .rk-oc-hint { margin: 12px 0 0; padding-left: 18px; color: var(--rk-muted); font-size: 12px; }

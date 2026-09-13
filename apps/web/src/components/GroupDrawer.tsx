@@ -14,7 +14,6 @@ import {
   type CustomProxyGroupDraft,
   type EditableCustomProxyGroup,
 } from "../drawerDrafts.js";
-import type { InboundRuleSetRow } from "../routeSummary.js";
 import { InheritedNumberSetting, InheritedTextSetting } from "./InheritedSettingField.js";
 
 const GROUP_TYPES: CustomProxyGroup["type"][] = ["select", "url-test", "fallback", "load-balance"];
@@ -24,11 +23,11 @@ export function GroupDrawer(props: {
   group: CustomProxyGroup | undefined;
   groups: CustomProxyGroup[];
   defaults?: RouteKitDefaults;
-  inbound: InboundRuleSetRow[];
+  inboundCount: number;
   onSave: (nextGroup: CustomProxyGroup) => void;
   onCancel: () => void;
   onDelete: () => void;
-  onJumpToRule: (id: string) => void;
+  onFilterInRouteList: (groupName: string) => void;
 }) {
   const [draft, setDraft] = useState<CustomProxyGroupDraft | null>(() =>
     props.group ? createCustomProxyGroupDraft(props.group) : null,
@@ -76,6 +75,9 @@ export function GroupDrawer(props: {
       />
     );
   }
+
+  // 筛选按已保存的组名（规则 policy 指向原名）；抽屉内未保存的改名不影响它。
+  const savedGroupName = props.group.name;
 
   const memberOptions = [
     ...props.groups.filter((g) => g.name !== props.group?.name).map((g) => g.name),
@@ -189,13 +191,13 @@ export function GroupDrawer(props: {
           </Space>
         ) : null}
         <div>
-          <div className="rk-field-label">命中此组的规则（{props.inbound.length}）</div>
-          {props.inbound.map((row) => (
-            <div key={row.id} className="rk-lib-row" onClick={() => props.onJumpToRule(row.id)}>
-              <span className="rk-lib-name">{row.id}</span>
-              <span className="rk-lib-meta">{row.source}</span>
-            </div>
-          ))}
+          <div className="rk-field-label">被 {props.inboundCount} 条路由使用</div>
+          <Button
+            size="small"
+            onClick={() => props.onFilterInRouteList(savedGroupName)}
+          >
+            在路由列表中筛选
+          </Button>
         </div>
         <Popconfirm title={`删除策略组 ${group.name}？`} onConfirm={props.onDelete} okText="删除" cancelText="取消">
           <Button danger>删除策略组</Button>

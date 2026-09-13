@@ -1,10 +1,16 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "antd";
 import { Plus } from "lucide-react";
-import type { RouteKitDefaults, RuleSet } from "@clash-route-kit/core";
+import type { Diagnostic, RouteKitDefaults, RuleSet } from "@clash-route-kit/core";
+import { attrSelector, locateElement } from "../domLocate.js";
 import { policyTone } from "../proxyGroups.js";
 import { ruleSetSourceText } from "../routeSummary.js";
 import { RuleRow } from "./RuleRow.js";
+
+export interface RuleLocate {
+  ruleId: string;
+  nonce: number;
+}
 
 export function RuleStream(props: {
   ruleSets: RuleSet[];
@@ -13,6 +19,8 @@ export function RuleStream(props: {
   incompleteProviderOutputs?: Set<string>;
   emptyDescription?: ReactNode;
   defaults?: RouteKitDefaults;
+  issuesByRuleId?: ReadonlyMap<string, readonly Diagnostic[]>;
+  locate?: RuleLocate | null;
   onSelectRuleSet: (id: string) => void;
   onToggle: (id: string) => void;
   onEditRule: (id: string) => void;
@@ -21,6 +29,15 @@ export function RuleStream(props: {
   onAddRule: () => void;
 }) {
   const dragId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!props.locate) return;
+    locateElement(
+      attrSelector("data-testid", `route-row-${props.locate.ruleId}`),
+      "center",
+    );
+  }, [props.locate]);
+
   const sections: { label: string; rows: RuleSet[] }[] = [];
   for (const ruleSet of props.ruleSets) {
     const label = ruleSet.section?.trim() || "默认";
@@ -62,6 +79,8 @@ export function RuleStream(props: {
                 sourceText={ruleSetSourceText(ruleSet, props.defaults)}
                 tone={ruleSet.source.type === "final" ? "fin" : policyTone(ruleSet.policy)}
                 selected={ruleSet.id === props.selectedRuleSetId}
+                located={ruleSet.id === props.locate?.ruleId}
+                issues={props.issuesByRuleId?.get(ruleSet.id) ?? []}
                 incompleteProvider={
                   ruleSet.source.type === "rule-provider" &&
                   Boolean(props.incompleteProviderOutputs?.has(ruleSet.source.file))
