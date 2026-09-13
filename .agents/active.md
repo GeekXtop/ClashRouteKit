@@ -4,9 +4,9 @@
 
 ## 当前任务
 
-- 目标：实现总路线图 Phase B（Schema v2 与 Core），随后推进 C–E 阶段；配置文件边界已按用户要求改为“仓库只跟踪 `config/routes.yaml.example`，`config/routes.yaml` 为本地个人配置”。
-- 状态：Phase A 分支已合并、untrack 改造已完成（`28a1f41`）；Phase B（Schema v2 与 Core）已完成并全量门禁通过（60 文件 404 测试），未 push。
-- 最后更新：2026-09-11
+- 目标：总路线图（Phase A–E）全部完成；仓库当前无进行中阶段。
+- 状态：Phase A–E 全部落地并推送 origin/main（85 文件 705 测试全绿，CI 绿）；详见 `.agents/progress.md` 2026-09-13 各条目。
+- 最后更新：2026-09-13
 
 - 当前规格：`docs/superpowers/specs/2026-08-10-web-console-workflow-redesign-design.md`。
 - 当前计划：`docs/superpowers/plans/2026-09-11-schema-v2-core.md` 已完成（Phase B 落地，7 任务全勾）。
