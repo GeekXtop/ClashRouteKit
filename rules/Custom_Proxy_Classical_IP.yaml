@@ -1,0 +1,5 @@
+# 生成自 rule/Custom_Proxy_Classical_IP.yaml
+# 总数: 1
+
+payload:
+  - 'IP-CIDR,207.241.224.2/32,no-resolve'

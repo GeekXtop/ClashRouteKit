@@ -1,0 +1,7 @@
+# 生成自 rule/Custom_Port_Direct.yaml
+# 总数: 3
+
+payload:
+  - 'DST-PORT,1-79'
+  - 'DST-PORT,444-65535'
+  - 'DST-PORT,81-442'
