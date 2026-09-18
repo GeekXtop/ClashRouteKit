@@ -18,6 +18,7 @@ import {
   saveAuthorProject,
   writeProjectConfigFile,
 } from "../config/configRepository.js";
+import { loadLocalSettings } from "../config/localSettings.js";
 import {
   analyzeMigration,
   applyMigration,
@@ -98,16 +99,28 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
       if (request.method === "GET") {
         // 经 parseAuthorProjectConfig 分发：v1 追加 schemaVersion: 1（原字段不变），
         // v2 返回 { schemaVersion: 2, yaml, mtime }，不再因 v1 严格解析而报错。
-        void readAuthorProjectFile(options)
-          .then((result) =>
+        // 运行时 URL 来自本地设置（spec 5.3，作者配置不携带），v1/v2 统一返回。
+        void Promise.all([
+          readAuthorProjectFile(options),
+          loadLocalSettings({ root: options.root, env: options.env }),
+        ])
+          .then(([result, settings]) =>
             result.schemaVersion === 1
               ? writeJson(response, 200, {
                   schemaVersion: 1,
                   yaml: result.yaml,
                   config: result.config,
                   mtime: result.mtime,
+                  publishBaseUrl: settings.serve.publicBaseUrl,
+                  subconverterUrl: settings.subconverterUrl,
                 })
-              : writeJson(response, 200, { schemaVersion: 2, yaml: result.yaml, mtime: result.mtime }),
+              : writeJson(response, 200, {
+                  schemaVersion: 2,
+                  yaml: result.yaml,
+                  mtime: result.mtime,
+                  publishBaseUrl: settings.serve.publicBaseUrl,
+                  subconverterUrl: settings.subconverterUrl,
+                }),
           )
           .catch((error: unknown) => {
             writeJson(response, 500, {
@@ -164,10 +177,8 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
               }
             })
             .catch((error: unknown) => {
-              writeJson(response, 400, {
-                ok: false,
-                output: error instanceof Error ? error.message : String(error),
-              });
+              // v1 保存失败同样携带结构化 diagnostics（ConfigDiagnosticError 时）。
+              writeJson(response, 400, errorPayload(error));
             });
         });
         return;

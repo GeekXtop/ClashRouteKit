@@ -8,8 +8,9 @@
  *
  * toRouteKitConfig 对悬空 policy / provider 引用会抛错；编辑中间态允许出现
  * 悬空引用（诊断条已呈现 error），渲染投影剔除这类路由，保证页面永不因
- * 渲染崩溃。v2 作者配置不携带 publishBaseUrl（spec 5.3，迁入本地设置），
- * 渲染输入以空串占位。
+ * 渲染崩溃。v2 作者配置不携带 publishBaseUrl / subconverterUrl（spec 5.3，
+ * 迁入本地设置），渲染输入由装载时的 runtimeUrls（GET /api/project/config
+ * 响应透传）填充；缺失时保持空串 / undefined 占位。
  */
 import {
   normalizeAuthorProjectConfig,
@@ -18,9 +19,14 @@ import {
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 
+import type { RuntimeUrls } from "./v2Project.js";
+
 const FALLBACK_TEMPLATE_OUTPUT = "Custom_Clash.ini";
 
-export function renderV2PageConfig(config: AuthorProjectConfigV2): RouteKitProjectConfig {
+export function renderV2PageConfig(
+  config: AuthorProjectConfigV2,
+  runtimeUrls?: RuntimeUrls,
+): RouteKitProjectConfig {
   const { project } = normalizeAuthorProjectConfig(config);
   const renderable = {
     ...project,
@@ -34,6 +40,8 @@ export function renderV2PageConfig(config: AuthorProjectConfigV2): RouteKitProje
   const rendered = toRouteKitConfig(renderable);
   return {
     ...rendered,
+    publishBaseUrl: runtimeUrls?.publishBaseUrl ?? "",
+    subconverterUrl: runtimeUrls?.subconverterUrl,
     template: { output: config.project?.template?.output ?? FALLBACK_TEMPLATE_OUTPUT },
     vendorRepos: config.vendorRepos ?? [],
     // v2 provider / vendorRepo 形状是 v1 的超集（多稳定 id），投影原样透传，

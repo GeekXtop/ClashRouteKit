@@ -224,4 +224,18 @@ describe("renderV2PageConfig", () => {
     const projection = renderV2PageConfig(broken);
     expect(projection.ruleSets.map((ruleSet) => ruleSet.id)).toEqual(["geosite-openai", "final"]);
   });
+
+  it("fills publishBaseUrl and subconverterUrl from runtime urls when provided", () => {
+    const projection = renderV2PageConfig(createV2Config(), {
+      publishBaseUrl: "http://192.168.1.10:8787",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+    });
+    expect(projection.publishBaseUrl).toBe("http://192.168.1.10:8787");
+    expect(projection.subconverterUrl).toBe("http://10.0.0.3:25500/sub");
+
+    // 缺省时保持历史占位行为
+    const fallback = renderV2PageConfig(createV2Config());
+    expect(fallback.publishBaseUrl).toBe("");
+    expect(fallback.subconverterUrl).toBeUndefined();
+  });
 });

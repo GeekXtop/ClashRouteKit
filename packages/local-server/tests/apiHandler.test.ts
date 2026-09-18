@@ -250,8 +250,42 @@ describe("createRouteKitApiHandler", () => {
       }),
     );
     expect(res.status).toBe(400);
-    expect((JSON.parse(res.body) as { ok: boolean }).ok).toBe(false);
+    const payload = JSON.parse(res.body) as {
+      ok: boolean;
+      output: string;
+      diagnostics: Array<{ code: string; severity: string; message: string }>;
+    };
+    expect(payload.ok).toBe(false);
+    // ConfigDiagnosticError 时错误响应携带结构化 diagnostics
+    expect(payload.diagnostics.length).toBeGreaterThan(0);
+    expect(payload.diagnostics[0]?.severity).toBe("error");
     expect(writes).toEqual([]);
+  });
+
+  it("returns runtime urls resolved from local settings on GET /api/project/config", async () => {
+    const envOverrides = {
+      CLASH_ROUTE_KIT_PUBLISH_BASE_URL: "http://192.168.1.10:8787",
+      CLASH_ROUTE_KIT_SUBCONVERTER_BASE_URL: "http://10.0.0.3:25500/sub",
+    };
+    const v2Handler = createRouteKitApiHandler({
+      ...baseOptions,
+      env: envOverrides,
+      readText: async () => validV2Yaml,
+    });
+    const v2Res = await callHandler(v2Handler, "/api/project/config");
+    const v2Payload = JSON.parse(v2Res.body) as { publishBaseUrl?: string; subconverterUrl?: string };
+    expect(v2Payload.publishBaseUrl).toBe("http://192.168.1.10:8787");
+    expect(v2Payload.subconverterUrl).toBe("http://10.0.0.3:25500/sub");
+
+    // 未提供 env 时回退本地设置默认值
+    const defaultHandler = createRouteKitApiHandler({
+      ...baseOptions,
+      readText: async () => validConfigYaml,
+    });
+    const defaultRes = await callHandler(defaultHandler, "/api/project/config");
+    const defaultPayload = JSON.parse(defaultRes.body) as { publishBaseUrl?: string; subconverterUrl?: string };
+    expect(defaultPayload.publishBaseUrl).toBe("http://127.0.0.1:8787");
+    expect(defaultPayload.subconverterUrl).toBe("http://127.0.0.1:25500/sub");
   });
 
   it("rejects PUT /api/project/config with malformed JSON", async () => {

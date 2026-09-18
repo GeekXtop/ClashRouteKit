@@ -76,8 +76,21 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 
 /** GET /api/project/config 的分发结果：v1 带 config，v2 只有 yaml。 */
 export type ProjectDocument =
-  | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig }
-  | { schemaVersion: 2; yaml: string };
+  | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig; runtimeUrls?: RuntimeUrls }
+  | { schemaVersion: 2; yaml: string; runtimeUrls?: RuntimeUrls };
+
+/** 本地设置解析出的运行时 URL（spec 5.3）；旧响应缺失时为 undefined。 */
+export interface RuntimeUrls {
+  publishBaseUrl: string;
+  subconverterUrl: string;
+}
+
+function readRuntimeUrls(payload: Record<string, unknown>): RuntimeUrls | undefined {
+  if (typeof payload.publishBaseUrl !== "string" || typeof payload.subconverterUrl !== "string") {
+    return undefined;
+  }
+  return { publishBaseUrl: payload.publishBaseUrl, subconverterUrl: payload.subconverterUrl };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -103,13 +116,14 @@ export async function fetchProjectDocument(
     throw new Error("Invalid local project response");
   }
   if (payload.schemaVersion === 2) {
-    return { schemaVersion: 2, yaml: payload.yaml };
+    return { schemaVersion: 2, yaml: payload.yaml, runtimeUrls: readRuntimeUrls(payload) };
   }
   if (isRecord(payload.config)) {
     return {
       schemaVersion: 1,
       yaml: payload.yaml,
       config: payload.config as unknown as RouteKitProjectConfig,
+      runtimeUrls: readRuntimeUrls(payload),
     };
   }
   throw new Error("Invalid local project response");

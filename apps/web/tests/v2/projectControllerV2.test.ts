@@ -141,4 +141,27 @@ describe("createProjectControllerFromDocument", () => {
     expect(state.v2?.config).toEqual(createV2Config());
     expect(state.dirty).toBe(false);
   });
+
+  it("threads runtime urls from the document into the v2 controller and projection", () => {
+    const runtimeUrls = {
+      publishBaseUrl: "http://192.168.1.10:8787",
+      subconverterUrl: "http://10.0.0.3:25500/sub",
+    };
+    const state = createProjectControllerFromDocument({
+      schemaVersion: 2,
+      yaml: createV2Yaml(),
+      runtimeUrls,
+    });
+
+    expect(state.runtimeUrls).toEqual(runtimeUrls);
+    // 只读投影（draftConfig 兜底）同样携带运行时 URL
+    expect(state.draftConfig.publishBaseUrl).toBe("http://192.168.1.10:8787");
+    expect(state.draftConfig.subconverterUrl).toBe("http://10.0.0.3:25500/sub");
+
+    // 保存基线重置与 mutation 后 runtimeUrls 保留
+    const mutated = applyV2Config(state, state.v2!.config);
+    expect(mutated.runtimeUrls).toEqual(runtimeUrls);
+    const saved = markV2ProjectSaved(mutated, mutated.draftYaml);
+    expect(saved.runtimeUrls).toEqual(runtimeUrls);
+  });
 });

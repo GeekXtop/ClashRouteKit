@@ -11,6 +11,7 @@ import {
   loadV2Project,
   serializeV2Project,
   type ProjectDocument,
+  type RuntimeUrls,
   type V2ProjectState,
 } from "./v2/v2Project.js";
 
@@ -39,6 +40,12 @@ export interface ProjectControllerState {
    * 此时 canSaveProject 拒绝保存并提示。
    */
   v2?: V2ProjectState;
+  /**
+   * 本地设置解析出的运行时 URL（spec 5.3）：v2 作者配置不携带这两个字段，
+   * 装载时从 GET /api/project/config 响应透传，渲染投影据此填充。
+   * v1 项目为 undefined（沿用 v1 作者配置自带字段）。
+   */
+  runtimeUrls?: RuntimeUrls;
   validation: ProjectValidationState;
   selectedView: ProjectView;
   selectedRuleSetId: string;
@@ -225,9 +232,10 @@ export function markProjectSaved(
  * draftConfig 是 v1 只读投影（渲染各页面的兜底输入），编辑 mutation
  * 均经 useV2DraftActions 走 v2.config + applyV2Config，永不写投影。
  */
-function v2ReadOnlyProjection(templateOutput: string): RouteKitProjectConfig {
+function v2ReadOnlyProjection(templateOutput: string, runtimeUrls?: RuntimeUrls): RouteKitProjectConfig {
   return {
-    publishBaseUrl: "",
+    publishBaseUrl: runtimeUrls?.publishBaseUrl ?? "",
+    subconverterUrl: runtimeUrls?.subconverterUrl,
     template: { output: templateOutput },
     vendorRepos: [],
     customProxyGroups: [],
@@ -240,7 +248,7 @@ function v2ReadOnlyProjection(templateOutput: string): RouteKitProjectConfig {
  * Schema v2 项目控制器：装载失败（YAML / 结构错误）时不抛出，
  * v2 状态留空并置 error 状态提示；canSaveProject 会拒绝保存。
  */
-export function createV2ProjectController(yaml: string): ProjectControllerState {
+export function createV2ProjectController(yaml: string, runtimeUrls?: RuntimeUrls): ProjectControllerState {
   let v2: V2ProjectState | undefined;
   let status: ProjectStatus = "ready";
   let message = "已读取本地 config/routes.yaml（Schema v2）";
@@ -252,6 +260,7 @@ export function createV2ProjectController(yaml: string): ProjectControllerState 
   }
   const projection = v2ReadOnlyProjection(
     v2?.config.project?.template?.output ?? "Custom_Clash.ini",
+    runtimeUrls,
   );
   return {
     originalYaml: yaml,
@@ -263,6 +272,7 @@ export function createV2ProjectController(yaml: string): ProjectControllerState 
     message,
     schemaVersion: 2,
     v2,
+    runtimeUrls,
     validation: {
       status: "idle",
       output: "尚未运行检查",
@@ -280,7 +290,7 @@ export function createProjectControllerFromDocument(
   document: ProjectDocument,
 ): ProjectControllerState {
   return document.schemaVersion === 2
-    ? createV2ProjectController(document.yaml)
+    ? createV2ProjectController(document.yaml, document.runtimeUrls)
     : createProjectController(document);
 }
 

@@ -51,10 +51,12 @@ export default function App() {
   const v2Actions = useV2DraftActions(setProject);
   const config = project.draftConfig;
   const v2State = project.schemaVersion === 2 ? project.v2 : undefined;
-  // v2 页面渲染输入：normalize + toRouteKitConfig 投影（显示名进、稳定 ID 出）。
+  // v2 页面渲染输入：normalize + toRouteKitConfig 投影（显示名进、稳定 ID 出），
+  // 运行时 URL 从本地设置响应透传（spec 5.3）。
+  const runtimeUrls = project.runtimeUrls;
   const pageConfig = useMemo(
-    () => (v2State ? renderV2PageConfig(v2State.config) : config),
-    [v2State, config],
+    () => (v2State ? renderV2PageConfig(v2State.config, runtimeUrls) : config),
+    [v2State, runtimeUrls, config],
   );
   const [importOpen, setImportOpen] = useState(false);
   const [importSources, setImportSources] = useState<CatalogSourceInfo[]>([]);
@@ -86,7 +88,7 @@ export default function App() {
           notifyError(save.diagnostics.map((d) => `[${d.code}] ${d.message}`).join("；") || save.reason);
           return;
         }
-        setProject(createV2ProjectController(save.yaml));
+        setProject(createV2ProjectController(save.yaml, project.runtimeUrls));
         notifySuccess(
           converted.warningCount
             ? `已导入并转换为 Schema v2 配置（${converted.warningCount} 条警告，规则源可在规则库补全）`

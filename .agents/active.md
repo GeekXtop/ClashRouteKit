@@ -6,7 +6,8 @@
 
 - 目标：总路线图（Phase A–E）全部完成；仓库当前无进行中阶段。
 - 状态：Phase A–E 全部落地并推送 origin/main（85 文件 705 测试全绿，CI 绿）；详见 `.agents/progress.md` 2026-09-13 各条目。
-- 最后更新：2026-09-13
+- 进行中（本会话占坑）：路线图收尾三件事——① v1 保存错误响应携带 diagnostics；② v2 输出链接入本地设置 publishBaseUrl/subconverterUrl；③ 1200px/360px 与键盘焦点走查。涉及 packages/local-server/src/http/apiHandler.ts、apps/web/src/{projectController.ts,v2/v2Project.ts,v2/renderProject.ts,App.tsx} 及对应测试。
+- 最后更新：2026-09-18
 
 - 当前规格：`docs/superpowers/specs/2026-08-10-web-console-workflow-redesign-design.md`。
 - 当前计划：`docs/superpowers/plans/2026-09-11-schema-v2-core.md` 已完成（Phase B 落地，7 任务全勾）。
