@@ -590,3 +590,36 @@ button.rk-nav-row {
 
 .rk-oc-hint { margin: 12px 0 0; padding-left: 18px; color: var(--rk-muted); font-size: 12px; }
 .rk-oc-hint li { margin: 2px 0; }
+
+/* ---- mobile (design spec §10): single-column panes + near-fullscreen drawers ---- */
+@media (max-width: 640px) {
+  /* 双栏（侧栏 + 主列表）改上下堆叠，主操作不依赖横向滚动 */
+  .rk-routing,
+  .rk-library {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 40%) minmax(0, 1fr);
+  }
+  .rk-routing > .rk-pane,
+  .rk-library > .rk-pane {
+    overflow: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--rk-border);
+  }
+  .rk-routing > .rk-pane:last-child,
+  .rk-library > .rk-pane:last-child {
+    border-bottom: 0;
+  }
+  /* Drawer 的 width 内联样式（420/480px）在窄视口压到近全屏；
+     max-width 优先于 width，桌面不受影响 */
+  .ant-drawer-content-wrapper {
+    max-width: 100vw;
+  }
+  /* 输出页共享状态条：内层 Space 允许折行，长模板 URL 可断行 */
+  .rk-publish-block .ant-space {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .rk-publish-block code {
+    word-break: break-all;
+  }
+}

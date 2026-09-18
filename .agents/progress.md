@@ -190,3 +190,11 @@
 - 已修复：planLegacyMigration 对缺失 template 字段的 ImportedConfig 类输入容错访问。
 - 已验证：`pnpm test` 86 文件 712 测试、typecheck、build 全绿；浏览器端到端：v2 项目下粘贴 INI → 替换导入 → 成功通知 + 磁盘写盘确认 + 项目页计数更新（验证后用户原配置已字节级恢复）。
 - 已提交并推送 origin/main。
+
+## 2026-09-18 - 路线图收尾：运行时 URL、保存诊断与响应式走查
+
+- 已完成（关闭 175 行三项遗留）：GET /api/project/config 统一携带本地设置解析的 `publishBaseUrl` / `subconverterUrl`（env > `.clashroutekit/local.yaml` > 默认值）；v2 装载链（fetchProjectDocument → createV2ProjectController → renderV2PageConfig）经 `runtimeUrls` 透传至渲染投影——输出页本地模板 URL 与 SubConverter 端点不再空串占位、不再回退硬编码 `10.0.0.3`。v1 保存失败（PUT 400）与其他端点一致携带结构化 `diagnostics`。
+- 已完成（规格第 10 节走查）：styles.css 新增移动端媒体查询（≤640px）——路由/规则库双栏（--rk-sidebar: 300px）改上下堆叠（40%/60% 各自滚动，无横向滚动）、Drawer wrapper `max-width: 100vw`（420/480px 内联宽压到近全屏）、输出页共享状态条折行与长 URL 断行。1200px 与 360px 四页均无横向溢出；抽屉打开后焦点移入抽屉容器（AntD focus trap），无正 tabindex。
+- 已验证：pnpm typecheck 全绿；全量 86 文件 715 测试通过（以 `--maxWorkers=2` 运行；默认并行度下 Vitest worker 因系统空闲内存不足 OOM，与代码无关）；浏览器 dev server 实测：v2 输出页模板 URL 显示 `http://127.0.0.1:8787/templates/Custom_Clash.ini`（来自本地设置默认值），360px 走查截图确认布局。
+- 提交：`791fc0e`（运行时 URL + 保存诊断）；styles.css 响应式随后提交。
+- 备注：IAB 浏览器合成键盘事件（CUA / Playwright press）不触发页面 keydown，键盘走查以 DOM 审计 + 抽屉焦点检查替代；抽屉 motion 在 IAB 后台标签可能停在 enter-start（rAF 节流伪影），真实浏览器动画正常。
