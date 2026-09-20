@@ -198,3 +198,13 @@
 - 已验证：pnpm typecheck 全绿；全量 86 文件 715 测试通过（以 `--maxWorkers=2` 运行；默认并行度下 Vitest worker 因系统空闲内存不足 OOM，与代码无关）；浏览器 dev server 实测：v2 输出页模板 URL 显示 `http://127.0.0.1:8787/templates/Custom_Clash.ini`（来自本地设置默认值），360px 走查截图确认布局。
 - 提交：`791fc0e`（运行时 URL + 保存诊断）；styles.css 响应式随后提交。
 - 备注：IAB 浏览器合成键盘事件（CUA / Playwright press）不触发页面 keydown，键盘走查以 DOM 审计 + 抽屉焦点检查替代；抽屉 motion 在 IAB 后台标签可能停在 enter-start（rAF 节流伪影），真实浏览器动画正常。
+## 2026-09-20 - active.md 折叠归档：配置健康门禁与显式保存阶段
+
+- 已完成（补录）：配置健康门禁与「显式保存 Drawer」两阶段的条目此前只存在于 `.agents/active.md`，折叠时并入本文件，避免丢失。
+- 已变更（配置健康门禁阶段）：Core 提供结构化 `Diagnostic`、严格 v1 parser、依赖环检测与统一 `validateLegacyProjectConfig`；Web 保存、CLI `check`/`generate`、服务端保存、独立 `git-commit`/`git-push` 均以 error 为阻断项、warning 可见但不阻断；禁用 provider / RuleSet 可保留不完整草稿并以 warning 呈现，禁用项不参与生成与执行语义。
+- 已变更（合并时对用户配置采纳的分支修复）：`google@cn` 数据源、`Custom_Port_Direct` 真实来源、移除空 `.mrs` provider、移除误入 nodeFilter 的 URL；feature 分支 `config/routes.yaml` 已修复上述项，根工作区的用户版配置需冲突感知合并，不能整文件覆盖。
+- 已变更（显式保存阶段，规格 `docs/superpowers/specs/2026-08-07-explicit-drawer-save-design.md` / 计划 `docs/superpowers/plans/2026-08-07-explicit-drawer-save.md`）：三个 Drawer 均使用本地草稿，仅点击保存才原子写入，取消与右上关闭丢弃草稿；`nodeFilters` 改多行文本输入；timeout / tolerance 等 nullable 覆盖只保留「继承项目默认值 / 自定义」，自定义清空保存为 `null`；项目 GEOIP `no-resolve` 只保留开启/关闭并默认明确写入 `true`，单条 GEOIP RuleSet 仍保留继承/开启/关闭；普通规则启用开关等非 Drawer 操作继续自动保存；Vite watcher 仅忽略实际配置文件，配置写盘不再触发整页重载或跳回首页；策略组仍按 `customProxyGroups` 原顺序展示，不引入 `role` / `categoryOverride`。
+- 关键文件：`apps/web/src/drawerDrafts.ts`、`configMutations.ts`、`useProjectDraftActions.ts`、`components/GroupDrawer.tsx`、`RuleDrawer.tsx`、`ProjectDefaultsDrawer.tsx`、`InheritedSettingField.tsx`、`RoutingPage.tsx`、`LibraryPage.tsx`、`apps/web/vite.config.ts`；测试 `apps/web/tests/` 下 `drawerDrafts.test.ts`、`configMutations.test.ts`、`inheritedSettingField.test.tsx`、`groupDrawer.test.tsx`、`ruleDrawer.test.tsx`、`projectDefaultsDrawer.test.tsx`、`routingPage.test.tsx`、`libraryPage.test.tsx`、`viteConfig.test.ts`。
+- 已验证：`pnpm exec vitest run` 上述 9 个测试文件、67 个测试通过；`pnpm test` 51 文件 298 测试通过；`pnpm typecheck`、`pnpm build`、`pnpm check`、`pnpm generate` 全绿；`git diff --check` 无空白错误；浏览器实测三个 Drawer 的保存/取消/关闭符合事务语义且始终停留在路由页。既有非阻断提示：AntD `Input addonBefore` 弃用警告、AntD v5 与 React 19 兼容提示、Vite 大 chunk。
+- 备注：遗留非阻断 warning——GEOSITE `gfw` 已从上游 domain-list-community 移除，本地 Catalog 无此 tag；规格 4.1 假设 `config/routes.yaml` 为可提交事实源，现改为本地文件（CI 缺失时从 example 生成发布产物，`apps/web` 构建经 `virtual:routes-config-yaml` 内联本地配置），四层模型不受影响。
+- 来源：dsh/obclose-active-fold
