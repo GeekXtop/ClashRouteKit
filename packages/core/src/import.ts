@@ -6,22 +6,38 @@ function basename(url: string): string {
   return segments[segments.length - 1] ?? noQuery;
 }
 
-function parseRulesetSource(rest: string): RuleSetSource | { warning: string } {
+function parseRulesetSource(
+  rest: string,
+): { source: RuleSetSource; warning?: string } | { warning: string } {
   if (rest.startsWith("[]GEOSITE,")) {
-    return { type: "geosite", value: rest.slice("[]GEOSITE,".length).trim() };
+    return { source: { type: "geosite", value: rest.slice("[]GEOSITE,".length).trim() } };
   }
   if (rest.startsWith("[]GEOIP,")) {
     const parts = rest.slice("[]GEOIP,".length).split(",").map((part) => part.trim());
-    return { type: "geoip", value: parts[0], noResolve: parts.includes("no-resolve") };
+    return {
+      source: { type: "geoip", value: parts[0], noResolve: parts.includes("no-resolve") },
+    };
   }
   if (rest === "[]FINAL") {
-    return { type: "final" };
+    return { source: { type: "final" } };
   }
   const provider = /^clash-(domain|classic|ipcidr):(.+),(\d+)\s*$/.exec(rest);
   if (provider) {
     const behavior =
       provider[1] === "domain" ? "domain" : provider[1] === "classic" ? "classical" : "ipcidr";
-    return { type: "rule-provider", behavior, file: basename(provider[2]), interval: Number(provider[3]) };
+    let file = basename(provider[2]);
+    let warning: string | undefined;
+    if (file.toLowerCase().endsWith(".mrs")) {
+      // .mrs 是上游编译产物，file 只是关联键（数据来自 config 声明的 vendor 源），
+      // 按同 stem 归一为 .yaml 键；对不上 provider 时走既有禁用占位路径。
+      file = `${file.slice(0, -4)}.yaml`;
+      warning = `ruleset 引用为编译产物 .mrs：${file.replace(/\.yaml$/, ".mrs")}，` +
+        "已按同 stem 归一为 .yaml 关联键，请为其绑定 vendor 内上游同发布的 yaml 数据源";
+    }
+    return {
+      source: { type: "rule-provider", behavior, file, interval: Number(provider[3]) },
+      ...(warning === undefined ? {} : { warning }),
+    };
   }
   return { warning: `无法识别的 ruleset 源：${rest}` };
 }
@@ -118,19 +134,20 @@ export function parseIniToConfig(ini: string): ImportedConfig {
       }
       const policy = value.slice(0, comma).trim();
       const parsed = parseRulesetSource(value.slice(comma + 1).trim());
-      if ("warning" in parsed) {
+      if (!("source" in parsed)) {
         warnings.push(parsed.warning);
         continue;
       }
+      if (parsed.warning !== undefined) warnings.push(parsed.warning);
       const base =
-        parsed.type === "geosite"
-          ? parsed.value
-          : parsed.type === "geoip"
-            ? `geoip-${parsed.value}`
-            : parsed.type === "rule-provider"
-              ? parsed.file.replace(/\.[^.]+$/, "")
+        parsed.source.type === "geosite"
+          ? parsed.source.value
+          : parsed.source.type === "geoip"
+            ? `geoip-${parsed.source.value}`
+            : parsed.source.type === "rule-provider"
+              ? parsed.source.file.replace(/\.[^.]+$/, "")
               : "final";
-      const ruleSet: RuleSet = { id: uniqueId(base), policy, source: parsed };
+      const ruleSet: RuleSet = { id: uniqueId(base), policy, source: parsed.source };
       if (currentSection) ruleSet.section = currentSection;
       ruleSets.push(ruleSet);
       currentSection = undefined;

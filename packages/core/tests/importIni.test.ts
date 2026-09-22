@@ -45,6 +45,27 @@ describe("parseIniToConfig · rulesets", () => {
     expect(out.warnings.some((w) => w.includes("extra.list"))).toBe(true);
   });
 
+  it("normalizes .mrs ruleset keys to the same-stem .yaml and warns", () => {
+    // 上游（如 Aethersailor）模板开始引用编译产物 .mrs；file 只是关联键，
+    // 数据一律来自 config 声明的 vendor 源，故按同 stem 归一为 .yaml 键。
+    const out = parseIniToConfig(
+      [
+        "[custom]",
+        "ruleset=🎯 全球直连,clash-domain:https://cdn.jsdelivr.net/gh/Aethersailor/Custom_OpenClash_Rules@main/rule/Custom_Direct_Domain.mrs,1800",
+        "",
+      ].join("\n"),
+    );
+
+    expect(out.ruleSets[0]?.source).toEqual({
+      type: "rule-provider",
+      behavior: "domain",
+      file: "Custom_Direct_Domain.yaml",
+      interval: 1800,
+    });
+    // 键归一不是静默改写：warning 须点名原始 .mrs 引用
+    expect(out.warnings.some((w) => w.includes("Custom_Direct_Domain.mrs"))).toBe(true);
+  });
+
   it("does not leak a comment section to unrelated following rulesets", () => {
     const out = parseIniToConfig(
       [
