@@ -47,6 +47,40 @@ ruleSets:
       type: final
 `;
 
+const sampleConfigV2 = `schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: proxy
+    name: Proxy
+    type: select
+    members:
+      - builtin: DIRECT
+routes:
+  - id: p
+    policy:
+      group: proxy
+    source:
+      type: rule-provider
+      provider: ai-domain
+  - id: final
+    policy:
+      group: proxy
+    source:
+      type: final
+ruleProviders:
+  - id: ai-domain
+    name: AI_Domain
+    output: AI_Domain.yaml
+    behavior: domain
+    sources:
+      - id: ai-domain
+        name: AI_Domain
+        type: clash-list
+        path: rules/AI_Domain.list
+`;
+
 describe("createHostingHandler", () => {
   const handler = createHostingHandler({
     root: "/proj",
@@ -55,13 +89,25 @@ describe("createHostingHandler", () => {
     readText: async () => sampleConfig,
   });
 
-  it("renders /templates/*.ini live with publicBase substituted", async () => {
-    const res = await run(handler, "/templates/Custom_Clash.ini");
+  it("renders /templates/*.ini from a schema v2 config", async () => {
+    const v2Handler = createHostingHandler({
+      root: "/proj",
+      configFile: "config/routes.yaml",
+      publicBase: "http://10.0.0.3:8787",
+      readText: async () => sampleConfigV2,
+    });
+    const res = await run(v2Handler, "/templates/Custom_Clash.ini");
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/plain/);
     expect(res.body).toContain("[custom]");
     expect(res.body).toContain("http://10.0.0.3:8787/rules/AI_Domain.yaml");
     expect(res.body).not.toContain("127.0.0.1");
+  });
+
+  it("rejects v1 configs with an explicit unsupported-format message", async () => {
+    const res = await run(handler, "/templates/Custom_Clash.ini");
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toContain("不支持 v1");
   });
 
   it("rejects /rules path traversal", async () => {

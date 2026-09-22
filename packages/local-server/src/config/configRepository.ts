@@ -52,6 +52,32 @@ export function projectConfigPath(options: ProjectOptions): string {
 }
 
 /**
+ * Schema v2 作者配置 → 渲染 DTO（readConfig 与 hostingHandler 共用的桥）：
+ * normalize + 静态校验（error 抛 ConfigDiagnosticError）+ toRouteKitConfig 投影，
+ * 并补全生成链所需工程字段（template / vendorRepos / ruleProviders）。
+ */
+export function renderedConfigFromAuthorProjectV2(
+  v2: AuthorProjectConfigV2,
+  publishBaseUrl: string,
+): RouteKitProjectConfig {
+  const normalized = normalizeAuthorProjectConfig(v2);
+  const errors = [
+    ...normalized.diagnostics,
+    ...validateNormalizedProject(normalized.project),
+  ].filter((diagnostic) => diagnostic.severity === "error");
+  if (errors.length > 0) {
+    throw new ConfigDiagnosticError(errors);
+  }
+  const rendered = toRouteKitConfig(normalized.project, { publishBaseUrl });
+  return {
+    ...rendered,
+    template: { output: v2.project?.template?.output ?? "Custom_Clash.ini" },
+    vendorRepos: v2.vendorRepos ?? [],
+    ruleProviders: v2.ruleProviders,
+  };
+}
+
+/**
  * 读取项目配置并应用 CLASH_ROUTE_KIT_PUBLISH_BASE_URL 环境变量覆盖
  * publishBaseUrl（供 publish 构建使用）；自 apps/cli program.ts 原样下沉。
  * 按顶层 schemaVersion 分发：v1 走严格 v1 parser；v2 经 normalize +
@@ -63,25 +89,10 @@ export async function readConfig(options: ProjectOptions): Promise<RouteKitProje
   const parsed = parseAuthorProjectConfig(text);
   let config: RouteKitProjectConfig;
   if (parsed.schemaVersion === 2 && parsed.v2) {
-    const normalized = normalizeAuthorProjectConfig(parsed.v2);
-    const errors = [
-      ...normalized.diagnostics,
-      ...validateNormalizedProject(normalized.project),
-    ].filter((diagnostic) => diagnostic.severity === "error");
-    if (errors.length > 0) {
-      throw new ConfigDiagnosticError(errors);
-    }
-    const rendered = toRouteKitConfig(normalized.project, {
-      publishBaseUrl: process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "",
-    });
-    // 补全 v1 校验与生成链所需的工程字段：template、vendorRepos、ruleProviders
-    //（workspace 校验检查路由引用的 provider 输出与来源文件存在性）。
-    config = {
-      ...rendered,
-      template: { output: parsed.v2.project?.template?.output ?? "Custom_Clash.ini" },
-      vendorRepos: parsed.v2.vendorRepos ?? [],
-      ruleProviders: parsed.v2.ruleProviders,
-    };
+    config = renderedConfigFromAuthorProjectV2(
+      parsed.v2,
+      process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "",
+    );
   } else if (parsed.v1) {
     config = parsed.v1;
   } else {

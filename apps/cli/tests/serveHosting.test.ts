@@ -23,25 +23,38 @@ function run(handler: any, url: string, method = "GET") {
   });
 }
 
-const sampleConfig = `publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-vendorRepos: []
-customProxyGroups:
-  - name: Proxy
+const sampleConfig = `schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: proxy
+    name: Proxy
     type: select
-    options: [DIRECT]
-ruleSets:
+    members:
+      - builtin: DIRECT
+routes:
   - id: p
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: rule-provider
-      behavior: domain
-      file: AI_Domain.yaml
+      provider: ai-domain
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
+ruleProviders:
+  - id: ai-domain
+    name: AI_Domain
+    output: AI_Domain.yaml
+    behavior: domain
+    sources:
+      - id: ai-domain
+        name: AI_Domain
+        type: clash-list
+        path: rules/AI_Domain.list
 `;
 
 describe("createHostingHandler", () => {

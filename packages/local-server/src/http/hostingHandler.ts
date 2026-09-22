@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { parseRouteKitConfig, renderIni } from "@clash-route-kit/core";
-import type { ProjectOptions } from "../config/configRepository.js";
+import { parseAuthorProjectConfig, renderIni } from "@clash-route-kit/core";
+import { renderedConfigFromAuthorProjectV2, type ProjectOptions } from "../config/configRepository.js";
 
 export interface HostingOptions extends ProjectOptions {
   publicBase: string;
@@ -38,7 +38,12 @@ export function createHostingHandler(options: HostingOptions) {
       const configPath = path.resolve(options.root, options.configFile);
       void readText(configPath)
         .then((text) => {
-          const config = parseRouteKitConfig(text);
+          // 模板托管仅认 Schema v2（经 v2→渲染 DTO 桥），与 readConfig 同源。
+          const parsed = parseAuthorProjectConfig(text);
+          if (!(parsed.schemaVersion === 2 && parsed.v2)) {
+            throw new Error("不支持 v1 格式：模板托管仅支持 schemaVersion: 2 配置");
+          }
+          const config = renderedConfigFromAuthorProjectV2(parsed.v2, options.publicBase);
           const ini = renderIni({ ...config, publishBaseUrl: options.publicBase });
           send(response, 200, "text/plain; charset=utf-8", ini);
         })
