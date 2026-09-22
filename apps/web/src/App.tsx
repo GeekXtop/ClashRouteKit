@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import YAML from "yaml";
 import { parseIniToConfig, serializeRouteKitConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
 import { ImportModal } from "./components/ImportModal.js";
@@ -6,7 +7,7 @@ import { LibraryPage } from "./components/LibraryPage.js";
 import { RoutingPage } from "./components/RoutingPage.js";
 import { OutputPage } from "./features/output/OutputPage.js";
 import { ProjectPage } from "./features/project/ProjectPage.js";
-import { createBlankProjectConfig } from "./features/project/projectMeta.js";
+import { createBlankProjectConfigV2 } from "./features/project/projectMeta.js";
 import { importTemplateAsV2 } from "./features/project/importToV2.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
@@ -44,8 +45,11 @@ export default function App() {
     if (bundledProjectConfig) {
       return createProjectController({ yaml: bundledProjectConfigYaml, config: bundledProjectConfig });
     }
-    const blank = createBlankProjectConfig();
-    return createProjectController({ yaml: serializeRouteKitConfig(blank), config: blank });
+    // bundle 解析失败（坏 YAML）时以 Schema v2 空白项目兜底保证首屏可渲染。
+    return createProjectControllerFromDocument({
+      schemaVersion: 2,
+      yaml: YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }),
+    });
   });
   const draftActions = useProjectDraftActions(setProject);
   const v2Actions = useV2DraftActions(setProject);
@@ -148,8 +152,17 @@ export default function App() {
 
   function createBlankProject() {
     setProject((current) => setProjectStatus(current, "saving", "正在创建空白项目"));
-    void saveLocalProjectConfig(createBlankProjectConfig())
-      .then((result) => setProject((current) => createProjectController(result)))
+    // 空白项目直接以 Schema v2 落盘（saveV2Project 走 v2 校验链），
+    // 避免经 v1 保存路径把配置降级写回旧格式。
+    void saveV2Project(YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }))
+      .then((save) => {
+        if (!save.ok) {
+          const message =
+            save.diagnostics.map((d) => `[${d.code}] ${d.message}`).join("；") || save.reason;
+          throw new Error(message);
+        }
+        setProject((current) => createV2ProjectController(save.yaml, current.runtimeUrls));
+      })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         setProject((current) => setProjectStatus(current, "error", message));

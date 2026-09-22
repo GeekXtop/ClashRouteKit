@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { validateLegacyProjectConfig } from "@clash-route-kit/core";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import YAML from "yaml";
 import {
-  createBlankProjectConfig,
+  normalizeAuthorProjectConfig,
+  parseAuthorProjectConfig,
+  validateNormalizedProject,
+} from "@clash-route-kit/core";
+import {
+  createBlankProjectConfigV2,
   detectSchemaVersion,
   isEmptyProjectConfig,
 } from "../src/features/project/projectMeta.js";
+import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 
 describe("projectMeta", () => {
   it("detects schema version from the document top-level key", () => {
@@ -24,12 +29,29 @@ describe("projectMeta", () => {
       ruleProviders: [],
     };
     expect(isEmptyProjectConfig(empty)).toBe(true);
-    expect(isEmptyProjectConfig(createBlankProjectConfig())).toBe(false);
+    expect(isEmptyProjectConfig({ ...empty, ruleSets: [{ id: "x", policy: "DIRECT", source: { type: "final" } }] })).toBe(false);
   });
 
-  it("creates a blank project config that passes legacy validation without errors", () => {
-    const blank = createBlankProjectConfig();
-    const errors = validateLegacyProjectConfig(blank).filter((d) => d.severity === "error");
+  it("creates a blank v2 project that parses, normalizes, and validates without errors", () => {
+    const blank = createBlankProjectConfigV2();
+    expect(blank.schemaVersion).toBe(2);
+    const parsed = parseAuthorProjectConfig(YAML.stringify(blank));
+    expect(parsed.v2).toBeDefined();
+    const normalized = normalizeAuthorProjectConfig(parsed.v2!);
+    const errors = [
+      ...normalized.diagnostics,
+      ...validateNormalizedProject(normalized.project),
+    ].filter((d) => d.severity === "error");
     expect(errors).toEqual([]);
+    expect(detectSchemaVersion(YAML.stringify(blank))).toBe(2);
+  });
+
+  it("blank final route targets builtin DIRECT", () => {
+    const blank = createBlankProjectConfigV2();
+    expect(blank.routes[0]).toEqual({
+      id: "final",
+      policy: { builtin: "DIRECT" },
+      source: { type: "final" },
+    });
   });
 });
