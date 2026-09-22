@@ -22,16 +22,6 @@ export {
 } from "./config/configRepository.js";
 export type { ParsedAuthorProjectConfig } from "@clash-route-kit/core";
 export {
-  analyzeMigration,
-  applyMigration,
-  type AnalyzeMigrationOptions,
-  type ApplyMigrationOptions,
-  type ApplyMigrationRejection,
-  type ApplyMigrationResult,
-  type ApplyMigrationSuccess,
-  type MigrationAnalysis,
-} from "./config/migration.js";
-export {
   loadLocalSettings,
   resolveLocalSettingsPath,
   LOCAL_SETTINGS_RELATIVE_PATH,

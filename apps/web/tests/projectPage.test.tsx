@@ -76,23 +76,6 @@ describe("ProjectPage empty state", () => {
 });
 
 describe("ProjectPage existing project state", () => {
-  it("shows schema v1 with a migration notice and a wired learn-more action", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        ({ ok: true, status: 200, json: async () => ({ currentSchemaVersion: 2, plan: null }) }) as unknown as Response,
-      ),
-    );
-    renderPage();
-    expect(screen.getByText("Schema v1")).toBeTruthy();
-    expect(screen.getByText(/可迁移到 v2/)).toBeTruthy();
-    const learnMore = screen.getByRole("button", { name: "了解迁移" });
-    expect(learnMore.hasAttribute("disabled")).toBe(false);
-    fireEvent.click(learnMore);
-    expect(screen.getByText("迁移到 Schema v2")).toBeTruthy();
-    await screen.findByTestId("migrate-already-v2");
-  });
-
   it("shows schema v2 without the migration notice and with a v2 overview", () => {
     renderPage({ originalYaml: "schemaVersion: 2\nproject:\n  template:\n    output: Custom_Clash.ini\n" });
     expect(screen.getByText("Schema v2")).toBeTruthy();

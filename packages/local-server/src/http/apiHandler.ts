@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Diagnostic, MigrationPlan, RouteKitProjectConfig } from "@clash-route-kit/core";
+import type { Diagnostic, RouteKitProjectConfig } from "@clash-route-kit/core";
 import { ConfigDiagnosticError } from "@clash-route-kit/core";
 import {
   clearCatalogIndexCache,
@@ -19,10 +19,6 @@ import {
   writeProjectConfigFile,
 } from "../config/configRepository.js";
 import { loadLocalSettings } from "../config/localSettings.js";
-import {
-  analyzeMigration,
-  applyMigration,
-} from "../config/migration.js";
 import {
   getPublishStatus,
   readGitRemote,
@@ -185,46 +181,6 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
       }
 
       writeJson(response, 405, { ok: false, output: "Method not allowed" });
-      return;
-    }
-
-    if (url.pathname === "/api/project/migrate" || url.pathname === "/api/project/migrate/apply") {
-      if (request.method !== "POST") {
-        writeJson(response, 405, { ok: false, output: "Method not allowed" });
-        return;
-      }
-
-      // analyze 只读、无需请求体：排空 body 后直接执行，避免等待 data/end。
-      if (url.pathname === "/api/project/migrate") {
-        request.on("data", () => {});
-        void analyzeMigration(options)
-          .then((analysis) => writeJson(response, 200, analysis))
-          .catch((error: unknown) => {
-            writeJson(response, 400, errorPayload(error));
-          });
-        return;
-      }
-
-      let body = "";
-      request.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-      });
-      request.on("end", () => {
-        void Promise.resolve()
-          .then(() => JSON.parse(body) as { plan?: MigrationPlan })
-          .then((payload) => {
-            if (!payload.plan) {
-              throw new Error("Missing plan");
-            }
-            return applyMigration({ ...options, plan: payload.plan }).then((result) => {
-              // 校验拒绝（ok:false）为可复核的业务失败，用 422 与诊断一同返回。
-              writeJson(response, result.ok ? 200 : 422, result);
-            });
-          })
-          .catch((error: unknown) => {
-            writeJson(response, 400, errorPayload(error));
-          });
-      });
       return;
     }
 

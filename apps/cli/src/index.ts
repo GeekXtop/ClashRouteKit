@@ -6,7 +6,6 @@ import {
   checkConfig,
   generateOutputs,
   importIni,
-  migrateConfig,
   previewRules,
   resolveProjectRoot,
   syncVendor,
@@ -58,37 +57,6 @@ async function main(): Promise<void> {
       return;
     }
     console.log("[check] ok");
-    return;
-  }
-
-  if (command === "migrate") {
-    const write = process.argv.slice(3).includes("--write");
-    const result = await migrateConfig({ root, configFile, write });
-    if (result.alreadyV2) {
-      console.log("[migrate] 配置已是 schemaVersion: 2，无需迁移");
-      return;
-    }
-    const plan = result.plan;
-    if (plan === null) return;
-    console.log(
-      `[migrate] summary: groups=${plan.summary.groups} routes=${plan.summary.routes} ` +
-        `providers=${plan.summary.providers} memberSets=${plan.summary.memberSets} issues=${plan.summary.issues}`,
-    );
-    for (const issue of plan.issues) {
-      const output = `[migrate] ${formatDiagnostic(issue)}`;
-      if (issue.severity === "error") {
-        console.error(output);
-      } else if (issue.severity === "warning") {
-        console.warn(output);
-      } else {
-        console.log(output);
-      }
-    }
-    if (result.written) {
-      console.log(`[migrate] written: ${result.outputPath}`);
-    } else {
-      console.log(`[migrate] dry-run: 未写盘；--write 将写入 ${result.outputPath}`);
-    }
     return;
   }
 
@@ -166,7 +134,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    "Usage: clash-route-kit <generate|preview|check|migrate|sync-vendor|subconvert-url|import|serve>",
+    "Usage: clash-route-kit <generate|preview|check|sync-vendor|subconvert-url|import|serve>",
   );
 }
 

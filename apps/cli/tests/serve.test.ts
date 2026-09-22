@@ -8,11 +8,23 @@ afterEach(() => {
   server = undefined;
 });
 
-const sample = `publishBaseUrl: http://127.0.0.1:8787
-template: { output: Custom_Clash.ini }
-vendorRepos: []
-customProxyGroups: [{ name: Proxy, type: select, options: [DIRECT] }]
-ruleSets: [{ id: final, policy: Proxy, source: { type: final } }]
+const sample = `schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: proxy
+    name: Proxy
+    type: select
+    members:
+      - builtin: DIRECT
+routes:
+  - id: final
+    policy:
+      group: proxy
+    source:
+      type: final
+ruleProviders: []
 `;
 
 describe("createServeServer", () => {

@@ -23,11 +23,6 @@ export {
   validateAuthorProjectConfigV2,
   validateNormalizedProject,
 } from "./config/schemaV2/validate.js";
-export { planLegacyMigration } from "./config/schemaV2/migrate.js";
-export type {
-  MigrationPlan,
-  MigrationPlanSummary,
-} from "./config/schemaV2/migrate.js";
 export { toRouteKitConfig } from "./config/schemaV2/toRouteKitConfig.js";
 export type { RenderRuntimeContext } from "./config/schemaV2/toRouteKitConfig.js";
 export type {

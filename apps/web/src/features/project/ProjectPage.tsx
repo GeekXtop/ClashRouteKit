@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Alert, Button, Card, Col, Row, Space, Tag } from "antd";
 import { FilePlus2, FolderOpen, Upload } from "lucide-react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
@@ -6,7 +5,6 @@ import type { ProjectStatus, ProjectValidationState, ProjectView } from "../../p
 import type { V2NormalizedSummary } from "../../v2/v2Project.js";
 import type { ProjectSchemaVersion } from "./projectMeta.js";
 import { detectSchemaVersion, isEmptyProjectConfig } from "./projectMeta.js";
-import { MigrationWizard } from "./MigrationWizard.js";
 
 const workViewLabels: Record<"library" | "routing" | "output", string> = {
   library: "规则库",
@@ -153,9 +151,7 @@ function ExistingProjectState(props: {
   onNavigate: (view: ProjectView) => void;
   onOpenImport: () => void;
   onRunCheck: () => void;
-  onMigrated: () => void;
 }) {
-  const [wizardOpen, setWizardOpen] = useState(false);
   const lastWorkLabel = props.lastWorkView === "project" ? "路由" : workViewLabels[props.lastWorkView];
   return (
     <>
@@ -179,32 +175,12 @@ function ExistingProjectState(props: {
           </Space>
         </Space>
       </Card>
-      {props.schemaVersion === 1 ? (
-        <Alert
-          type="info"
-          showIcon
-          message="此项目使用 Schema v1，可迁移到 v2（稳定 ID 与成员集合）"
-          description="迁移需要逐项复核变更摘要与语义对比，确认后才会原子写入；不会在后台自动改写配置。"
-          action={
-            <Button size="small" data-testid="open-migration-wizard" onClick={() => setWizardOpen(true)}>
-              了解迁移
-            </Button>
-          }
-        />
-      ) : (
-        <Card size="small" data-testid="schema-v2-overview" title="稳定 ID 与成员集合">
-          <span className="rk-lib-meta">
-            三个工作域（路由 / 规则库 / 输出）已支持直接编辑：策略组成员集合一处声明、组内引用，路由与规则源按稳定 ID 变更。
-          </span>
-        </Card>
-      )}
+      <Card size="small" data-testid="schema-v2-overview" title="稳定 ID 与成员集合">
+        <span className="rk-lib-meta">
+          三个工作域（路由 / 规则库 / 输出）已支持直接编辑：策略组成员集合一处声明、组内引用，路由与规则源按稳定 ID 变更。
+        </span>
+      </Card>
       <DomainCards config={props.config} v2Summary={props.v2Summary} onNavigate={props.onNavigate} />
-      <MigrationWizard
-        open={wizardOpen}
-        originalConfig={props.originalConfig}
-        onClose={() => setWizardOpen(false)}
-        onMigrated={props.onMigrated}
-      />
     </>
   );
 }
@@ -224,7 +200,6 @@ export function ProjectPage(props: {
   onOpenImport: () => void;
   onRunCheck: () => void;
   onCreateBlankProject: () => void;
-  onMigrated?: () => void;
 }) {
   // 快照未提供 schemaVersion 时（旧调用方/测试）退回轻量探测。
   const schemaVersion = props.schemaVersion ?? detectSchemaVersion(props.originalYaml);
@@ -254,7 +229,6 @@ export function ProjectPage(props: {
           onNavigate={props.onNavigate}
           onOpenImport={props.onOpenImport}
           onRunCheck={props.onRunCheck}
-          onMigrated={props.onMigrated ?? (() => {})}
         />
       )}
     </div>

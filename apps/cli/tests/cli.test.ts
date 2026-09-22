@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,6 @@ import {
   buildSubconverterUrl,
   checkConfig,
   generateOutputs,
-  migrateConfig,
   previewRules,
   readConfig,
   resolveProjectRoot,
@@ -989,66 +988,4 @@ ruleSets:
     expect(lines.indexOf("# 海外类目")).toBeLessThan(lines.indexOf("GEOSITE openai -> AI"));
   });
 
-  it("analyzes v1 migration read-only and never touches disk by default", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
-
-    const result = await migrateConfig({ root, configFile: "routes.yaml" });
-
-    expect(result.alreadyV2).toBe(false);
-    expect(result.written).toBe(false);
-    expect(result.plan?.summary).toEqual({
-      groups: 3,
-      routes: 5,
-      providers: 1,
-      memberSets: 0,
-      issues: 1,
-    });
-    await expect(access(path.join(root, "output/imported-routes-v2.yaml"))).rejects.toThrow();
-    expect(await readFile(path.join(root, "routes.yaml"), "utf8")).toBe(sampleConfig);
-  });
-
-  it("writes the v2 migration plan to output with --write", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
-
-    const result = await migrateConfig({ root, configFile: "routes.yaml", write: true });
-
-    expect(result.written).toBe(true);
-    expect(result.outputPath).toBe(path.join(root, "output/imported-routes-v2.yaml"));
-    const written = await readFile(result.outputPath, "utf8");
-    expect(written).toContain("schemaVersion: 2");
-    const entries = await readdir(path.join(root, "output"));
-    expect(entries.filter((entry) => entry.includes(".tmp"))).toEqual([]);
-    expect(await readFile(path.join(root, "routes.yaml"), "utf8")).toBe(sampleConfig);
-  });
-
-  it("extracts duplicated member lists into memberSets during migration", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "routes.yaml"), memberSetConfig, "utf8");
-
-    const result = await migrateConfig({ root, configFile: "routes.yaml" });
-
-    const plan = result.plan;
-    expect(plan?.summary.memberSets).toBe(1);
-    expect(plan?.draft.memberSets?.["set-1"]).toEqual({
-      members: [{ builtin: "DIRECT" }, { group: "proxy" }],
-    });
-    const groups = plan?.draft.proxyGroups ?? [];
-    expect(groups.find((group) => group.name === "AI")?.members).toEqual([{ preset: "set-1" }]);
-    expect(groups.find((group) => group.name === "Media")?.members).toEqual([{ preset: "set-1" }]);
-    expect(groups.find((group) => group.name === "Proxy")?.members).toEqual([{ builtin: "DIRECT" }]);
-  });
-
-  it("skips migration with a hint when the input is already schema v2", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "routes.yaml"), v2Config, "utf8");
-
-    const result = await migrateConfig({ root, configFile: "routes.yaml", write: true });
-
-    expect(result.alreadyV2).toBe(true);
-    expect(result.plan).toBeNull();
-    expect(result.written).toBe(false);
-    await expect(access(path.join(root, "output/imported-routes-v2.yaml"))).rejects.toThrow();
-  });
 });

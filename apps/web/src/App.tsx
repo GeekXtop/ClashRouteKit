@@ -127,10 +127,6 @@ export default function App() {
    * 迁移应用成功后的刷新：GET /api/project/config 现按 schemaVersion 分发
    * （v2 返回 { schemaVersion: 2, yaml }），直接经 v2 装载链重建快照。
    */
-  function handleMigrated() {
-    refreshConfig();
-  }
-
   function runCheck() {
     void requestLocalAction("check")
       .then((result) =>
@@ -249,7 +245,6 @@ export default function App() {
             onOpenImport={openImport}
             onRunCheck={runCheck}
             onCreateBlankProject={createBlankProject}
-            onMigrated={handleMigrated}
           />
         ) : project.selectedView === "routing" ? (
           <RoutingPage

@@ -3,11 +3,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 import {
-  parseAuthorProjectConfig,
   parseIniToConfig,
-  planLegacyMigration,
   type AuthorProjectConfigV2,
-  type MigrationPlan,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import {
@@ -160,51 +157,4 @@ export async function previewRules(options: ProgramOptions): Promise<string[]> {
     throw new Error(`Unsupported ruleSet source: ${String(unsupported)}`);
   }
   return lines;
-}
-
-export interface MigrateOptions extends ProgramOptions {
-  /** true 时把迁移 plan.yaml 原子写入 output/imported-routes-v2.yaml；缺省只读分析。 */
-  write?: boolean;
-}
-
-export interface MigrateResult {
-  /** 输入已是 schemaVersion: 2，无需迁移；plan 为 null 且不写盘。 */
-  alreadyV2: boolean;
-  plan: MigrationPlan | null;
-  /** plan.yaml 的目标路径（只读模式用于提示 --write 的写入位置）。 */
-  outputPath: string;
-  written: boolean;
-}
-
-const MIGRATE_OUTPUT_PATH = path.join("output", "imported-routes-v2.yaml");
-
-/**
- * v1 → v2 迁移的 CLI 入口：读 CLASH_ROUTE_KIT_CONFIG 指向的配置并按
- * schemaVersion 分发。v1 输入运行 planLegacyMigration（只读分析，永不改动
- * 原配置文件）；write 为 true 时把 plan.yaml 原子写入 output/imported-routes-v2.yaml。
- * v2 输入直接返回 alreadyV2，跳过分析与写盘。输入解析失败由
- * parseAuthorProjectConfig 抛出 ConfigDiagnosticError，与非零退出语义一致。
- */
-export async function migrateConfig(options: MigrateOptions): Promise<MigrateResult> {
-  const configPath = path.join(options.root, options.configFile);
-  const outputPath = path.join(options.root, MIGRATE_OUTPUT_PATH);
-  const text = await readFile(configPath, "utf8");
-  const parsed = parseAuthorProjectConfig(text);
-  if (parsed.schemaVersion === 2) {
-    return { alreadyV2: true, plan: null, outputPath, written: false };
-  }
-
-  const v1Config = parsed.v1;
-  if (v1Config === undefined) {
-    throw new Error(
-      "parseAuthorProjectConfig returned schemaVersion 1 without a v1 config",
-    );
-  }
-  const plan = planLegacyMigration(v1Config);
-  if (options.write !== true) {
-    return { alreadyV2: false, plan, outputPath, written: false };
-  }
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFileAtomic(outputPath, plan.yaml);
-  return { alreadyV2: false, plan, outputPath, written: true };
 }
