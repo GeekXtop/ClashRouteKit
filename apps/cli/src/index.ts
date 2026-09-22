@@ -156,12 +156,12 @@ async function main(): Promise<void> {
     }
     const result = await importIni({ root, configFile, iniFile });
     console.log(
-      `[import] groups=${result.customProxyGroups.length} ruleSets=${result.ruleSets.length} warnings=${result.warnings.length}`,
+      `[import] groups=${result.proxyGroups} routes=${result.routes} providers=${result.providers} warnings=${result.warnings.length}`,
     );
     for (const warning of result.warnings) {
       console.warn(`[import] ${warning}`);
     }
-    console.log(`[import] scaffold: ${result.scaffoldPath}`);
+    console.log(`[import] draft: ${result.outputPath}`);
     return;
   }
 

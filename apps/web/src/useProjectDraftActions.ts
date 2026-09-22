@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
   CustomProxyGroup,
-  ImportedConfig,
   RouteKitDefaults,
   RouteKitProjectConfig,
   RuleProviderConfig,
@@ -9,7 +8,6 @@ import type {
   RuleSet,
   RuleSetSource,
 } from "@clash-route-kit/core";
-import { parseIniToConfig, validateLegacyProjectConfig } from "@clash-route-kit/core";
 import {
   addCustomProxyGroup,
   addRoute,
@@ -21,10 +19,8 @@ import {
   deleteCustomProxyGroup,
   deleteRuleProvider,
   deleteRuleSet,
-  mergeImportedConfig,
   reorderRuleSets,
   replaceCustomProxyGroup,
-  replaceImportedConfig,
   replaceRuleSet,
   setGlobalRemove,
   setProjectDefaults,
@@ -190,43 +186,6 @@ export function useProjectDraftActions(setProject: Dispatch<SetStateAction<Proje
           };
           const next = applyDraftConfig(current, addRuleSet(current.draftConfig, ruleSet));
           return { ...dirtyMessage(next), selectedRuleSetId: id, selectedView: "routing" };
-        } catch (error: unknown) {
-          return mutationError(current, error);
-        }
-      });
-    },
-    importIni(text: string) {
-      setProject((current) => {
-        try {
-          const imported = parseIniToConfig(text);
-          const next = applyDraftConfig(current, mergeImportedConfig(current.draftConfig, imported));
-          const warned = imported.warnings.length;
-          return {
-            ...dirtyMessage(next),
-            message: warned ? `已导入 INI（${warned} 条警告）` : "已导入 INI",
-            selectedView: "routing",
-          };
-        } catch (error: unknown) {
-          return mutationError(current, error);
-        }
-      });
-    },
-    importTemplate(imported: ImportedConfig) {
-      setProject((current) => {
-        try {
-          const next = applyDraftConfig(current, replaceImportedConfig(current.draftConfig, imported));
-          const importWarnings = imported.warnings.length;
-          const placeholderWarnings = validateLegacyProjectConfig(next.draftConfig).filter(
-            (diagnostic) => diagnostic.severity === "warning",
-          ).length;
-          const warningCount = importWarnings + placeholderWarnings;
-          return {
-            ...dirtyMessage(next),
-            message: warningCount
-              ? `已覆盖导入模板，${warningCount} 条警告（${placeholderWarnings} 个规则源待补全）`
-              : "已覆盖导入模板",
-            selectedView: "routing",
-          };
         } catch (error: unknown) {
           return mutationError(current, error);
         }

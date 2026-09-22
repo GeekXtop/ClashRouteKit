@@ -1,12 +1,12 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import YAML from "yaml";
 import {
   parseAuthorProjectConfig,
   parseIniToConfig,
   planLegacyMigration,
-  serializeRouteKitConfig,
-  type ImportedConfig,
+  type AuthorProjectConfigV2,
   type MigrationPlan,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
@@ -86,30 +86,45 @@ export function resolveProjectRoot(start: string, configFile: string): string {
   }
 }
 
-export interface ImportResult extends ImportedConfig {
-  scaffoldPath: string;
+export interface ImportResult {
+  proxyGroups: number;
+  routes: number;
+  providers: number;
+  warnings: string[];
+  outputPath: string;
 }
 
+/**
+ * INI 模板导入：parseIniToConfig 直出 Schema v2 草稿并原子写盘。
+ * 输出仅含导入内容（策略组 / 路由 / memberSets / 禁用占位 provider），
+ * 不绑定任何工程字段，供人工复核后并入正式配置。
+ */
 export async function importIni(
   options: ProgramOptions & { iniFile: string },
 ): Promise<ImportResult> {
   const iniText = await readFile(resolveInputPath(options.root, options.iniFile), "utf8");
   const imported = parseIniToConfig(iniText);
 
-  const scaffold: RouteKitProjectConfig = {
-    publishBaseUrl: "http://127.0.0.1:8787",
-    template: { output: "Custom_Clash.ini" },
-    vendorRepos: [],
-    customProxyGroups: imported.customProxyGroups,
-    ruleSets: imported.ruleSets,
-    ruleProviders: [],
+  const draft: AuthorProjectConfigV2 = {
+    schemaVersion: 2,
+    project: { template: { output: "Custom_Clash.ini" } },
+    ...(Object.keys(imported.memberSets).length === 0 ? {} : { memberSets: imported.memberSets }),
+    proxyGroups: imported.proxyGroups,
+    routes: imported.routes,
+    ruleProviders: imported.placeholderProviders,
   };
 
-  const scaffoldPath = path.join(options.root, "output/imported-routes.yaml");
-  await mkdir(path.dirname(scaffoldPath), { recursive: true });
-  await writeFile(scaffoldPath, serializeRouteKitConfig(scaffold), "utf8");
+  const outputPath = path.join(options.root, "output/imported-routes-v2.yaml");
+  await mkdir(path.dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, YAML.stringify(draft, { lineWidth: 0 }), "utf8");
 
-  return { ...imported, scaffoldPath };
+  return {
+    proxyGroups: imported.proxyGroups.length,
+    routes: imported.routes.length,
+    providers: imported.placeholderProviders.length,
+    warnings: imported.warnings,
+    outputPath,
+  };
 }
 
 export async function previewRules(options: ProgramOptions): Promise<string[]> {

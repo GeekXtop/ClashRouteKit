@@ -1,6 +1,5 @@
 import type {
   CustomProxyGroup,
-  ImportedConfig,
   RouteKitDefaults,
   RouteKitProjectConfig,
   RuleProviderConfig,
@@ -303,66 +302,6 @@ export function replaceCustomProxyGroup(
   });
 }
 
-function providerNameFromOutput(output: string): string {
-  return (
-    output
-      .replace(/\.(ya?ml)$/i, "")
-      .replace(/[^A-Za-z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "Provider"
-  );
-}
-
-interface ImportedProviderDrafts {
-  ruleProviders: RuleProviderConfig[];
-  placeholderOutputs: Set<string>;
-}
-
-function importedProviderDrafts(
-  config: RouteKitProjectConfig,
-  ruleSets: readonly RuleSet[],
-): ImportedProviderDrafts {
-  const existingProviders = (config.ruleProviders ?? []).map(cloneRuleProvider);
-  const existingOutputs = new Set(existingProviders.map((provider) => provider.output));
-  const names = existingProviders.map((provider) => provider.name);
-  const placeholders: RuleProviderConfig[] = [];
-  const placeholderOutputs = new Set<string>();
-
-  for (const ruleSet of ruleSets) {
-    const source = ruleSet.source;
-    if (source.type !== "rule-provider") continue;
-    const output = source.file.trim();
-    if (!output || existingOutputs.has(output)) continue;
-    existingOutputs.add(output);
-    placeholderOutputs.add(output);
-    const name = nextName(names, providerNameFromOutput(output));
-    names.push(name);
-    placeholders.push({
-      name,
-      output,
-      behavior: source.behavior,
-      enabled: false,
-      sources: [],
-    });
-  }
-
-  return {
-    ruleProviders: [...existingProviders, ...placeholders],
-    placeholderOutputs,
-  };
-}
-
-function disablePlaceholderRuleSets(
-  ruleSets: readonly RuleSet[],
-  placeholderOutputs: ReadonlySet<string>,
-): RuleSet[] {
-  return ruleSets.map((ruleSet) => cloneRuleSet({
-    ...ruleSet,
-    ...(ruleSet.source.type === "rule-provider" && placeholderOutputs.has(ruleSet.source.file.trim())
-      ? { enabled: false }
-      : {}),
-  }));
-}
-
 export function createRuleProvider(config: RouteKitProjectConfig): RuleProviderConfig {
   const name = nextName((config.ruleProviders ?? []).map((provider) => provider.name), "Provider");
   return {
@@ -503,55 +442,5 @@ export function setProjectDefaults(
   return {
     ...config,
     defaults: defaults === undefined ? undefined : cloneRouteKitDefaults(defaults),
-  };
-}
-
-export function mergeImportedConfig(
-  config: RouteKitProjectConfig,
-  imported: ImportedConfig,
-): RouteKitProjectConfig {
-  const existingGroupNames = new Set(config.customProxyGroups.map((group) => group.name));
-  const customProxyGroups = [
-    ...config.customProxyGroups,
-    ...imported.customProxyGroups.filter((group) => !existingGroupNames.has(group.name)),
-  ];
-
-  const existingIds = new Set(config.ruleSets.map((ruleSet) => ruleSet.id));
-  const hasFinal = config.ruleSets.some((ruleSet) => ruleSet.source.type === "final");
-  const acceptedRuleSets = imported.ruleSets.filter(
-    (ruleSet) => !existingIds.has(ruleSet.id) && !(hasFinal && ruleSet.source.type === "final"),
-  );
-  const providerDrafts = importedProviderDrafts(config, acceptedRuleSets);
-  const incoming = disablePlaceholderRuleSets(acceptedRuleSets, providerDrafts.placeholderOutputs);
-  const finalIndex = config.ruleSets.findIndex((ruleSet) => ruleSet.source.type === "final");
-  const insertAt = finalIndex === -1 ? config.ruleSets.length : finalIndex;
-  const ruleSets = [
-    ...config.ruleSets.slice(0, insertAt),
-    ...incoming,
-    ...config.ruleSets.slice(insertAt),
-  ];
-
-  return {
-    ...config,
-    customProxyGroups,
-    ruleSets,
-    ruleProviders: providerDrafts.ruleProviders,
-  };
-}
-
-export function replaceImportedConfig(
-  config: RouteKitProjectConfig,
-  imported: ImportedConfig,
-): RouteKitProjectConfig {
-  const providerDrafts = importedProviderDrafts(config, imported.ruleSets);
-  return {
-    ...config,
-    customProxyGroups: imported.customProxyGroups.map((group) => ({
-      ...group,
-      options: [...group.options],
-      nodeFilters: group.nodeFilters ? [...group.nodeFilters] : undefined,
-    })),
-    ruleSets: disablePlaceholderRuleSets(imported.ruleSets, providerDrafts.placeholderOutputs),
-    ruleProviders: providerDrafts.ruleProviders,
   };
 }

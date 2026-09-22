@@ -61,7 +61,7 @@ export {
 } from "./config/validateLegacy.js";
 export { renderIni } from "./ini.js";
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
-export { parseIniToConfig } from "./import.js";
+export { parseIniToConfig, type ImportedConfig } from "./import.js";
 export { findDependencyCycles } from "./routing/dependencyGraph.js";
 export type { DependencyGraph } from "./routing/dependencyGraph.js";
 export {
@@ -101,7 +101,6 @@ export type {
   DomainProviderSummary,
   DomainListCommunitySource,
   DomainListEntryInfo,
-  ImportedConfig,
   ClashListSource,
   ClashProviderSource,
   CustomProxyGroup,

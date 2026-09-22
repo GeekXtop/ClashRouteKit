@@ -74,15 +74,20 @@ export default function App() {
   }
 
   function handleImport(text: string, mode: "replace" | "merge") {
-    // v2 项目：INI 模板经「v1 解析 → 迁移规划」转换为 v2 后整体替换并写盘；
+    // INI 模板经 parseIniToConfig 直出 Schema v2 后整体替换并写盘；
     // 合并语义在 v2 下未定义，入口已在 ImportModal 禁用。
-    if (v2State) {
-      if (mode === "merge") {
-        notifyError("Schema v2 项目仅支持「替换现有配置」导入");
-        return;
-      }
+    if (!v2State) {
+      notifyError("仅 Schema v2 项目支持模板导入");
+      setImportOpen(false);
+      return;
+    }
+    if (mode === "merge") {
+      notifyError("Schema v2 项目仅支持「替换现有配置」导入");
+      return;
+    }
+    {
       void (async () => {
-        const converted = importTemplateAsV2(text, pageConfig);
+        const converted = importTemplateAsV2(text, v2State.config);
         if (!converted.ok) {
           notifyError(converted.error);
           return;
@@ -101,13 +106,6 @@ export default function App() {
       })().catch((error: unknown) =>
         notifyError(error instanceof Error ? error.message : String(error)),
       );
-      setImportOpen(false);
-      return;
-    }
-    if (mode === "merge") {
-      draftActions.importIni(text);
-    } else {
-      draftActions.importTemplate(parseIniToConfig(text));
     }
     setImportOpen(false);
   }

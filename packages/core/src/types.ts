@@ -178,8 +178,3 @@ export interface DomainListEntryInfo {
   ruleCount: number;
 }
 
-export interface ImportedConfig {
-  customProxyGroups: CustomProxyGroup[];
-  ruleSets: RuleSet[];
-  warnings: string[];
-}

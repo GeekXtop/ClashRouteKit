@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type {
   CustomProxyGroup,
-  ImportedConfig,
   RouteKitProjectConfig,
   RuleProviderConfig,
   RuleProviderSource,
@@ -17,11 +16,9 @@ import {
   deleteCustomProxyGroup,
   deleteRuleProvider,
   deleteRuleSet,
-  mergeImportedConfig,
   renameCustomProxyGroup,
   reorderRuleSets,
   replaceCustomProxyGroup,
-  replaceImportedConfig,
   replaceRuleSet,
   setCustomProxyGroupListField,
   setGlobalRemove,
@@ -48,135 +45,6 @@ function createConfig(): RouteKitProjectConfig {
     ruleProviders: [],
   };
 }
-
-describe("mergeImportedConfig", () => {
-  it("adds new groups and rule sets while skipping duplicates and inserting before FINAL", () => {
-    const config = createConfig();
-    const imported: ImportedConfig = {
-      customProxyGroups: [
-        { name: "Proxy", type: "select", options: ["DIRECT"] },
-        { name: "Stream", type: "select", options: ["DIRECT"] },
-      ],
-      ruleSets: [
-        { id: "ai-geosite-openai", policy: "Proxy", source: { type: "geosite", value: "openai" } },
-        { id: "stream-geosite-netflix", policy: "Stream", source: { type: "geosite", value: "netflix" } },
-        { id: "imported-final", policy: "Proxy", source: { type: "final" } },
-      ],
-      warnings: [],
-    };
-
-    const merged = mergeImportedConfig(config, imported);
-
-    expect(merged.customProxyGroups.map((group) => group.name)).toEqual(["Proxy", "Stream"]);
-    expect(merged.ruleSets.map((ruleSet) => ruleSet.id)).toEqual([
-      "ai-geosite-openai",
-      "stream-geosite-netflix",
-      "final",
-    ]);
-  });
-
-  it("creates provider placeholders and their unresolved routes as disabled drafts", () => {
-    const baseConfig = createConfig();
-    const imported = {
-      customProxyGroups: [],
-      ruleSets: [
-        {
-          id: "legacy",
-          policy: "Proxy",
-          source: { type: "rule-provider" as const, behavior: "domain" as const, file: "Legacy.mrs" },
-        },
-      ],
-      warnings: [],
-    };
-
-    const next = mergeImportedConfig(baseConfig, imported);
-    expect(next.ruleProviders).toContainEqual(expect.objectContaining({
-      output: "Legacy.mrs",
-      enabled: false,
-      sources: [],
-    }));
-    expect(next.ruleSets.find((ruleSet) => ruleSet.source.type === "rule-provider")).toMatchObject({
-      enabled: false,
-    });
-  });
-
-  it("normalizes whitespace-padded placeholder references when merging imports", () => {
-    const imported: ImportedConfig = {
-      customProxyGroups: [],
-      ruleSets: [
-        {
-          id: "ghost",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "Ghost.yaml " },
-        },
-      ],
-      warnings: [],
-    };
-
-    const next = mergeImportedConfig(createConfig(), imported);
-
-    expect(next.ruleProviders).toContainEqual(expect.objectContaining({
-      output: "Ghost.yaml",
-      enabled: false,
-    }));
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "ghost")?.enabled).toBe(false);
-  });
-
-  it("keeps imported routes enabled when their provider already resolves enabled", () => {
-    const baseConfig: RouteKitProjectConfig = {
-      ...createConfig(),
-      ruleProviders: [
-        {
-          name: "Existing",
-          output: "Existing.yaml",
-          behavior: "domain",
-          sources: [{ name: "Existing", type: "clash-list", path: "config/rules/Existing.list" }],
-        },
-      ],
-    };
-    const imported: ImportedConfig = {
-      customProxyGroups: [],
-      ruleSets: [
-        {
-          id: "existing-provider",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "Existing.yaml" },
-        },
-        {
-          id: "missing-provider",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "Missing.yaml" },
-        },
-      ],
-      warnings: [],
-    };
-
-    const next = mergeImportedConfig(baseConfig, imported);
-
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "existing-provider")?.enabled).not.toBe(false);
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "missing-provider")?.enabled).toBe(false);
-  });
-
-  it("does not create placeholders for imported routes skipped by duplicate ids", () => {
-    const baseConfig = createConfig();
-    const imported: ImportedConfig = {
-      customProxyGroups: [],
-      ruleSets: [
-        {
-          id: "ai-geosite-openai",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "Ghost.yaml" },
-        },
-      ],
-      warnings: [],
-    };
-
-    const next = mergeImportedConfig(baseConfig, imported);
-
-    expect(next.ruleSets).toEqual(baseConfig.ruleSets);
-    expect(next.ruleProviders).toEqual([]);
-  });
-});
 
 describe("config mutation helpers", () => {
   it("creates and updates ruleSet entries immutably", () => {
@@ -535,125 +403,7 @@ describe("config mutation helpers", () => {
     expect(() => addVendorRepo(config, { name: "b", url: "u2", path: "vendor/x" })).toThrow(/path already exists/);
   });
 
-  it("replaces groups and ruleSets but keeps infra fields", () => {
-    const config = {
-      ...createConfig(),
-      publishBaseUrl: "http://keep",
-      globalRemove: ["x"],
-      defaults: {
-        proxyGroups: { healthCheck: { timeout: 5 } },
-      },
-    };
-    const imported: ImportedConfig = {
-      customProxyGroups: [
-        {
-          name: "New",
-          type: "url-test",
-          options: [],
-          nodeFilters: [".*"],
-          timeout: null,
-          tolerance: null,
-        },
-      ],
-      ruleSets: [{ id: "n1", policy: "New", source: { type: "final" } }],
-      warnings: [],
-    };
-    const next = replaceImportedConfig(config, imported);
-    expect(next.customProxyGroups.map((group) => group.name)).toEqual(["New"]);
-    expect(next.ruleSets.map((ruleSet) => ruleSet.id)).toEqual(["n1"]);
-    expect(next.publishBaseUrl).toBe("http://keep");
-    expect(next.vendorRepos).toBe(config.vendorRepos);
-    expect(next.template).toEqual(config.template);
-    expect(next.globalRemove).toEqual(["x"]);
-    expect(next.defaults).toEqual(config.defaults);
-    expect(next.customProxyGroups[0]).toMatchObject({ timeout: null, tolerance: null });
-  });
 
-  it("replaces imported templates and creates placeholder rule providers for missing outputs", () => {
-    const config = {
-      ...createConfig(),
-      ruleProviders: [
-        {
-          name: "ExistingAI",
-          output: "AI_Domain.yaml",
-          behavior: "domain",
-          sources: [{ name: "AI", type: "clash-list", path: "config/rules/AI.list" }],
-        },
-        {
-          name: "KeepEvenUnused",
-          output: "Unused_Domain.yaml",
-          behavior: "domain",
-          sources: [],
-        },
-      ] satisfies RuleProviderConfig[],
-    };
-    const imported: ImportedConfig = {
-      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-      ruleSets: [
-        {
-          id: "ai",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "AI_Domain.yaml" },
-        },
-        {
-          id: "custom-classical-ip",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "classical", file: "Custom_Direct_Classical_IP.yaml" },
-        },
-        {
-          id: "custom-ipcidr",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "ipcidr", file: "Custom_IP.yaml" },
-        },
-        { id: "final", policy: "Proxy", source: { type: "final" } },
-      ],
-      warnings: [],
-    };
-
-    const next = replaceImportedConfig(config, imported);
-
-    expect(next.ruleProviders?.map((provider) => provider.output)).toEqual([
-      "AI_Domain.yaml",
-      "Unused_Domain.yaml",
-      "Custom_Direct_Classical_IP.yaml",
-      "Custom_IP.yaml",
-    ]);
-    expect(next.ruleProviders?.find((provider) => provider.output === "AI_Domain.yaml")?.name).toBe("ExistingAI");
-    expect(next.ruleProviders?.find((provider) => provider.output === "Custom_Direct_Classical_IP.yaml")).toEqual({
-      name: "Custom_Direct_Classical_IP",
-      output: "Custom_Direct_Classical_IP.yaml",
-      behavior: "classical",
-      enabled: false,
-      sources: [],
-    });
-    expect(next.ruleProviders?.find((provider) => provider.output === "Custom_IP.yaml")?.behavior).toBe("ipcidr");
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "ai")?.enabled).not.toBe(false);
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "custom-classical-ip")?.enabled).toBe(false);
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "custom-ipcidr")?.enabled).toBe(false);
-  });
-
-  it("normalizes whitespace-padded placeholder references when replacing imports", () => {
-    const imported: ImportedConfig = {
-      customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-      ruleSets: [
-        {
-          id: "ghost",
-          policy: "Proxy",
-          source: { type: "rule-provider", behavior: "domain", file: "Ghost.yaml " },
-        },
-        { id: "final", policy: "Proxy", source: { type: "final" } },
-      ],
-      warnings: [],
-    };
-
-    const next = replaceImportedConfig(createConfig(), imported);
-
-    expect(next.ruleProviders).toContainEqual(expect.objectContaining({
-      output: "Ghost.yaml",
-      enabled: false,
-    }));
-    expect(next.ruleSets.find((ruleSet) => ruleSet.id === "ghost")?.enabled).toBe(false);
-  });
 });
 
 import { addRoute } from "../src/configMutations.js";
