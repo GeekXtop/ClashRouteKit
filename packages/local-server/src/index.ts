@@ -50,7 +50,7 @@ export {
   assertNoErrors,
   checkConfig,
   projectDiagnostics,
-  validateLegacyWorkspace,
+  validateWorkspaceFiles,
 } from "./check/checkConfig.js";
 export {
   createDefaultDependencies,

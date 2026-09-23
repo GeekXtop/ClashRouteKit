@@ -1,7 +1,7 @@
 /**
  * SubConverter INI 模板导入：直接产出 Schema v2 形状（不再经 v1 中间态与迁移器）。
  *
- * 语义（与原「v1 解析 → 组装 → planLegacyMigration」链路对齐）：
+ * 语义（与迁移器删除前的 v1 INI 导入行为对齐）：
  * - 策略组：稳定 ID（slug 或 group-N，全局分配器跨 proxyGroups/memberSets/
  *   ruleProviders/routes 查重）；选项 → 类型化成员（DIRECT/REJECT → builtin、
  *   显示名 → 组引用、其余剔除 + warning）；重复成员提取为 memberSets；

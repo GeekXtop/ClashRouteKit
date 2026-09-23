@@ -66,7 +66,7 @@ const READER_MESSAGES: ReadonlyArray<readonly [RegExp, string]> = [
 
 /**
  * 把 valueReaders 抛出的普通 Error（`<path>: expected xxx`）转成统一结构的
- * ConfigDiagnosticError，保持 path 记法与 legacyParser 一致。
+ * ConfigDiagnosticError，path 记法为 `<字段路径>: 期望说明`。
  */
 function toDiagnosticError(error: unknown): ConfigDiagnosticError {
   const message = error instanceof Error ? error.message : String(error);

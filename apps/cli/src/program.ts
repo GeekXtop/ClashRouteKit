@@ -17,7 +17,7 @@ import {
 // check / generate / sync-vendor 的用例实现已按规格第 8/8.2 节下沉到
 // @clash-route-kit/local-server（local-server 承担全部 Node IO 与工作区校验）。
 // 本文件保留：既有导出名 re-export（cli.test.ts 等调用方无需改动导入路径），
-// 以及 subconvert-url / import / preview / migrate 的命令级逻辑（本阶段不动）。
+// 以及 subconvert-url / import / preview 的命令级逻辑（本阶段不动）。
 export { checkConfig, generateOutputs, readConfig, syncVendor } from "@clash-route-kit/local-server";
 export type { ProjectOptions as ProgramOptions } from "@clash-route-kit/local-server";
 export type {

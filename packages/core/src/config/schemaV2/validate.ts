@@ -223,7 +223,7 @@ function validateProviderV2(
   }
 }
 
-/** node filter 规则与 validateLegacy 现有 group.node-filter.* 命名保持一致。 */
+/** node filter 诊断沿用 group.node-filter.* 命名。 */
 function validateNodeFilters(
   group: ProxyGroupV2,
   index: number,

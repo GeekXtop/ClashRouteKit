@@ -24,7 +24,7 @@ function workspaceSourcePath(root: string, source: RuleProviderSource): string {
 }
 
 /** GEOSITE 目录与 provider 源文件的工作区校验；自 apps/cli workspaceValidation.ts 原样下沉。 */
-export async function validateLegacyWorkspace(
+export async function validateWorkspaceFiles(
   options: ProjectOptions,
   config: RouteKitProjectConfig,
 ): Promise<Diagnostic[]> {
@@ -95,7 +95,7 @@ export async function projectDiagnostics(options: ProjectOptions): Promise<Diagn
   return [
     ...staticDiagnostics,
     ...valueDiagnostics,
-    ...await validateLegacyWorkspace(options, config),
+    ...await validateWorkspaceFiles(options, config),
   ];
 }
 

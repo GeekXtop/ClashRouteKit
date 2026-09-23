@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
-import { validateLegacyWorkspace } from "../src/index.js";
+import { validateWorkspaceFiles } from "../src/index.js";
 
 function config(values: string[]): RouteKitProjectConfig {
   return {
@@ -23,7 +23,7 @@ function config(values: string[]): RouteKitProjectConfig {
   };
 }
 
-describe("validateLegacyWorkspace", () => {
+describe("validateWorkspaceFiles", () => {
   it("accepts tag@attribute when the base GEOSITE file exists", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     const data = path.join(root, "vendor/domain-list-community/data");
@@ -31,7 +31,7 @@ describe("validateLegacyWorkspace", () => {
     await writeFile(path.join(data, "google"), "google.cn @cn\n", "utf8");
     await writeFile(path.join(data, "category-games"), "include:category-games-cn\n", "utf8");
 
-    await expect(validateLegacyWorkspace(
+    await expect(validateWorkspaceFiles(
       { root, configFile: "config/routes.yaml" },
       config(["google@cn", "category-games@cn"]),
     )).resolves.toEqual([]);
@@ -41,7 +41,7 @@ describe("validateLegacyWorkspace", () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     const data = path.join(root, "vendor/domain-list-community/data");
     await mkdir(data, { recursive: true });
-    const diagnostics = await validateLegacyWorkspace(
+    const diagnostics = await validateWorkspaceFiles(
       { root, configFile: "config/routes.yaml" },
       config(["gfw"]),
     );
