@@ -1,27 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { createV2Config, createV2Yaml } from "./fixtures.js";
 import { addRoute, removeRoute } from "../../src/v2/mutations.js";
 import { serializeV2Project } from "../../src/v2/v2Project.js";
 import {
   applyV2Config,
   canSaveProject,
-  createProjectControllerFromDocument,
   createV2ProjectController,
   markV2ProjectSaved,
 } from "../../src/projectController.js";
-
-function createV1Document(): { yaml: string; config: RouteKitProjectConfig } {
-  const config: RouteKitProjectConfig = {
-    publishBaseUrl: "http://127.0.0.1:8787",
-    template: { output: "Custom_Clash.ini" },
-    vendorRepos: [],
-    customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-    ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
-    ruleProviders: [],
-  };
-  return { yaml: "publishBaseUrl: http://127.0.0.1:8787\n", config };
-}
 
 describe("createV2ProjectController", () => {
   it("loads a v2 yaml into the snapshot with a clean baseline", () => {
@@ -121,21 +107,9 @@ describe("v2 save readiness", () => {
   });
 });
 
-describe("createProjectControllerFromDocument", () => {
-  it("creates a v1 controller for v1 documents", () => {
-    const document = createV1Document();
-    const state = createProjectControllerFromDocument({ schemaVersion: 1, ...document });
-
-    expect(state.schemaVersion).toBe(1);
-    expect(state.v2).toBeUndefined();
-    expect(state.draftConfig).toEqual(document.config);
-  });
-
-  it("creates a v2 controller with loaded v2 state for v2 documents", () => {
-    const state = createProjectControllerFromDocument({
-      schemaVersion: 2,
-      yaml: createV2Yaml(),
-    });
+describe("document loading", () => {
+  it("creates a v2 controller with loaded v2 state for a v2 document payload", () => {
+    const state = createV2ProjectController(createV2Yaml());
 
     expect(state.schemaVersion).toBe(2);
     expect(state.v2?.config).toEqual(createV2Config());
@@ -147,11 +121,7 @@ describe("createProjectControllerFromDocument", () => {
       publishBaseUrl: "http://192.168.1.10:8787",
       subconverterUrl: "http://10.0.0.3:25500/sub",
     };
-    const state = createProjectControllerFromDocument({
-      schemaVersion: 2,
-      yaml: createV2Yaml(),
-      runtimeUrls,
-    });
+    const state = createV2ProjectController(createV2Yaml(), runtimeUrls);
 
     expect(state.runtimeUrls).toEqual(runtimeUrls);
     // 只读投影（draftConfig 兜底）同样携带运行时 URL

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Empty, Input, Modal } from "antd";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
-import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
 import type { V2ProjectState } from "../v2/v2Project.js";
 import {
@@ -54,13 +53,11 @@ const PROVIDER_PATH = /^ruleProviders\[(\d+)\]/;
 
 export function LibraryPage({
   config,
-  draftActions,
   v2,
   onRefreshConfig,
   fetcher,
 }: {
   config: RouteKitProjectConfig;
-  draftActions: ReturnType<typeof useProjectDraftActions>;
   /** Schema v2 编辑会话：存在时 provider mutation 走稳定 ID 通路。 */
   v2?: LibraryV2Session;
   onRefreshConfig: () => void;
@@ -287,9 +284,9 @@ export function LibraryPage({
       return (
         <ProviderRecipeEditor
           provider={provider}
-          onUpdate={(patch) => draftActions.updateProvider(provider.name, patch)}
+          onUpdate={(patch) => v2?.actions.updateProvider(provider.name, patch)}
           onDelete={() => {
-            draftActions.deleteProvider(provider.name);
+            v2?.actions.deleteProvider(provider.name);
             setSelection(null);
           }}
           fetcher={fetch}
@@ -329,7 +326,7 @@ export function LibraryPage({
             onEditRepo={openEditRepo}
             onAddRepo={() => setRepoModal({ open: true, mode: "add" })}
             onNewList={() => setNewListOpen(true)}
-            onNewProvider={() => (v2?.actions ?? draftActions).createProvider()}
+            onNewProvider={() => v2?.actions.createProvider()}
             onOpenRuleDefaults={() => setDefaultsSection("rule-sets")}
           />
         </div>
@@ -358,7 +355,7 @@ export function LibraryPage({
           initialSection={defaultsSection}
           defaults={v2State ? v2State.config.project?.defaults : config.defaults}
           onSave={(defaults) => {
-            (v2?.actions ?? draftActions).setProjectDefaults(defaults);
+            v2?.actions.setProjectDefaults(defaults);
             setDefaultsSection(null);
           }}
           onCancel={() => setDefaultsSection(null)}

@@ -4,7 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { LibraryPage, type LibraryV2Session } from "../src/components/LibraryPage.js";
-import type { useProjectDraftActions } from "../src/useProjectDraftActions.js";
 import { loadV2Project } from "../src/v2/v2Project.js";
 afterEach(cleanup);
 
@@ -16,8 +15,6 @@ const config: RouteKitProjectConfig = {
   ruleSets: [],
   ruleProviders: [],
 };
-
-const draftActions = new Proxy({}, { get: () => vi.fn() }) as ReturnType<typeof useProjectDraftActions>;
 
 function makeFetcher() {
   return vi.fn(async (input: RequestInfo | URL) => {
@@ -33,7 +30,7 @@ function makeFetcher() {
 it("renders repos and local list files", async () => {
   render(
     <AppProviders>
-      <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
     </AppProviders>,
   );
   await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
@@ -43,7 +40,7 @@ it("renders repos and local list files", async () => {
 it("opens project defaults on the rule-set section", async () => {
   render(
     <AppProviders>
-      <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+      <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
     </AppProviders>,
   );
 
@@ -61,12 +58,22 @@ it("cancels local rule-default edits without committing", async () => {
     get(target, key) {
       return Reflect.has(target, key) ? Reflect.get(target, key) : vi.fn();
     },
-  }) as unknown as ReturnType<typeof useProjectDraftActions>;
+  }) as unknown as LibraryV2Session["actions"];
+  const v2State = loadV2Project(`schemaVersion: 2
+proxyGroups: []
+routes:
+  - id: final
+    policy:
+      builtin: DIRECT
+    source:
+      type: final
+ruleProviders: []
+`);
   render(
     <AppProviders>
       <LibraryPage
         config={config}
-        draftActions={actions}
+        v2={{ state: v2State, actions }}
         onRefreshConfig={() => {}}
         fetcher={makeFetcher()}
       />
@@ -104,7 +111,7 @@ it("deletes a local list file and refreshes the sidebar", async () => {
 
   render(
     <AppProviders>
-      <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={fetcher} />
+      <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={fetcher} />
     </AppProviders>,
   );
   await waitFor(() => expect(screen.getByText("Direct.list")).toBeTruthy());
@@ -138,7 +145,7 @@ describe("library health bar", () => {
   it("shows the pass status for a healthy library", async () => {
     render(
       <AppProviders>
-        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+        <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() =>
@@ -182,7 +189,7 @@ ruleProviders:
     const v2State = loadV2Project(blockingV2);
     render(
       <AppProviders>
-        <LibraryPage config={healthConfig} draftActions={draftActions} v2={{ state: v2State, actions: new Proxy({}, { get: () => vi.fn() }) as unknown as LibraryV2Session["actions"] }} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+        <LibraryPage config={healthConfig} v2={{ state: v2State, actions: new Proxy({}, { get: () => vi.fn() }) as unknown as LibraryV2Session["actions"] }} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
@@ -205,7 +212,7 @@ describe("repo management entry", () => {
   it("opens the add-repo modal from the sidebar repo group header", async () => {
     render(
       <AppProviders>
-        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+        <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
@@ -216,7 +223,7 @@ describe("repo management entry", () => {
   it("opens the edit-repo modal for a declared vendor repo", async () => {
     render(
       <AppProviders>
-        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+        <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
@@ -228,7 +235,7 @@ describe("repo management entry", () => {
     const fetcher = makeFetcher();
     render(
       <AppProviders>
-        <LibraryPage config={config} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={fetcher} />
+        <LibraryPage config={config} onRefreshConfig={() => {}} fetcher={fetcher} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());

@@ -11,7 +11,6 @@ import { createV2ProjectController } from "../../src/projectController.js";
 import { renderV2PageConfig } from "../../src/v2/renderProject.js";
 import { serializeV2Project } from "../../src/v2/v2Project.js";
 import { useV2DraftActions } from "../../src/v2/useV2DraftActions.js";
-import type { useProjectDraftActions } from "../../src/useProjectDraftActions.js";
 import { createV2Config, createV2Yaml } from "./fixtures.js";
 
 afterEach(() => {
@@ -24,11 +23,6 @@ afterEach(() => {
  * 驱动 RoutingPage / LibraryPage 的 v2 通路；latest 捕获最新快照供断言。
  */
 let latest: { state: ProjectControllerState; actions: ReturnType<typeof useV2DraftActions> };
-
-/** v2 动作束满足 v1 动作的结构类型（duck typing），测试里直接复用。 */
-function actionsAsV1(actions: ReturnType<typeof useV2DraftActions>) {
-  return actions as unknown as ReturnType<typeof useProjectDraftActions>;
-}
 
 function useV2Session(yaml: string): ProjectControllerState {
   const [state, setState] = useState<ProjectControllerState>(() =>
@@ -47,7 +41,6 @@ function V2RoutingPage({ yaml }: { yaml?: string }) {
       <RoutingPage
         config={renderV2PageConfig(state.v2.config)}
         selectedRuleSetId={state.selectedRuleSetId}
-        draftActions={actionsAsV1(latest.actions)}
         v2={{ state: state.v2, actions: latest.actions }}
         fetcher={vi.fn()}
       />
@@ -62,7 +55,6 @@ function V2LibraryPage() {
     <AppProviders>
       <LibraryPage
         config={renderV2PageConfig(state.v2.config)}
-        draftActions={actionsAsV1(latest.actions)}
         v2={{ state: state.v2, actions: latest.actions }}
         onRefreshConfig={() => {}}
         fetcher={vi.fn(async (input: RequestInfo | URL) => {

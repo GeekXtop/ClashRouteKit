@@ -17,9 +17,7 @@ import {
 import { notifyError, notifySuccess } from "./notify.js";
 import {
   canSaveProject,
-  createProjectControllerFromDocument,
   createV2ProjectController,
-  markProjectSaved,
   markV2ProjectSaved,
   setProjectSelection,
   setProjectStatus,
@@ -32,16 +30,13 @@ import { fetchProjectDocument, saveV2Project, serializeV2Project } from "./v2/v2
 
 export default function App() {
   const [project, setProject] = useState(() => {
-    // bundle 内联配置按 schemaVersion 分发；解析失败（坏 YAML）时以空白项目
-    // 兜底保证首屏可渲染，真实项目随后由 fetchProjectDocument 加载并提示错误。
-    if (bundledSchemaVersion === 2) {
-      return createProjectControllerFromDocument({ schemaVersion: 2, yaml: bundledProjectConfigYaml });
-    }
-    // bundle 解析失败（坏 YAML）时以 Schema v2 空白项目兜底保证首屏可渲染。
-    return createProjectControllerFromDocument({
-      schemaVersion: 2,
-      yaml: YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }),
-    });
+    // bundle 内联配置解析成功时直接装载；解析失败（坏 YAML）时以 Schema v2
+    // 空白项目兜底保证首屏可渲染，真实项目随后由 fetchProjectDocument 加载并提示错误。
+    const yaml =
+      bundledSchemaVersion === 2
+        ? bundledProjectConfigYaml
+        : YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 });
+    return createV2ProjectController(yaml);
   });
   const v2Actions = useV2DraftActions(setProject);
   const config = project.draftConfig;
@@ -110,14 +105,10 @@ export default function App() {
 
   function refreshConfig() {
     void fetchProjectDocument()
-      .then((document) => setProject(createProjectControllerFromDocument(document)))
+      .then((document) => setProject(createV2ProjectController(document.yaml, document.runtimeUrls)))
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
   }
 
-  /**
-   * 迁移应用成功后的刷新：GET /api/project/config 现按 schemaVersion 分发
-   * （v2 返回 { schemaVersion: 2, yaml }），直接经 v2 装载链重建快照。
-   */
   function runCheck() {
     void requestLocalAction("check")
       .then((result) =>
@@ -160,7 +151,7 @@ export default function App() {
     setProject((current) => setProjectStatus(current, "loading", "正在读取本地 config/routes.yaml"));
     void fetchProjectDocument()
       .then((document) => {
-        if (alive) setProject(createProjectControllerFromDocument(document));
+        if (alive) setProject(createV2ProjectController(document.yaml, document.runtimeUrls));
       })
       .catch((error: unknown) => {
         if (!alive) return;
@@ -233,14 +224,12 @@ export default function App() {
           <RoutingPage
             config={pageConfig}
             selectedRuleSetId={project.selectedRuleSetId}
-            draftActions={v2Actions}
             v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onOpenImport={openImport}
           />
         ) : project.selectedView === "library" ? (
           <LibraryPage
             config={pageConfig}
-            draftActions={v2Actions}
             v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onRefreshConfig={refreshConfig}
           />

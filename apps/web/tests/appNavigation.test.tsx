@@ -1,37 +1,46 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import App from "../src/App.js";
 
 // 根 vitest.config 未注册 virtual:routes-config-yaml 插件，
 // 这里整体替换 config 模块，避免 App 装配测试依赖构建期内联配置。
+// vi.mock 工厂会被提升，yaml 字面量须内联在工厂内（不可引用顶层变量）。
 vi.mock("../src/config.js", () => ({
-  bundledSchemaVersion: 1,
-  bundledProjectConfigYaml: "publishBaseUrl: http://127.0.0.1:8787\n",
-  bundledProjectConfig: {
-    publishBaseUrl: "http://127.0.0.1:8787",
-    template: { output: "Custom_Clash.ini" },
-    vendorRepos: [],
-    customProxyGroups: [],
-    ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
-    ruleProviders: [],
-  },
+  bundledSchemaVersion: 2,
+  bundledProjectConfigYaml: `schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups: []
+routes:
+  - id: final
+    policy:
+      builtin: DIRECT
+    source:
+      type: final
+ruleProviders: []
+`,
 }));
+
+const bundledYaml = `schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups: []
+routes:
+  - id: final
+    policy:
+      builtin: DIRECT
+    source:
+      type: final
+ruleProviders: []
+`;
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-
-const loadedConfig: RouteKitProjectConfig = {
-  publishBaseUrl: "http://127.0.0.1:8787",
-  template: { output: "Custom_Clash.ini" },
-  vendorRepos: [],
-  customProxyGroups: [],
-  ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
-  ruleProviders: [],
-};
 
 function stubLocalApi() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -39,7 +48,12 @@ function stubLocalApi() {
     if (url.includes("/api/project/config")) {
       return {
         ok: true,
-        json: async () => ({ yaml: "publishBaseUrl: http://127.0.0.1:8787\n", config: loadedConfig }),
+        json: async () => ({
+          schemaVersion: 2,
+          yaml: bundledYaml,
+          publishBaseUrl: "http://127.0.0.1:8787",
+          subconverterUrl: "http://127.0.0.1:25500/sub",
+        }),
       } as unknown as Response;
     }
     if (url.includes("/api/git/remote")) {

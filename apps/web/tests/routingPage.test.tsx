@@ -6,7 +6,6 @@ import { loadV2Project } from "../src/v2/v2Project.js";
 import type { useV2DraftActions } from "../src/v2/useV2DraftActions.js";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { RoutingPage } from "../src/components/RoutingPage.js";
-import type { useProjectDraftActions } from "../src/useProjectDraftActions.js";
 
 afterEach(() => {
   cleanup();
@@ -28,36 +27,49 @@ const config: RouteKitProjectConfig = {
   ruleProviders: [],
 };
 
-function makeV2Actions() {
-  const fallback = vi.fn();
-  return new Proxy({}, {
-    get(_target, key) {
-      return fallback;
-    },
-  }) as unknown as ReturnType<typeof useV2DraftActions>;
-}
-
-function makeDraftActions(overrides: Record<string, unknown> = {}) {
+function makeV2Actions(overrides: Record<string, unknown> = {}) {
   const fallback = vi.fn();
   return new Proxy(overrides, {
     get(target, key) {
       return Reflect.has(target, key) ? Reflect.get(target, key) : fallback;
     },
-  }) as ReturnType<typeof useProjectDraftActions>;
+  }) as unknown as ReturnType<typeof useV2DraftActions>;
 }
 
-const draftActions = makeDraftActions();
+// v2 会话 fixture：与 config 投影对应（Drawer 编辑通路按显示名/ID 匹配 v2 实体）。
+const v2State = loadV2Project(`schemaVersion: 2
+proxyGroups:
+  - id: proxy
+    name: Proxy
+    type: select
+    members:
+      - builtin: DIRECT
+  - id: hk
+    name: HK
+    type: select
+    members:
+      - builtin: DIRECT
+routes:
+  - id: geosite-gfw
+    policy:
+      group: proxy
+    source:
+      type: geosite
+      value: gfw
+  - id: final
+    policy:
+      group: proxy
+    source:
+      type: final
+ruleProviders: []
+`);
 
-function renderRoutingPage(
-  overrides: Partial<Parameters<typeof RoutingPage>[0]> = {},
-  actions: ReturnType<typeof useProjectDraftActions> = draftActions,
-) {
+function renderRoutingPage(overrides: Partial<Parameters<typeof RoutingPage>[0]> = {}) {
   return render(
     <AppProviders>
       <RoutingPage
         config={config}
         selectedRuleSetId="geosite-gfw"
-        draftActions={actions}
         fetcher={vi.fn()}
         {...overrides}
       />
@@ -185,38 +197,38 @@ ruleProviders: []
   });
 
   it("commits a complete strategy group only after Drawer Save", async () => {
-    const saveCustomProxyGroup = vi.fn();
-    renderRoutingPage({}, makeDraftActions({ saveCustomProxyGroup }));
+    const saveProxyGroup = vi.fn();
+    renderRoutingPage({ v2: { state: v2State, actions: makeV2Actions({ saveProxyGroup }) } });
 
     fireEvent.click(screen.getByText("HK"));
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "策略组类型" }));
     fireEvent.click(await screen.findByText("fallback"));
-    expect(saveCustomProxyGroup).not.toHaveBeenCalled();
+    expect(saveProxyGroup).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    expect(saveCustomProxyGroup).toHaveBeenCalledWith(
-      "HK",
+    expect(saveProxyGroup).toHaveBeenCalledWith(
+      "hk",
       expect.objectContaining({ type: "fallback" }),
     );
   });
 
   it("commits a complete RuleSet only after Drawer Save", async () => {
-    const saveRuleSet = vi.fn();
-    renderRoutingPage({}, makeDraftActions({ saveRuleSet }));
+    const saveRoute = vi.fn();
+    renderRoutingPage({ v2: { state: v2State, actions: makeV2Actions({ saveRoute }) } });
 
     fireEvent.click(screen.getByLabelText("编辑 geosite-gfw"));
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "归属策略组" }));
     fireEvent.click((await screen.findAllByText("HK")).at(-1)!);
-    expect(saveRuleSet).not.toHaveBeenCalled();
+    expect(saveRoute).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    expect(saveRuleSet).toHaveBeenCalledWith(
+    expect(saveRoute).toHaveBeenCalledWith(
       "geosite-gfw",
-      expect.objectContaining({ policy: "HK" }),
+      expect.objectContaining({ policy: { group: "hk" } }),
     );
   });
 
   it("commits project defaults only after Save", () => {
     const setProjectDefaults = vi.fn();
-    renderRoutingPage({}, makeDraftActions({ setProjectDefaults }));
+    renderRoutingPage({ v2: { state: v2State, actions: makeV2Actions({ setProjectDefaults }) } });
 
     fireEvent.click(screen.getByLabelText("项目默认值"));
     fireEvent.change(screen.getByLabelText("项目测速超时（秒）"), { target: { value: "5" } });

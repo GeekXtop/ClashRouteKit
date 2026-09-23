@@ -5,7 +5,6 @@ import {
   type Diagnostic,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
-import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
 import type { V2ProjectState } from "../v2/v2Project.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
@@ -116,14 +115,12 @@ function collectV2IssuesByGroup(
 export function RoutingPage({
   config,
   selectedRuleSetId,
-  draftActions,
   v2,
   fetcher,
   onOpenImport,
 }: {
   config: RouteKitProjectConfig;
   selectedRuleSetId: string;
-  draftActions: ReturnType<typeof useProjectDraftActions>;
   /** Schema v2 编辑会话：存在时 mutation 走稳定 ID 通路，config 为渲染投影。 */
   v2?: RoutingV2Session;
   fetcher?: Fetcher;
@@ -264,7 +261,7 @@ export function RoutingPage({
           <Button type="primary" onClick={onOpenImport}>
             从模板导入开始
           </Button>
-          <Button onClick={() => (v2?.actions ?? draftActions).createCustomProxyGroup()}>
+          <Button onClick={() => v2?.actions.createCustomProxyGroup()}>
             手动新建策略组
           </Button>
         </Space>
@@ -295,7 +292,7 @@ export function RoutingPage({
             locate={locate?.kind === "group" ? locate : null}
             onSelectGroup={setSelectedGroup}
             onEditGroup={setDrawerGroup}
-            onCreateGroup={(v2?.actions ?? draftActions).createCustomProxyGroup}
+            onCreateGroup={(type) => v2?.actions.createCustomProxyGroup(type)}
             onOpenDefaults={() => setDefaultsSection("proxy-groups")}
           />
         </div>
@@ -318,13 +315,13 @@ export function RoutingPage({
                 </>
               ) : undefined
             }
-            onSelectRuleSet={(v2?.actions ?? draftActions).selectRuleSet}
-            onToggle={(v2?.actions ?? draftActions).toggleRuleSet}
+            onSelectRuleSet={(id) => v2?.actions.selectRuleSet(id)}
+            onToggle={(id) => v2?.actions.toggleRuleSet(id)}
             onEditRule={(id) => {
-              (v2?.actions ?? draftActions).selectRuleSet(id);
+              v2?.actions.selectRuleSet(id);
               setEditRuleId(id);
             }}
-            onReorder={(v2?.actions ?? draftActions).reorderRuleSets}
+            onReorder={(orderedIds) => v2?.actions.reorderRuleSets(orderedIds)}
             onAddRule={() => setPickerOpen(true)}
           />
         </div>
@@ -357,14 +354,14 @@ export function RoutingPage({
         inboundCount={drawerGroup ? selectInboundRuleSets(config, drawerGroup).length : 0}
         onSave={(nextGroup) => {
           if (!drawerGroup) return;
-          draftActions.saveCustomProxyGroup(drawerGroup, nextGroup);
+          v2?.actions.saveCustomProxyGroup(drawerGroup, nextGroup);
           if (selectedGroup === drawerGroup) setSelectedGroup(nextGroup.name);
           setDrawerGroup(null);
         }}
         onCancel={() => setDrawerGroup(null)}
         onDelete={() => {
           if (drawerGroup) {
-            (v2?.actions ?? draftActions).deleteCustomProxyGroup(
+            v2?.actions.deleteCustomProxyGroup(
               editingV2Group ? editingV2Group.id : drawerGroup,
             );
             setDrawerGroup(null);
@@ -402,12 +399,12 @@ export function RoutingPage({
         defaults={v2State ? v2State.config.project?.defaults : config.defaults}
         onSave={(nextRuleSet) => {
           if (!editRuleId) return;
-          draftActions.saveRuleSet(editRuleId, nextRuleSet);
+          v2?.actions.saveRuleSet(editRuleId, nextRuleSet);
           setEditRuleId(null);
         }}
         onCancel={() => setEditRuleId(null)}
         onDelete={() => {
-          if (editRuleId) (v2?.actions ?? draftActions).deleteRuleSet(editRuleId);
+          if (editRuleId) v2?.actions.deleteRuleSet(editRuleId);
           setEditRuleId(null);
         }}
       />
@@ -418,7 +415,7 @@ export function RoutingPage({
           initialSection={defaultsSection}
           defaults={v2State ? v2State.config.project?.defaults : config.defaults}
           onSave={(defaults) => {
-            (v2?.actions ?? draftActions).setProjectDefaults(defaults);
+            v2?.actions.setProjectDefaults(defaults);
             setDefaultsSection(null);
           }}
           onCancel={() => setDefaultsSection(null)}
@@ -432,7 +429,7 @@ export function RoutingPage({
           defaultPolicy={selectedGroup || policies[0] || "DIRECT"}
           sections={sections}
           fetcher={fetcher}
-          onAdd={(source, policy, section) => (v2?.actions ?? draftActions).addRoute(source, policy, section)}
+          onAdd={(source, policy, section) => v2?.actions.addRoute(source, policy, section)}
           onClose={() => setPickerOpen(false)}
         />
       ) : null}

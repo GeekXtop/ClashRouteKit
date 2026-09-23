@@ -5,12 +5,10 @@
  *   跨实体语义问题收集进 diagnostics（config 始终返回）；
  * - `serializeV2Project`：schemaVersion: 2 置顶序列化，与 local-server
  *   `serializeAuthorProjectV2` 同一算法（服务端会重排，前端保持一致）；
- * - `fetchProjectDocument`：GET /api/project/config 按 schemaVersion 分发
- *   v1/v2 响应（v2 响应无 config 字段，v1 旧响应无 schemaVersion 键时按
- *   config 字段存在性回退为 v1）；
+ * - `fetchProjectDocument`：GET /api/project/config，v2-only 响应
+ *   （{ schemaVersion: 2, yaml, runtimeUrls }）；
  * - `saveV2Project`：PUT { schemaVersion: 2, yaml }；200 返回服务器规范化后
  *   的 yaml 与 warning 诊断，422/400 返回结构化 diagnostics，网络错误向上抛出。
- * fetch 封装风格与 `localProject.ts` 保持一致。
  */
 import {
   normalizeAuthorProjectConfig,
@@ -19,7 +17,6 @@ import {
   validateNormalizedProject,
   type AuthorProjectConfigV2,
   type Diagnostic,
-  type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import YAML from "yaml";
 
@@ -74,10 +71,12 @@ export function serializeV2Project(config: AuthorProjectConfigV2): string {
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-/** GET /api/project/config 的分发结果：v1 带 config，v2 只有 yaml。 */
-export type ProjectDocument =
-  | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig; runtimeUrls?: RuntimeUrls }
-  | { schemaVersion: 2; yaml: string; runtimeUrls?: RuntimeUrls };
+/** GET /api/project/config 的 v2 响应（v1 磁盘格式已移除支持）。 */
+export interface ProjectDocument {
+  schemaVersion: 2;
+  yaml: string;
+  runtimeUrls?: RuntimeUrls;
+}
 
 /** 本地设置解析出的运行时 URL（spec 5.3）；旧响应缺失时为 undefined。 */
 export interface RuntimeUrls {
@@ -117,14 +116,6 @@ export async function fetchProjectDocument(
   }
   if (payload.schemaVersion === 2) {
     return { schemaVersion: 2, yaml: payload.yaml, runtimeUrls: readRuntimeUrls(payload) };
-  }
-  if (isRecord(payload.config)) {
-    return {
-      schemaVersion: 1,
-      yaml: payload.yaml,
-      config: payload.config as unknown as RouteKitProjectConfig,
-      runtimeUrls: readRuntimeUrls(payload),
-    };
   }
   throw new Error("Invalid local project response");
 }

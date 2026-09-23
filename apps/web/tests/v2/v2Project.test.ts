@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import YAML from "yaml";
-import { ConfigDiagnosticError, type RouteKitProjectConfig } from "@clash-route-kit/core";
+import { ConfigDiagnosticError } from "@clash-route-kit/core";
 import { createV2Config, createV2Yaml } from "./fixtures.js";
 import {
   fetchProjectDocument,
@@ -58,31 +58,38 @@ describe("serializeV2Project", () => {
 });
 
 describe("fetchProjectDocument", () => {
-  it("returns a v1 document for legacy payloads without schemaVersion", async () => {
-    const config: RouteKitProjectConfig = {
-      publishBaseUrl: "http://127.0.0.1:8787",
-      template: { output: "Custom_Clash.ini" },
-      vendorRepos: [],
-      customProxyGroups: [],
-      ruleSets: [{ id: "final", policy: "DIRECT", source: { type: "final" } }],
-      ruleProviders: [],
-    };
-    const yaml = "publishBaseUrl: http://127.0.0.1:8787\n";
+  it("returns a v2 document with runtime urls when present", async () => {
+    const yaml = createV2Yaml();
+    const runtimeUrls = { publishBaseUrl: "http://192.168.1.10:8787", subconverterUrl: "http://10.0.0.3:25500/sub" };
     const fetcher = vi.fn(async () =>
-      new Response(JSON.stringify({ yaml, config }), { status: 200 }),
+      new Response(JSON.stringify({ schemaVersion: 2, yaml, mtime: 1, ...runtimeUrls }), { status: 200 }),
     );
 
-    await expect(fetchProjectDocument(fetcher)).resolves.toEqual({ schemaVersion: 1, yaml, config });
+    await expect(fetchProjectDocument(fetcher)).resolves.toEqual({
+      schemaVersion: 2,
+      yaml,
+      runtimeUrls,
+    });
     expect(fetcher).toHaveBeenCalledWith("/api/project/config");
   });
 
-  it("returns a v2 document without a config field", async () => {
+  it("returns a v2 document without runtime urls when absent", async () => {
     const yaml = createV2Yaml();
     const fetcher = vi.fn(async () =>
       new Response(JSON.stringify({ schemaVersion: 2, yaml, mtime: 1 }), { status: 200 }),
     );
 
     await expect(fetchProjectDocument(fetcher)).resolves.toEqual({ schemaVersion: 2, yaml });
+  });
+
+  it("rejects legacy v1 payloads (config field, no schemaVersion)", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ yaml: "publishBaseUrl: http://127.0.0.1:8787\n", config: {} }),
+        { status: 200 },
+      ),
+    );
+    await expect(fetchProjectDocument(fetcher)).rejects.toThrow("Invalid local project response");
   });
 
   it("throws on invalid payloads", async () => {
