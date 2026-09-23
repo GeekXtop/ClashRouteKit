@@ -16,7 +16,6 @@ import type { ProjectOptions, ReadText, WriteText } from "../config/configReposi
 import {
   readAuthorProjectFile,
   saveAuthorProject,
-  writeProjectConfigFile,
 } from "../config/configRepository.js";
 import { loadLocalSettings } from "../config/localSettings.js";
 import {
@@ -93,30 +92,20 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     if (url.pathname === "/api/project/config") {
       if (request.method === "GET") {
-        // 经 parseAuthorProjectConfig 分发：v1 追加 schemaVersion: 1（原字段不变），
-        // v2 返回 { schemaVersion: 2, yaml, mtime }，不再因 v1 严格解析而报错。
-        // 运行时 URL 来自本地设置（spec 5.3，作者配置不携带），v1/v2 统一返回。
+        // Schema v2-only：返回 { schemaVersion: 2, yaml, mtime }。
+        // 运行时 URL 来自本地设置（spec 5.3，作者配置不携带）。
         void Promise.all([
           readAuthorProjectFile(options),
           loadLocalSettings({ root: options.root, env: options.env }),
         ])
           .then(([result, settings]) =>
-            result.schemaVersion === 1
-              ? writeJson(response, 200, {
-                  schemaVersion: 1,
-                  yaml: result.yaml,
-                  config: result.config,
-                  mtime: result.mtime,
-                  publishBaseUrl: settings.serve.publicBaseUrl,
-                  subconverterUrl: settings.subconverterUrl,
-                })
-              : writeJson(response, 200, {
-                  schemaVersion: 2,
-                  yaml: result.yaml,
-                  mtime: result.mtime,
-                  publishBaseUrl: settings.serve.publicBaseUrl,
-                  subconverterUrl: settings.subconverterUrl,
-                }),
+            writeJson(response, 200, {
+              schemaVersion: 2,
+              yaml: result.yaml,
+              mtime: result.mtime,
+              publishBaseUrl: settings.serve.publicBaseUrl,
+              subconverterUrl: settings.subconverterUrl,
+            }),
           )
           .catch((error: unknown) => {
             writeJson(response, 500, {
@@ -143,34 +132,19 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
                 },
             )
             .then(async (payload) => {
-              // v2 保存：显式 schemaVersion: 2，或无 config 的纯 yaml 文本（由 v2
-              // parser 判别顶层 schemaVersion）。解析失败 400 + diagnostics，
+              // v2 保存：提交 { schemaVersion: 2, yaml }。解析失败 400 + diagnostics，
               // 校验 error 422 + diagnostics，成功 200。
-              if (
-                payload.schemaVersion === 2 ||
-                (payload.config === undefined && typeof payload.yaml === "string")
-              ) {
-                if (typeof payload.yaml !== "string") {
-                  writeJson(response, 400, { ok: false, output: "Missing v2 config yaml" });
-                  return;
-                }
-                try {
-                  const result = await saveAuthorProject({ ...options, yaml: payload.yaml });
-                  writeJson(response, result.ok ? 200 : 422, result);
-                } catch (error: unknown) {
-                  writeJson(response, 400, errorPayload(error));
-                }
-                return;
+              if (typeof payload.yaml !== "string") {
+                writeJson(response, 400, { ok: false, output: "Missing v2 config yaml" });
+                return undefined;
               }
-              if (!payload.config) {
-                throw new Error("Missing config");
+              try {
+                const result = await saveAuthorProject({ ...options, yaml: payload.yaml });
+                writeJson(response, result.ok ? 200 : 422, result);
+              } catch (error: unknown) {
+                writeJson(response, 400, errorPayload(error));
               }
-              return writeProjectConfigFile({ ...options, config: payload.config });
-            })
-            .then((result) => {
-              if (result !== undefined) {
-                writeJson(response, 200, result);
-              }
+              return undefined;
             })
             .catch((error: unknown) => {
               // v1 保存失败同样携带结构化 diagnostics（ConfigDiagnosticError 时）。

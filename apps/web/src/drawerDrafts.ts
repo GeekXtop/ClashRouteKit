@@ -1,5 +1,5 @@
 import {
-  validateDefaultAwareConfig,
+  appendDefaultValueDiagnostics,
   type CustomProxyGroup,
   type FinalRuleSetSource,
   type GeoipRuleSetSource,
@@ -259,12 +259,20 @@ export function finalizeProjectDefaultsDraft(
       geoipNoResolve: defaults.ruleSets?.geoipNoResolve ?? true,
     },
   };
-  const diagnostics = validateDefaultAwareConfig({
-    publishBaseUrl: "http://127.0.0.1",
-    defaults: value,
-    customProxyGroups: [],
-    ruleSets: [],
-  });
+  const diagnostics: string[] = [];
+  {
+    const valueDiagnostics: import("@clash-route-kit/core").Diagnostic[] = [];
+    appendDefaultValueDiagnostics(
+      {
+        publishBaseUrl: "http://127.0.0.1",
+        defaults: value,
+        customProxyGroups: [],
+        ruleSets: [],
+      } as unknown as import("@clash-route-kit/core").RouteKitConfig,
+      valueDiagnostics,
+    );
+    diagnostics.push(...valueDiagnostics.map((d) => `${d.path} ${d.message}`));
+  }
 
   return diagnostics.length > 0
     ? { ok: false, error: diagnostics[0]! }

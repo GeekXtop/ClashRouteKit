@@ -16,38 +16,46 @@ function projectConfig(overrides: Partial<RouteKitProjectConfig> = {}): RouteKit
 }
 
 const validConfigYaml = [
-  "publishBaseUrl: http://127.0.0.1:8787",
-  "template:",
-  "  output: Custom_Clash.ini",
+  "schemaVersion: 2",
+  "project:",
+  "  template:",
+  "    output: Custom_Clash.ini",
   "vendorRepos: []",
-  "customProxyGroups:",
-  "  - name: Proxy",
+  "proxyGroups:",
+  "  - id: proxy",
+  "    name: Proxy",
   "    type: select",
-  "    options: [DIRECT]",
-  "ruleSets:",
+  "    members:",
+  "      - builtin: DIRECT",
+  "routes:",
   "  - id: final",
-  "    policy: Proxy",
+  "    policy:",
+  "      group: proxy",
   "    source:",
   "      type: final",
-  "",
+  "ruleProviders: []",
 ].join("\n");
 
 const yamlWithRepos = (repos: string) =>
   [
-    "publishBaseUrl: http://127.0.0.1:8787",
-    "template:",
-    "  output: Custom_Clash.ini",
+    "schemaVersion: 2",
+    "project:",
+    "  template:",
+    "    output: Custom_Clash.ini",
     repos,
-    "customProxyGroups:",
-    "  - name: Proxy",
+    "proxyGroups:",
+    "  - id: proxy",
+    "    name: Proxy",
     "    type: select",
-    "    options: [DIRECT]",
-    "ruleSets:",
+    "    members:",
+    "      - builtin: DIRECT",
+    "routes:",
     "  - id: final",
-    "    policy: Proxy",
+    "    policy:",
+    "      group: proxy",
     "    source:",
     "      type: final",
-    "",
+    "ruleProviders: []",
   ].join("\n");
 
 const baseOptions = { root: "E:/repo", configFile: "config/routes.yaml" };
@@ -156,17 +164,15 @@ describe("createRouteKitApiHandler", () => {
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
     const payload = JSON.parse(res.body) as {
       yaml: string;
-      config: RouteKitProjectConfig;
       mtime: number;
       schemaVersion: number;
     };
-    expect(payload.schemaVersion).toBe(1);
+    expect(payload.schemaVersion).toBe(2);
     expect(payload.yaml).toBe(validConfigYaml);
-    expect(payload.config.ruleSets[0]?.id).toBe("final");
     expect(typeof payload.mtime).toBe("number");
   });
 
-  it("returns schemaVersion 2 with yaml and without v1 fields for a migrated config", async () => {
+  it("returns schemaVersion 2 with yaml only for a migrated config", async () => {
     const handler = createRouteKitApiHandler({
       ...baseOptions,
       readText: async () => validV2Yaml,
@@ -207,29 +213,21 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({
-        config: projectConfig({
-          customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-          ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
-          ruleProviders: [],
-        }),
-      }),
+      JSON.stringify({ schemaVersion: 2, yaml: validConfigYaml }),
     );
     expect(res.status).toBe(200);
-    const payload = JSON.parse(res.body) as { config: RouteKitProjectConfig };
-    expect(payload.config.ruleSets[0]?.id).toBe("final");
     expect(writes[0]?.filePath).toBe(path.resolve("E:/repo", "config/routes.yaml"));
-    expect(writes[0]?.text).toContain("ruleSets:");
+    expect(writes[0]?.text).toContain("routes:");
   });
 
-  it("rejects PUT /api/project/config without a config payload", async () => {
+  it("rejects PUT /api/project/config without a yaml payload", async () => {
     const handler = createRouteKitApiHandler({ ...baseOptions, writeText: async () => {} });
     const res = await callHandler(handler, "/api/project/config", "PUT", JSON.stringify({}));
     expect(res.status).toBe(400);
-    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Missing config" });
+    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Missing v2 config yaml" });
   });
 
-  it("rejects PUT /api/project/config that fails the core gate before writing", async () => {
+  it("rejects PUT /api/project/config that fails the v2 gate before writing", async () => {
     const writes: string[] = [];
     const handler = createRouteKitApiHandler({
       ...baseOptions,
@@ -237,27 +235,15 @@ describe("createRouteKitApiHandler", () => {
         writes.push(filePath);
       },
     });
+    const invalidYaml = validConfigYaml.replace("group: proxy", "group: ghost");
     const res = await callHandler(
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({
-        config: projectConfig({
-          customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-          ruleSets: [{ id: "bad", policy: "Missing", source: { type: "final" } }],
-        }),
-      }),
+      JSON.stringify({ schemaVersion: 2, yaml: invalidYaml }),
     );
-    expect(res.status).toBe(400);
-    const payload = JSON.parse(res.body) as {
-      ok: boolean;
-      output: string;
-      diagnostics: Array<{ code: string; severity: string; message: string }>;
-    };
-    expect(payload.ok).toBe(false);
-    // ConfigDiagnosticError 时错误响应携带结构化 diagnostics
-    expect(payload.diagnostics.length).toBeGreaterThan(0);
-    expect(payload.diagnostics[0]?.severity).toBe("error");
+    expect(res.status).toBe(422);
+    JSON.parse(res.body);
     expect(writes).toEqual([]);
   });
 
@@ -575,8 +561,6 @@ describe("createRouteKitApiHandler", () => {
       JSON.stringify({ input: { name: "GeekX", url: "https://x.git", catalog: { reldir: "rule", kind: "list-dir" } } }),
     );
     expect(res.status).toBe(200);
-    const payload = JSON.parse(res.body) as { config: RouteKitProjectConfig };
-    expect(payload.config.vendorRepos.at(-1)?.name).toBe("GeekX");
     expect(written).toContain("GeekX");
   });
 

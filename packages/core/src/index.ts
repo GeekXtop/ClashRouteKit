@@ -1,7 +1,5 @@
 export {
   parseAuthorProjectConfig,
-  parseRouteKitConfig,
-  serializeRouteKitConfig,
 } from "./configDocument.js";
 export type { ParsedAuthorProjectConfig } from "./configDocument.js";
 export {
@@ -50,16 +48,13 @@ export type {
   Diagnostic,
   DiagnosticSeverity,
 } from "./config/diagnostics.js";
-export {
-  createLegacyProxyGroupGraph,
-  validateLegacyProjectConfig,
-} from "./config/validateLegacy.js";
 export { renderIni } from "./ini.js";
 export { addVendorRepo, removeVendorRepo, updateVendorRepo } from "./configMutations.js";
 export { parseIniToConfig, type ImportedConfig } from "./import.js";
 export { findDependencyCycles } from "./routing/dependencyGraph.js";
 export type { DependencyGraph } from "./routing/dependencyGraph.js";
 export {
+  appendDefaultValueDiagnostics,
   LEGACY_GEOIP_NO_RESOLVE,
   LEGACY_HEALTH_CHECK_INTERVAL,
   LEGACY_HEALTH_CHECK_URL,
@@ -68,7 +63,6 @@ export {
   resolveGeoipNoResolve,
   resolveProxyGroupHealthCheck,
   resolveRuleProviderInterval,
-  validateDefaultAwareConfig,
 } from "./defaults.js";
 export type {
   ResolvedConfigValue,

@@ -3,9 +3,16 @@ import {
   resolveGeoipNoResolve,
   resolveProxyGroupHealthCheck,
   resolveRuleProviderInterval,
-  validateDefaultAwareConfig,
-  validateLegacyProjectConfig,
+  appendDefaultValueDiagnostics,
+  type Diagnostic,
+  type RouteKitConfig,
 } from "../src/index.js";
+
+function collectValueDiagnostics(config: RouteKitConfig): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+  appendDefaultValueDiagnostics(config, diagnostics);
+  return diagnostics;
+}
 
 describe("project defaults", () => {
   it("resolves item overrides, project defaults and explicit empty values in order", () => {
@@ -105,7 +112,7 @@ describe("project defaults", () => {
 
   it("reports invalid project defaults and explicit item overrides in config order", () => {
     expect(
-      validateDefaultAwareConfig({
+      collectValueDiagnostics({
         publishBaseUrl: "https://example.com/publish",
         defaults: {
           proxyGroups: {
@@ -137,24 +144,24 @@ describe("project defaults", () => {
             },
           },
         ],
-      }),
+      }).map((diagnostic) => diagnostic.code),
     ).toEqual([
-      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
-      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
-      "defaults.proxyGroups.healthCheck.timeout 必须为正整数",
-      "defaults.proxyGroups.urlTest.tolerance 必须为非负整数",
-      "defaults.ruleSets.ruleProviderInterval 必须为正整数",
-      "custom_proxy_group Auto 的 url 必须是 HTTP/HTTPS URL",
-      "custom_proxy_group Auto 的 interval 必须为正整数",
-      "custom_proxy_group Auto 的 timeout 必须为正整数",
-      "custom_proxy_group Auto 的 tolerance 必须为非负整数",
-      "RuleSet provider 的 interval 必须为正整数",
+      "defaults.health-check.url",
+      "defaults.health-check.interval",
+      "defaults.health-check.timeout",
+      "defaults.url-test.tolerance",
+      "defaults.route.interval",
+      "group.health-check.url",
+      "group.health-check.interval",
+      "group.health-check.timeout",
+      "group.health-check.tolerance",
+      "route.interval",
     ]);
   });
 
   it("accepts per-group null timeout and tolerance as explicit empty states", () => {
     expect(
-      validateDefaultAwareConfig({
+      collectValueDiagnostics({
         publishBaseUrl: "https://example.com/publish",
         customProxyGroups: [
           {
@@ -190,7 +197,7 @@ describe("project defaults", () => {
       ruleProviders: [],
     };
 
-    expect(validateLegacyProjectConfig(config).slice(0, 2)).toEqual([
+    expect(collectValueDiagnostics(config).slice(0, 2)).toEqual([
       {
         code: "defaults.health-check.url",
         severity: "error",
@@ -203,10 +210,6 @@ describe("project defaults", () => {
         path: "defaults.proxyGroups.healthCheck.interval",
         message: "健康检查 interval 必须为正整数",
       },
-    ]);
-    expect(validateDefaultAwareConfig(config)).toEqual([
-      "defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL",
-      "defaults.proxyGroups.healthCheck.interval 必须为正整数",
     ]);
   });
 });

@@ -12,8 +12,6 @@ import {
 import {
   projectConfigPath,
   readAuthorProjectFile,
-  writeProjectConfigFile,
-  type ProjectConfigFileResult,
   type ProjectOptions,
   type ReadText,
   type WriteText,
@@ -85,7 +83,7 @@ export interface VendorRepoV2MutationResult {
   mtime: number;
 }
 
-export type VendorRepoMutationResult = ProjectConfigFileResult | VendorRepoV2MutationResult;
+export type VendorRepoMutationResult = VendorRepoV2MutationResult;
 
 /** vendorRepos 清单级 mutation：core 的 add/update/remove 只读取 config.vendorRepos，用最小占位对象复用其校验逻辑。 */
 function mutateVendorRepoList(
@@ -136,18 +134,12 @@ export async function addProjectVendorRepo(
   options: VendorRepoMutationOptions & { input: VendorRepoInput },
 ): Promise<VendorRepoMutationResult> {
   const document = await readAuthorProjectFile(options);
-  if (document.schemaVersion === 2) {
-    const repos = document.v2.vendorRepos ?? [];
-    const next = withV2RepoId(repos, normalizeVendorRepoInput(options.input));
-    return saveV2VendorRepos(options, document.v2, mutateVendorRepoList(repos, (config) => addVendorRepo(config, next)));
-  }
-  return writeProjectConfigFile({
-    ...options,
-    config: addVendorRepo(document.config, normalizeVendorRepoInput(options.input)),
-  });
+  const repos = document.v2.vendorRepos ?? [];
+  const next = withV2RepoId(repos, normalizeVendorRepoInput(options.input));
+  return saveV2VendorRepos(options, document.v2, mutateVendorRepoList(repos, (config) => addVendorRepo(config, next)));
 }
 
-export interface VendorRepoUpdateResult extends ProjectConfigFileResult {
+export interface VendorRepoUpdateResult extends VendorRepoV2MutationResult {
   /** True when the clone source/location changed and the old vendor dir was cleared (caller should re-sync). */
   resync: boolean;
 }
@@ -161,28 +153,13 @@ export async function updateProjectVendorRepo(
 ): Promise<VendorRepoUpdateMutationResult> {
   const document = await readAuthorProjectFile(options);
   const next = normalizeVendorRepoInput(options.input);
-  if (document.schemaVersion === 2) {
-    const repos = document.v2.vendorRepos ?? [];
-    const previous = repos.find((repo) => repo.name === options.name);
-    const result = await saveV2VendorRepos(
-      options,
-      document.v2,
-      mutateVendorRepoList(repos, (config) => updateVendorRepo(config, options.name, next)),
-    );
-    const resync = Boolean(
-      previous &&
-        (previous.path !== next.path ||
-          previous.url !== next.url ||
-          (previous.branch ?? "") !== (next.branch ?? "")),
-    );
-    if (resync && previous) {
-      await clearVendorDirectory(options, previous.path);
-    }
-    return { ...result, resync };
-  }
-  const { config } = document;
-  const previous = config.vendorRepos.find((repo) => repo.name === options.name);
-  const result = await writeProjectConfigFile({ ...options, config: updateVendorRepo(config, options.name, next) });
+  const repos = document.v2.vendorRepos ?? [];
+  const previous = repos.find((repo) => repo.name === options.name);
+  const result = await saveV2VendorRepos(
+    options,
+    document.v2,
+    mutateVendorRepoList(repos, (config) => updateVendorRepo(config, options.name, next)),
+  );
   const resync = Boolean(
     previous &&
       (previous.path !== next.path ||
@@ -200,12 +177,9 @@ export async function removeProjectVendorRepo(
   options: VendorRepoMutationOptions & { name: string },
 ): Promise<VendorRepoMutationResult> {
   const document = await readAuthorProjectFile(options);
-  if (document.schemaVersion === 2) {
-    return saveV2VendorRepos(
-      options,
-      document.v2,
-      mutateVendorRepoList(document.v2.vendorRepos ?? [], (config) => removeVendorRepo(config, options.name)),
-    );
-  }
-  return writeProjectConfigFile({ ...options, config: removeVendorRepo(document.config, options.name) });
+  return saveV2VendorRepos(
+    options,
+    document.v2,
+    mutateVendorRepoList(document.v2.vendorRepos ?? [], (config) => removeVendorRepo(config, options.name)),
+  );
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
+import YAML from "yaml";
 import type { RouteKitProjectConfig, VendorRepoConfig } from "@clash-route-kit/core";
 import {
   addProjectVendorRepo,
@@ -15,14 +16,12 @@ import {
   readCatalogEntryDomains,
   readCatalogTemplate,
   readGitRemote,
-  readProjectConfigFile,
   readProjectRuleFile,
   deleteProjectRuleFile,
   removeProjectVendorRepo,
   runRouteKitAction,
   searchCatalog,
   updateProjectVendorRepo,
-  writeProjectConfigFile,
   writeProjectRuleFile,
 } from "../src/serveApi.js";
 
@@ -264,113 +263,6 @@ describe("routeKitApi", () => {
     expect(result.output).toContain("[generate] duplicates: providers=1 rules=1");
     expect(result.output).toContain("[generate] overlaps: rules=1");
     expect(result.output).toContain("[generate] report: E:/repo/output/reports/rule-report.json");
-  });
-});
-
-describe("project config file helpers", () => {
-  const root = path.resolve("fixture-repo");
-  const configFile = "config/routes.yaml";
-  const configPath = path.resolve(root, configFile);
-  const configYaml = [
-    "publishBaseUrl: http://127.0.0.1:8787",
-    "template:",
-    "  output: Custom_Clash.ini",
-    "vendorRepos: []",
-    "customProxyGroups:",
-    "  - name: Proxy",
-    "    type: select",
-    "    options:",
-    "      - DIRECT",
-    "ruleSets:",
-    "  - id: ai-geosite-openai",
-    "    policy: Proxy",
-    "    source:",
-    "      type: geosite",
-    "      value: openai",
-    "  - id: final",
-    "    policy: Proxy",
-    "    source:",
-    "      type: final",
-    "ruleProviders: []",
-    "",
-  ].join("\n");
-
-  it("reads and parses config/routes.yaml", async () => {
-    const result = await readProjectConfigFile({
-      root,
-      configFile,
-      readText: async (filePath) => {
-        expect(filePath).toBe(configPath);
-        return configYaml;
-      },
-    });
-
-    expect(result.yaml).toBe(configYaml);
-    expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
-    expect(typeof result.mtime).toBe("number");
-  });
-
-  it("serializes and writes config/routes.yaml", async () => {
-    const writes: Array<{ filePath: string; text: string }> = [];
-    const result = await writeProjectConfigFile({
-      root,
-      configFile,
-      config: {
-        publishBaseUrl: "http://127.0.0.1:8787",
-        template: { output: "Custom_Clash.ini" },
-        vendorRepos: [],
-        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-        ruleSets: [
-          { id: "ai-geosite-openai", policy: "Proxy", source: { type: "geosite", value: "openai" } },
-          { id: "final", policy: "Proxy", source: { type: "final" } },
-        ],
-        ruleProviders: [],
-      },
-      writeText: async (filePath, text) => {
-        writes.push({ filePath, text });
-      },
-    });
-
-    expect(writes[0]?.filePath).toBe(configPath);
-    expect(writes[0]?.text).toContain("ruleSets:");
-    expect(result.config.ruleSets[0]?.id).toBe("ai-geosite-openai");
-  });
-
-  it("rejects project saves with Core errors before writing", async () => {
-    const writes: string[] = [];
-    await expect(writeProjectConfigFile({
-      root: "E:/repo",
-      configFile: "config/routes.yaml",
-      config: projectConfig({
-        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-        ruleSets: [{ id: "bad", policy: "Missing", source: { type: "final" } }],
-      }),
-      writeText: async (filePath) => { writes.push(filePath); },
-    })).rejects.toMatchObject({ name: "ConfigDiagnosticError" });
-    expect(writes).toEqual([]);
-  });
-
-  it("saves project configs that only have warnings", async () => {
-    const writes: string[] = [];
-    const result = await writeProjectConfigFile({
-      root: "E:/repo",
-      configFile: "config/routes.yaml",
-      config: projectConfig({
-        customProxyGroups: [{ name: "Proxy", type: "select", options: ["DIRECT"] }],
-        ruleSets: [{ id: "final", policy: "Proxy", source: { type: "final" } }],
-        ruleProviders: [{
-          name: "Placeholder",
-          output: "Placeholder.mrs",
-          behavior: "domain",
-          enabled: false,
-          sources: [],
-        }],
-      }),
-      writeText: async (filePath) => { writes.push(filePath); },
-    });
-
-    expect(writes).toEqual([path.resolve("E:/repo", "config/routes.yaml")]);
-    expect(result.config.ruleProviders?.[0]?.enabled).toBe(false);
   });
 });
 
@@ -700,20 +592,24 @@ describe("vendor repo mutations over project config", () => {
   const configFile = "config/routes.yaml";
   const yamlWith = (repos: string) =>
     [
-      "publishBaseUrl: http://127.0.0.1:8787",
-      "template:",
-      "  output: Custom_Clash.ini",
-      repos,
-      "customProxyGroups:",
-      "  - name: Proxy",
+      "schemaVersion: 2",
+      "project:",
+      "  template:",
+      "    output: Custom_Clash.ini",
+      "proxyGroups:",
+      "  - id: proxy",
+      "    name: Proxy",
       "    type: select",
-      "    options:",
-      "      - DIRECT",
-      "ruleSets:",
+      "    members:",
+      "      - builtin: DIRECT",
+      "routes:",
       "  - id: final",
-      "    policy: Proxy",
+      "    policy:",
+      "      group: proxy",
       "    source:",
       "      type: final",
+      "ruleProviders: []",
+      repos,
       "",
     ].join("\n");
 
@@ -782,9 +678,10 @@ describe("vendor repo mutations over project config", () => {
         written = text;
       },
     });
-    expect(result.config.vendorRepos.at(-1)?.name).toBe("GeekX");
-    expect(result.config.vendorRepos.at(-1)?.catalog?.dir).toBe("vendor/GeekX/rule");
-    expect(written).toContain("GeekX");
+    expect(result.ok).toBe(true);
+    const repos = YAML.parse(written).vendorRepos as VendorRepoConfig[];
+    expect(repos.at(-1)?.name).toBe("GeekX");
+    expect(repos.at(-1)?.catalog?.dir).toBe("vendor/GeekX/rule");
   });
 
   it("updates an existing repo url and clears the old clone for re-sync", async () => {
@@ -796,15 +693,22 @@ describe("vendor repo mutations over project config", () => {
       input: { name: "Custom", url: "https://github.com/GeekXtop/Custom_OpenClash_Rules.git", branch: "main", catalog: { reldir: "rule", kind: "list-dir" } },
       readText: async () =>
         yamlWith(
-          ["vendorRepos:", "  - name: Custom", "    url: https://old.git", "    path: vendor/Custom"].join("\n"),
+          [
+            "vendorRepos:",
+            "  - name: Custom",
+            "    id: custom",
+            "    url: https://old.git",
+            "    path: vendor/Custom",
+          ].join("\n"),
         ),
       writeText: async () => {},
       removePath: async (p) => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
-    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
+    const repos = YAML.parse(result.yaml).vendorRepos as VendorRepoConfig[];
+    expect(repos[0]?.url).toBe("https://github.com/GeekXtop/Custom_OpenClash_Rules.git");
+    expect(repos[0]?.catalog?.dir).toBe("vendor/Custom/rule");
     expect(result.resync).toBe(true);
     expect(removed).toEqual([path.resolve(root, "vendor/Custom")]);
   });
@@ -817,15 +721,24 @@ describe("vendor repo mutations over project config", () => {
       name: "Aethersailor",
       input: { name: "Aethersailor", url: "https://x.git", folder: "Custom_OpenClash_Rules", catalog: { reldir: "rule", kind: "list-dir" }, templateReldir: "cfg" },
       readText: async () =>
-        yamlWith(["vendorRepos:", "  - name: Aethersailor", "    url: https://x.git", "    path: vendor/Aethersailor"].join("\n")),
+        yamlWith(
+          [
+            "vendorRepos:",
+            "  - name: Aethersailor",
+            "    id: aethersailor",
+            "    url: https://x.git",
+            "    path: vendor/Aethersailor",
+          ].join("\n"),
+        ),
       writeText: async () => {},
       removePath: async (p) => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.path).toBe("vendor/Custom_OpenClash_Rules");
-    expect(result.config.vendorRepos[0]?.catalog?.dir).toBe("vendor/Custom_OpenClash_Rules/rule");
-    expect(result.config.vendorRepos[0]?.templateDir).toBe("vendor/Custom_OpenClash_Rules/cfg");
+    const repos = YAML.parse(result.yaml).vendorRepos as VendorRepoConfig[];
+    expect(repos[0]?.path).toBe("vendor/Custom_OpenClash_Rules");
+    expect(repos[0]?.catalog?.dir).toBe("vendor/Custom_OpenClash_Rules/rule");
+    expect(repos[0]?.templateDir).toBe("vendor/Custom_OpenClash_Rules/cfg");
     expect(result.resync).toBe(true);
     expect(removed).toEqual([path.resolve(root, "vendor/Aethersailor")]);
   });
@@ -838,13 +751,16 @@ describe("vendor repo mutations over project config", () => {
       name: "Custom",
       input: { name: "Renamed", url: "https://x.git", folder: "Custom", catalog: { reldir: "Clash", kind: "list-dir" } },
       readText: async () =>
-        yamlWith(["vendorRepos:", "  - name: Custom", "    url: https://x.git", "    path: vendor/Custom"].join("\n")),
+        yamlWith(
+          ["vendorRepos:", "  - name: Custom", "    id: custom", "    url: https://x.git", "    path: vendor/Custom"].join("\n"),
+        ),
       writeText: async () => {},
       removePath: async (p) => {
         removed.push(p);
       },
     });
-    expect(result.config.vendorRepos[0]?.name).toBe("Renamed");
+    const repos = YAML.parse(result.yaml).vendorRepos as VendorRepoConfig[];
+    expect(repos[0]?.name).toBe("Renamed");
     expect(result.resync).toBe(false);
     expect(removed).toEqual([]);
   });
@@ -855,10 +771,13 @@ describe("vendor repo mutations over project config", () => {
       configFile,
       name: "Custom",
       readText: async () =>
-        yamlWith(["vendorRepos:", "  - name: Custom", "    url: x", "    path: vendor/Custom"].join("\n")),
+        yamlWith(
+          ["vendorRepos:", "  - name: Custom", "    id: custom", "    url: x", "    path: vendor/Custom"].join("\n"),
+        ),
       writeText: async () => {},
     });
-    expect(result.config.vendorRepos).toHaveLength(0);
+    const repos = YAML.parse(result.yaml).vendorRepos as VendorRepoConfig[];
+    expect(repos).toHaveLength(0);
   });
 });
 

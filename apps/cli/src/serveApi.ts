@@ -7,13 +7,6 @@ import {
   type RouteKitActionResult,
 } from "@clash-route-kit/local-server";
 
-export { readProjectConfigFile, writeProjectConfigFile } from "@clash-route-kit/local-server";
-export type {
-  ProjectConfigFileOptions,
-  ProjectConfigFileResult,
-  WriteProjectConfigFileOptions,
-} from "@clash-route-kit/local-server";
-
 export type {
   CheckConfigFn,
   GenerateOutputsFn,

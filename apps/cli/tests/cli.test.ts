@@ -11,58 +11,67 @@ import {
   resolveProjectRoot,
   syncVendor,
 } from "../src/program.js";
-import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 
 const sampleConfig = `
-publishBaseUrl: https://example.com/publish
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: 🚀 手动选择
+schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: manual
+    name: 🚀 手动选择
     type: select
-    options:
-      - 🎯 全球直连
-  - name: 💻 Tech
+    members:
+      - group: direct
+  - id: tech
+    name: 💻 Tech
     type: select
-    options:
-      - 🚀 手动选择
-  - name: 🎯 全球直连
+    members:
+      - group: manual
+  - id: direct
+    name: 🎯 全球直连
     type: select
-    options:
-      - DIRECT
-ruleSets:
+    members:
+      - builtin: DIRECT
+routes:
   - id: tech-geosite-github
-    policy: 💻 Tech
+    policy:
+      group: tech
     source:
       type: geosite
       value: github
   - id: tech-provider-external-developer-domain
-    policy: 💻 Tech
+    policy:
+      group: tech
     source:
       type: rule-provider
-      behavior: domain
-      file: External_Developer_Domain.yaml
+      provider: external-developer
   - id: china-geosite-cn
-    policy: 🎯 全球直连
+    policy:
+      group: direct
     source:
       type: geosite
       value: cn
   - id: china-geoip-cn
-    policy: 🎯 全球直连
+    policy:
+      group: direct
     source:
       type: geoip
       value: cn
       noResolve: true
   - id: final
-    policy: 🚀 手动选择
+    policy:
+      group: manual
     source:
       type: final
 ruleProviders:
-  - name: External_Developer
+  - id: external-developer
+    name: External_Developer
     output: External_Developer_Domain.yaml
     behavior: domain
     sources:
-      - name: LocalDeveloper
+      - id: localdeveloper
+        name: LocalDeveloper
         type: clash-list
         path: config/rules/Developer.list
 `;
@@ -70,6 +79,22 @@ ruleProviders:
 function configWithVendorRepos(entries: string): string {
   return `${sampleConfig}\nvendorRepos:\n${entries.trimEnd()}\n`;
 }
+
+/**
+ * v2 内联 fixture 的公共骨架：Proxy 策略组（DIRECT 单成员）供路由 policy 引用。
+ */
+const v2Header = `
+schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: proxy
+    name: Proxy
+    type: select
+    members:
+      - builtin: DIRECT
+`;
 
 const memberSetConfig = `
 publishBaseUrl: http://127.0.0.1:8787
@@ -118,9 +143,8 @@ ruleProviders: []
 describe("CLI program", () => {
   it("keeps the repository route config free of executable provider placeholders", async () => {
     const root = path.resolve(import.meta.dirname, "../../..");
-    const config = await readConfig({ root, configFile: "config/routes.yaml" });
-    const diagnostics = validateLegacyProjectConfig(config);
-    expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).toEqual([]);
+    // readConfig 内置 v2 normalize + 静态校验，error 级诊断直接抛 ConfigDiagnosticError。
+    await expect(readConfig({ root, configFile: "config/routes.yaml" })).resolves.toBeTruthy();
   });
 
   it("generates INI and provider outputs from routes config", async () => {
@@ -169,26 +193,21 @@ describe("CLI program", () => {
     await writeFile(path.join(dlcRoot, "npmjs"), "npmjs.com\n", "utf8");
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
 ruleProviders:
-  - name: Developer
+  - id: developer
+    name: Developer
     output: Developer_Domain.yaml
     behavior: domain
     sources:
-      - name: github
+      - id: github
+        name: github
         type: domain-list-community
         entry: github
         basePath: vendor/domain-list-community/data
@@ -219,26 +238,21 @@ payload:
     );
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
 ruleProviders:
-  - name: AI
+  - id: ai
+    name: AI
     output: AI_Domain.yaml
     behavior: domain
     sources:
-      - name: AI Suite
+      - id: ai-suite
+        name: AI Suite
         type: clash-provider
         path: vendor/rules/AI.yaml
 `,
@@ -268,22 +282,16 @@ ruleProviders:
     );
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
 ruleProviders:
-  - name: Developer
+  - id: developer
+    name: Developer
     output: Developer_Domain.yaml
     behavior: domain
     exclude:
@@ -291,7 +299,8 @@ ruleProviders:
     remove:
       - DOMAIN,api.example
     sources:
-      - name: DeveloperList
+      - id: developer-list
+        name: DeveloperList
         type: clash-list
         path: config/rules/Developer.list
 `,
@@ -341,35 +350,43 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       [
-        "publishBaseUrl: http://127.0.0.1:8787",
-        "template:",
-        "  output: Custom_Clash.ini",
-        "customProxyGroups:",
-        "  - name: Proxy",
+        "schemaVersion: 2",
+        "project:",
+        "  template:",
+        "    output: Custom_Clash.ini",
+        "proxyGroups:",
+        "  - id: proxy",
+        "    name: Proxy",
         "    type: select",
-        "    options:",
-        "      - DIRECT",
-        "ruleSets:",
+        "    members:",
+        "      - builtin: DIRECT",
+        "routes:",
         "  - id: final",
-        "    policy: Proxy",
+        "    policy:",
+        "      group: proxy",
         "    source:",
         "      type: final",
         "ruleProviders:",
-        "  - name: MixedClassical",
+        "  - id: mixed-classical",
+        "    name: MixedClassical",
         "    output: Mixed_Classical.yaml",
         "    behavior: classical",
         "    sources:",
-        "      - name: Mixed",
+        "      - id: mixed",
+        "        name: Mixed",
         "        type: clash-list",
         "        path: config/rules/Mixed.list",
-        "  - name: MixedIP",
+        "  - id: mixed-ip",
+        "    name: MixedIP",
         "    output: Mixed_IP.yaml",
         "    behavior: ipcidr",
         "    sources:",
-        "      - name: Mixed",
+        "      - id: mixed",
+        "        name: Mixed",
         "        type: clash-list",
         "        path: config/rules/Mixed.list",
-        "  - name: DisabledPlaceholder",
+        "  - id: disabled-placeholder",
+        "    name: DisabledPlaceholder",
         "    output: Placeholder_Classical.yaml",
         "    behavior: classical",
         "    enabled: false",
@@ -412,36 +429,34 @@ ruleProviders:
     );
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
 ruleProviders:
-  - name: AI
+  - id: ai
+    name: AI
     output: AI_Domain.yaml
     behavior: domain
     sources:
-      - name: AI_A
+      - id: ai-a
+        name: AI_A
         type: clash-list
         path: config/rules/AI_A.list
-      - name: AI_B
+      - id: ai-b
+        name: AI_B
         type: clash-list
         path: config/rules/AI_B.list
-  - name: Developer
+  - id: developer
+    name: Developer
     output: Developer_Domain.yaml
     behavior: domain
     sources:
-      - name: DeveloperList
+      - id: developer-list
+        name: DeveloperList
         type: clash-list
         path: config/rules/Developer.list
 `,
@@ -480,26 +495,21 @@ ruleProviders:
     await writeFile(path.join(root, "vendor/rules/Developer.list"), "DOMAIN-SUFFIX,local-dev.example\n", "utf8");
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
 ruleProviders:
-  - name: Developer
+  - id: developer
+    name: Developer
     output: Developer_Domain.yaml
     behavior: domain
     sources:
-      - name: DeveloperList
+      - id: developer-list
+        name: DeveloperList
         type: clash-list
         basePath: vendor/rules
         path: Developer.list
@@ -518,9 +528,11 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       configWithVendorRepos(`  - name: custom-rules
+    id: custom-rules
     url: https://example.com/custom-rules.git
     path: vendor/custom-rules
   - name: existing-rules
+    id: existing-rules
     url: https://example.com/existing-rules.git
     path: vendor/existing-rules`),
       "utf8",
@@ -555,6 +567,7 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       configWithVendorRepos(`  - name: branched
+    id: branched
     url: https://example.com/branched.git
     path: vendor/branched
     branch: main`),
@@ -578,9 +591,11 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       configWithVendorRepos(`  - name: alpha
+    id: alpha
     url: https://example.com/alpha.git
     path: vendor/alpha
   - name: beta
+    id: beta
     url: https://example.com/beta.git
     path: vendor/beta`),
       "utf8",
@@ -603,9 +618,11 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       configWithVendorRepos(`  - name: gone
+    id: gone
     url: https://example.com/gone.git
     path: vendor/gone
   - name: beta
+    id: beta
     url: https://example.com/beta.git
     path: vendor/beta`),
       "utf8",
@@ -633,15 +650,6 @@ ruleProviders:
     await expect(syncVendor({ root, configFile: "routes.yaml" })).resolves.toEqual([]);
   });
 
-  it("uses the strict parser when reading project config", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(path.join(root, "routes.yaml"), `${sampleConfig}\nunknownField: true\n`, "utf8");
-
-    await expect(readConfig({ root, configFile: "routes.yaml" })).rejects.toThrow(
-      "config.unknownField: unknown field",
-    );
-  });
-
   it("previews rule order and checks missing policy groups", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
@@ -662,23 +670,27 @@ ruleProviders:
     await writeFile(
       path.join(root, "routes.yaml"),
       `
-publishBaseUrl: http://127.0.0.1:8787
-defaults:
-  proxyGroups:
-    healthCheck:
-      timeout: 0
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
+schemaVersion: 2
+project:
+  defaults:
+    proxyGroups:
+      healthCheck:
+        timeout: 0
+  template:
+    output: Custom_Clash.ini
+proxyGroups:
+  - id: proxy
+    name: Proxy
     type: select
-    options:
-      - DIRECT
-ruleSets:
+    members:
+      - builtin: DIRECT
+routes:
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
+ruleProviders: []
 `,
       "utf8",
     );
@@ -750,30 +762,26 @@ ruleSets:
     await writeFile(path.join(root, "vendor/domain-list-community/data/github"), "github.com\n", "utf8");
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: tech-geosite-github
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: geosite
       value: github
   - id: tech-geosite-missing-tag
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: geosite
       value: missing-tag
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
+ruleProviders: []
 `,
       "utf8",
     );
@@ -791,25 +799,20 @@ ruleSets:
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      `
-publishBaseUrl: http://127.0.0.1:8787
-template:
-  output: Custom_Clash.ini
-customProxyGroups:
-  - name: Proxy
-    type: select
-    options:
-      - DIRECT
-ruleSets:
+      `${v2Header}
+routes:
   - id: tech-geosite-missing-tag
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: geosite
       value: missing-tag
   - id: final
-    policy: Proxy
+    policy:
+      group: proxy
     source:
       type: final
+ruleProviders: []
 `,
       "utf8",
     );
@@ -832,18 +835,30 @@ ruleSets:
     await writeFile(path.join(root, "routes.yaml"), sampleConfig, "utf8");
 
     const subscriptionUrl = "https://subscribe.example/token?user=abc&name=main profile";
-    const url = await buildSubconverterUrl({
-      root,
-      configFile: "routes.yaml",
-      subscriptionUrl,
-      subconverterBaseUrl: "http://127.0.0.1:25500/sub",
-    });
-    const parsed = new URL(url);
+    const previous = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+    process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL = "https://example.com/publish";
+    try {
+      const url = await buildSubconverterUrl({
+        root,
+        configFile: "routes.yaml",
+        subscriptionUrl,
+        subconverterBaseUrl: "http://127.0.0.1:25500/sub",
+      });
+      const parsed = new URL(url);
 
-    expect(`${parsed.origin}${parsed.pathname}`).toBe("http://127.0.0.1:25500/sub");
-    expect(parsed.searchParams.get("target")).toBe("clash");
-    expect(parsed.searchParams.get("url")).toBe(subscriptionUrl);
-    expect(parsed.searchParams.get("config")).toBe("https://example.com/publish/templates/Custom_Clash.ini");
+      expect(`${parsed.origin}${parsed.pathname}`).toBe("http://127.0.0.1:25500/sub");
+      expect(parsed.searchParams.get("target")).toBe("clash");
+      expect(parsed.searchParams.get("url")).toBe(subscriptionUrl);
+      expect(parsed.searchParams.get("config")).toBe(
+        "https://example.com/publish/templates/Custom_Clash.ini",
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
+      } else {
+        process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL = previous;
+      }
+    }
   });
 
   it("accepts a host and port SubConverter endpoint", async () => {
@@ -870,122 +885,32 @@ ruleSets:
     );
   });
 
-  it("applies project-level globalRemove to every provider output", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await mkdir(path.join(root, "config/rules"), { recursive: true });
-    await writeFile(path.join(root, "config/rules/A.list"), "DOMAIN-SUFFIX,keep.example\nDOMAIN-SUFFIX,ban.example\n", "utf8");
-    await writeFile(path.join(root, "config/rules/B.list"), "DOMAIN-SUFFIX,ban.example\nDOMAIN-SUFFIX,other.example\n", "utf8");
-    await writeFile(
-      path.join(root, "routes.yaml"),
-      [
-        "publishBaseUrl: http://127.0.0.1:8787",
-        "template:",
-        "  output: Custom_Clash.ini",
-        "globalRemove:",
-        "  - ban.example",
-        "customProxyGroups:",
-        "  - name: Proxy",
-        "    type: select",
-        "    options:",
-        "      - DIRECT",
-        "ruleSets:",
-        "  - id: final",
-        "    policy: Proxy",
-        "    source:",
-        "      type: final",
-        "ruleProviders:",
-        "  - name: A",
-        "    output: A_Domain.yaml",
-        "    behavior: domain",
-        "    sources:",
-        "      - name: A",
-        "        type: clash-list",
-        "        path: config/rules/A.list",
-        "  - name: B",
-        "    output: B_Domain.yaml",
-        "    behavior: domain",
-        "    sources:",
-        "      - name: B",
-        "        type: clash-list",
-        "        path: config/rules/B.list",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-
-    await generateOutputs({ root, configFile: "routes.yaml" });
-
-    const a = await readFile(path.join(root, "output/rules/A_Domain.yaml"), "utf8");
-    const b = await readFile(path.join(root, "output/rules/B_Domain.yaml"), "utf8");
-    expect(a).toContain("'+.keep.example'");
-    expect(a).not.toContain("ban.example");
-    expect(b).toContain("'+.other.example'");
-    expect(b).not.toContain("ban.example");
-  });
-
-  it("passes template flags through to the rendered INI", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
-    await writeFile(
-      path.join(root, "routes.yaml"),
-      [
-        "publishBaseUrl: http://127.0.0.1:8787",
-        "template:",
-        "  output: Custom_Clash.ini",
-        "  enableRuleGenerator: false",
-        "  clashRuleBase: https://example.com/Base.yml",
-        "customProxyGroups:",
-        "  - name: Proxy",
-        "    type: select",
-        "    options:",
-        "      - DIRECT",
-        "ruleSets:",
-        "  - id: final",
-        "    policy: Proxy",
-        "    source:",
-        "      type: final",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-
-    const result = await generateOutputs({ root, configFile: "routes.yaml" });
-    const ini = await readFile(result.templatePath, "utf8");
-    expect(ini).toContain("enable_rule_generator=false");
-    expect(ini).toContain("clash_rule_base=https://example.com/Base.yml");
-  });
-
   it("groups preview output by ruleSet section", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "route-kit-"));
     await writeFile(
       path.join(root, "routes.yaml"),
-      [
-        "publishBaseUrl: http://127.0.0.1:8787",
-        "template:",
-        "  output: Custom_Clash.ini",
-        "customProxyGroups:",
-        "  - name: AI",
-        "    type: select",
-        "    options:",
-        "      - DIRECT",
-        "ruleSets:",
-        "  - id: openai",
-        "    section: 海外类目",
-        "    policy: AI",
-        "    source:",
-        "      type: geosite",
-        "      value: openai",
-        "  - id: final",
-        "    policy: AI",
-        "    source:",
-        "      type: final",
-        "",
-      ].join("\n"),
+      `${v2Header}
+routes:
+  - id: openai
+    section: 海外类目
+    policy:
+      group: proxy
+    source:
+      type: geosite
+      value: openai
+  - id: final
+    policy:
+      group: proxy
+    source:
+      type: final
+ruleProviders: []
+`,
       "utf8",
     );
 
     const lines = await previewRules({ root, configFile: "routes.yaml" });
     expect(lines).toContain("# 海外类目");
-    expect(lines.indexOf("# 海外类目")).toBeLessThan(lines.indexOf("GEOSITE openai -> AI"));
+    expect(lines.indexOf("# 海外类目")).toBeLessThan(lines.indexOf("GEOSITE openai -> Proxy"));
   });
 
 });

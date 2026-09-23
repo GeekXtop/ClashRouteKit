@@ -1,9 +1,8 @@
-import {
-  serializeRouteKitConfig,
-  validateLegacyProjectConfig,
-  type AuthorProjectConfigV2,
-  type Diagnostic,
-  type RouteKitProjectConfig,
+import YAML from "yaml";
+import type {
+  AuthorProjectConfigV2,
+  Diagnostic,
+  RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import { detectSchemaVersion, type ProjectSchemaVersion } from "./features/project/projectMeta.js";
 import {
@@ -69,11 +68,13 @@ export interface ProjectConfigSnapshot {
 }
 
 function serializeConfig(config: RouteKitProjectConfig): string {
-  return serializeRouteKitConfig(config);
+  // v1 磁盘格式序列化已移除；此处仅为内存草稿生成对比文本（脏状态计算）。
+  return YAML.stringify(config, { lineWidth: 0 }).replace(/\n?$/, "\n");
 }
 
-function projectDiagnostics(config: RouteKitProjectConfig): Diagnostic[] {
-  return validateLegacyProjectConfig(config);
+function projectDiagnostics(_config: RouteKitProjectConfig): Diagnostic[] {
+  // v1 校验器已删除；v2 会话的诊断由 analyzeV2Config 重算，v1 会话已不可达。
+  return [];
 }
 
 function computeDirty(originalConfig: RouteKitProjectConfig, draftConfig: RouteKitProjectConfig): boolean {

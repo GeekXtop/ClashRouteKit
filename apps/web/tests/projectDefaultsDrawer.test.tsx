@@ -86,6 +86,8 @@ it("keeps an invalid project URL inside the Drawer", () => {
   );
   fireEvent.change(screen.getByLabelText("项目测速 URL"), { target: { value: "ftp://probe" } });
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
-  expect(screen.getByText("defaults.proxyGroups.healthCheck.url 必须是 HTTP/HTTPS URL")).toBeTruthy();
+  expect(
+    screen.getByText("defaults.proxyGroups.healthCheck.url 健康检查 URL 必须是 HTTP/HTTPS URL"),
+  ).toBeTruthy();
   expect(onSave).not.toHaveBeenCalled();
 });

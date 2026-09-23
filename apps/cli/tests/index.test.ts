@@ -31,22 +31,26 @@ async function runCheck(root: string): Promise<{ code: number | null; stdout: st
 
 function checkConfig(policy: string, geosite: string): string {
   return [
-    "publishBaseUrl: http://127.0.0.1:8787",
-    "template:",
-    "  output: Custom_Clash.ini",
-    "customProxyGroups:",
-    "  - name: Proxy",
+    "schemaVersion: 2",
+    "project:",
+    "  template:",
+    "    output: Custom_Clash.ini",
+    "proxyGroups:",
+    "  - id: proxy",
+    "    name: Proxy",
     "    type: select",
-    "    options:",
-    "      - DIRECT",
-    "ruleSets:",
+    "    members:",
+    "      - builtin: DIRECT",
+    "routes:",
     "  - id: catalog",
-    `    policy: ${policy}`,
+    "    policy:",
+    `      group: ${policy.toLowerCase()}`,
     "    source:",
     "      type: geosite",
     `      value: ${geosite}`,
     "  - id: final",
-    "    policy: Proxy",
+    "    policy:",
+    "      group: proxy",
     "    source:",
     "      type: final",
     "ruleProviders: []",
@@ -75,6 +79,6 @@ describe("CLI check command", () => {
 
     expect(result.code).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("[check] [route.policy.missing]");
+    expect(result.stderr).toContain("validate.reference.missing");
   });
 });

@@ -6,20 +6,24 @@ import { describe, expect, it } from "vitest";
 import { createLocalServerContext } from "../src/index.js";
 
 const validConfigYaml = [
-  "publishBaseUrl: http://127.0.0.1:8787",
-  "template:",
-  "  output: Custom_Clash.ini",
+  "schemaVersion: 2",
+  "project:",
+  "  template:",
+  "    output: Custom_Clash.ini",
   "vendorRepos: []",
-  "customProxyGroups:",
-  "  - name: Proxy",
+  "proxyGroups:",
+  "  - id: proxy",
+  "    name: Proxy",
   "    type: select",
-  "    options: [DIRECT]",
-  "ruleSets:",
+  "    members:",
+  "      - builtin: DIRECT",
+  "routes:",
   "  - id: final",
-  "    policy: Proxy",
+  "    policy:",
+  "      group: proxy",
   "    source:",
   "      type: final",
-  "",
+  "ruleProviders: []",
 ].join("\n");
 
 async function prepareProjectRoot(): Promise<string> {

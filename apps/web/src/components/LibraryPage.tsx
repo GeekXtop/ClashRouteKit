@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Empty, Input, Modal } from "antd";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
-import { validateLegacyProjectConfig } from "@clash-route-kit/core";
 import type { useProjectDraftActions } from "../useProjectDraftActions.js";
 import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
 import type { V2ProjectState } from "../v2/v2Project.js";
@@ -100,11 +99,10 @@ export function LibraryPage({
   // 页顶汇总卡三类数据源：
   // - 待补全来源：sources 为空或缺路径的 provider（纯配置可算）；
   // - 失效来源：Web 拿不到文件系统，用可计算的最接近语义（本地 .list 缺失 / vendor 仓库未声明）；
-  // - 阻断生成：校验诊断中 ruleProviders[]/defaults 桶的 error 诊断
-  //   （v1 为 validateLegacyProjectConfig，v2 为 analyzeV2Config 的结构化诊断）。
+  // - 阻断生成：校验诊断中 ruleProviders[]/defaults 桶的 error 诊断（analyzeV2Config 的结构化诊断）。
   const diagnostics = useMemo(
-    () => (v2State ? v2State.diagnostics : validateLegacyProjectConfig(config)),
-    [v2State, config],
+    () => (v2State ? v2State.diagnostics : []),
+    [v2State],
   );
   const pendingItems = useMemo<LibraryHealthItem[]>(
     () =>

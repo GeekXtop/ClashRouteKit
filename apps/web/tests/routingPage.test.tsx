@@ -2,6 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
+import { loadV2Project } from "../src/v2/v2Project.js";
+import type { useV2DraftActions } from "../src/v2/useV2DraftActions.js";
 import { AppProviders } from "../src/components/AppProviders.js";
 import { RoutingPage } from "../src/components/RoutingPage.js";
 import type { useProjectDraftActions } from "../src/useProjectDraftActions.js";
@@ -25,6 +27,15 @@ const config: RouteKitProjectConfig = {
   ],
   ruleProviders: [],
 };
+
+function makeV2Actions() {
+  const fallback = vi.fn();
+  return new Proxy({}, {
+    get(_target, key) {
+      return fallback;
+    },
+  }) as unknown as ReturnType<typeof useV2DraftActions>;
+}
 
 function makeDraftActions(overrides: Record<string, unknown> = {}) {
   const fallback = vi.fn();
@@ -112,22 +123,40 @@ describe("RoutingPage", () => {
       value: scrollIntoView,
       configurable: true,
     });
-    const invalidConfig: RouteKitProjectConfig = {
-      ...config,
-      ruleSets: [
-        { id: "geosite-gfw", policy: "Missing", section: "代理", source: { type: "geosite", value: "gfw" } },
-        { id: "final", policy: "Proxy", source: { type: "final" } },
-      ],
-    };
-    const { container } = renderRoutingPage({ config: invalidConfig });
+    // v2-only：诊断来自 loadV2Project 的 v2 校验链（悬空策略组引用）
+    const invalidV2 = `schemaVersion: 2
+proxyGroups:
+  - id: proxy
+    name: Proxy
+    type: select
+    members:
+      - builtin: DIRECT
+routes:
+  - id: geosite-gfw
+    policy:
+      group: missing
+    source:
+      type: geosite
+      value: gfw
+  - id: final
+    policy:
+      group: proxy
+    source:
+      type: final
+ruleProviders: []
+`;
+    const state = loadV2Project(invalidV2);
+    const { container } = renderRoutingPage({
+      v2: { state, actions: makeV2Actions() },
+    });
 
     expect(screen.getByText(/校验结果：1 错误 · 0 警告 · 0 提示/)).toBeTruthy();
     // 行内就近显示相关诊断
     expect(
       container.querySelector('[data-testid="route-row-geosite-gfw"] .rk-diag')?.textContent,
-    ).toContain("引用了不存在的 custom_proxy_group：Missing");
+    ).toContain("引用的策略组");
 
-    fireEvent.click(screen.getByRole("button", { name: /route\.policy\.missing/ }));
+    fireEvent.click(screen.getByRole("button", { name: /validate\.reference\.missing/ }));
     expect(scrollIntoView).toHaveBeenCalled();
     expect(screen.getByTestId("route-row-geosite-gfw").className).toContain("hit");
     expect(document.activeElement).toBe(screen.getByTestId("route-row-geosite-gfw"));

@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Button, Empty, Space } from "antd";
 import { Eye } from "lucide-react";
 import {
-  validateLegacyProjectConfig,
   type Diagnostic,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
@@ -139,11 +138,10 @@ export function RoutingPage({
   const [iniResultOpen, setIniResultOpen] = useState(false);
   const [locate, setLocate] = useState<LocateTarget | null>(null);
 
-  // v1：本地实时校验随草稿更新；v2：诊断随 mutation 由 analyzeV2Config 重算
-  // （App 自动保存前已作为闸门），不再重复校验 v1 投影。
+  // v2-only：诊断随 mutation 由 analyzeV2Config 重算（App 自动保存前已作为闸门）。
   const diagnostics = useMemo(
-    () => (v2State ? v2State.diagnostics : validateLegacyProjectConfig(config)),
-    [v2State, config],
+    () => (v2State ? v2State.diagnostics : []),
+    [v2State],
   );
   const issuesByRuleId = useMemo(
     () =>

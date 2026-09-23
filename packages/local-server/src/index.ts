@@ -2,14 +2,10 @@ export { writeFileAtomic } from "./config/atomic.js";
 export {
   readAuthorProjectFile,
   projectConfigPath,
-  readAuthorProject,
   readConfig,
-  readProjectConfigFile,
   saveAuthorProject,
-  writeProjectConfigFile,
+  renderedConfigFromAuthorProjectV2,
   type AuthorProjectFileOptions,
-  type ProjectConfigFileOptions,
-  type ProjectConfigFileResult,
   type ProjectOptions,
   type ReadAuthorProjectFileResult,
   type ReadText,
@@ -17,7 +13,6 @@ export {
   type SaveAuthorProjectRejection,
   type SaveAuthorProjectResult,
   type SaveAuthorProjectSuccess,
-  type WriteProjectConfigFileOptions,
   type WriteText,
 } from "./config/configRepository.js";
 export type { ParsedAuthorProjectConfig } from "@clash-route-kit/core";

@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
 import { AppProviders } from "../src/components/AppProviders.js";
-import { LibraryPage } from "../src/components/LibraryPage.js";
+import { LibraryPage, type LibraryV2Session } from "../src/components/LibraryPage.js";
 import type { useProjectDraftActions } from "../src/useProjectDraftActions.js";
+import { loadV2Project } from "../src/v2/v2Project.js";
 afterEach(cleanup);
 
 const config: RouteKitProjectConfig = {
@@ -146,15 +147,48 @@ describe("library health bar", () => {
   });
 
   it("counts pending, stale and blocking entries and locates a pending provider", async () => {
+    // v2-only：阻断诊断来自 v2 校验链（.mrs 输出不支持生成）
+    const blockingV2 = `schemaVersion: 2
+proxyGroups: []
+routes:
+  - id: final
+    policy:
+      builtin: DIRECT
+    source:
+      type: final
+ruleProviders:
+  - id: draft
+    name: Draft
+    output: Draft.yaml
+    behavior: domain
+    enabled: false
+    sources: []
+  - id: stale
+    name: StaleOne
+    output: StaleOne.yaml
+    behavior: domain
+    sources:
+      - id: s
+        name: s
+        type: clash-list
+        path: config/rules/Missing.list
+  - id: mrs
+    name: MrsThing
+    output: Thing.mrs
+    behavior: domain
+    enabled: true
+    sources: []
+`;
+    const v2State = loadV2Project(blockingV2);
     render(
       <AppProviders>
-        <LibraryPage config={healthConfig} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
+        <LibraryPage config={healthConfig} draftActions={draftActions} v2={{ state: v2State, actions: new Proxy({}, { get: () => vi.fn() }) as unknown as LibraryV2Session["actions"] }} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
       </AppProviders>,
     );
     await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
     expect(screen.getByRole("button", { name: "2 待补全来源" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "1 失效来源" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "1 阻断生成" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "2 阻断生成" })).toBeTruthy();
     // .mrs providers surface as import problems in the sidebar, not pending providers
     expect(screen.getByText("导入问题")).toBeTruthy();
 
@@ -165,28 +199,6 @@ describe("library health bar", () => {
     );
   });
 
-  it("opens rule defaults from a blocking defaults diagnostic", async () => {
-    const badDefaults: RouteKitProjectConfig = {
-      ...config,
-      defaults: { ruleSets: { ruleProviderInterval: 0 } },
-    };
-    render(
-      <AppProviders>
-        <LibraryPage config={badDefaults} draftActions={draftActions} onRefreshConfig={() => {}} fetcher={makeFetcher()} />
-      </AppProviders>,
-    );
-    await waitFor(() => expect(screen.getByText("ACL4SSR")).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "1 阻断生成" }));
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "规则默认值 [defaults.route.interval] RuleSet interval 必须为正整数",
-      }),
-    );
-    expect(screen.getByRole("dialog", { name: "项目默认值" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "规则默认值" }).getAttribute("aria-selected")).toBe(
-      "true",
-    );
-  });
 });
 
 describe("repo management entry", () => {

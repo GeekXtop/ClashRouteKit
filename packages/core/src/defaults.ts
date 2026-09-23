@@ -247,11 +247,3 @@ function formatLegacyDefaultDiagnostic(
   }
 }
 
-/** @deprecated Use validateLegacyProjectConfig. */
-export function validateDefaultAwareConfig(config: RouteKitConfig): string[] {
-  const diagnostics: Diagnostic[] = [];
-  appendDefaultValueDiagnostics(config, diagnostics);
-  return diagnostics.map((diagnostic) => (
-    formatLegacyDefaultDiagnostic(config, diagnostic)
-  ));
-}

@@ -165,7 +165,7 @@ function overlapRulesByProvider(
 /** generate 用例：诊断门禁通过后写模板 INI、provider YAML 与规则报告。 */
 export async function generateOutputs(options: ProjectOptions): Promise<GenerateResult> {
   const config = await readConfig(options);
-  assertNoErrors(await projectDiagnostics(options, config));
+  assertNoErrors(await projectDiagnostics(options));
   const templatePath = path.join(options.root, "output/templates", config.template.output);
   const reportPath = path.join(options.root, "output/reports/rule-report.json");
   await mkdir(path.dirname(templatePath), { recursive: true });

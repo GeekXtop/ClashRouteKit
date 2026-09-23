@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import YAML from "yaml";
-import { parseIniToConfig, serializeRouteKitConfig } from "@clash-route-kit/core";
 import { AppShell } from "./components/AppShell.js";
 import { ImportModal } from "./components/ImportModal.js";
 import { LibraryPage } from "./components/LibraryPage.js";
@@ -12,15 +11,12 @@ import { importTemplateAsV2 } from "./features/project/importToV2.js";
 import { requestLocalAction } from "./actions.js";
 import { fetchCatalogSources, type CatalogSourceInfo } from "./catalog.js";
 import {
-  bundledProjectConfig,
   bundledProjectConfigYaml,
   bundledSchemaVersion,
 } from "./config.js";
-import { saveLocalProjectConfig } from "./localProject.js";
 import { notifyError, notifySuccess } from "./notify.js";
 import {
   canSaveProject,
-  createProjectController,
   createProjectControllerFromDocument,
   createV2ProjectController,
   markProjectSaved,
@@ -30,7 +26,6 @@ import {
   updateProjectValidation,
   type ProjectView,
 } from "./projectController.js";
-import { useProjectDraftActions } from "./useProjectDraftActions.js";
 import { renderV2PageConfig } from "./v2/renderProject.js";
 import { useV2DraftActions } from "./v2/useV2DraftActions.js";
 import { fetchProjectDocument, saveV2Project, serializeV2Project } from "./v2/v2Project.js";
@@ -42,16 +37,12 @@ export default function App() {
     if (bundledSchemaVersion === 2) {
       return createProjectControllerFromDocument({ schemaVersion: 2, yaml: bundledProjectConfigYaml });
     }
-    if (bundledProjectConfig) {
-      return createProjectController({ yaml: bundledProjectConfigYaml, config: bundledProjectConfig });
-    }
     // bundle 解析失败（坏 YAML）时以 Schema v2 空白项目兜底保证首屏可渲染。
     return createProjectControllerFromDocument({
       schemaVersion: 2,
       yaml: YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }),
     });
   });
-  const draftActions = useProjectDraftActions(setProject);
   const v2Actions = useV2DraftActions(setProject);
   const config = project.draftConfig;
   const v2State = project.schemaVersion === 2 ? project.v2 : undefined;
@@ -194,8 +185,8 @@ export default function App() {
     }
     const timer = setTimeout(() => {
       setProject((current) => setProjectStatus(current, "saving", "正在保存"));
-      if (project.schemaVersion === 2 && project.v2) {
-        // v2 保存链路：以序列化后的 v2 作者配置整体提交（v1 投影不参与保存）。
+      if (project.v2) {
+        // v2 保存链路：以序列化后的 v2 作者配置整体提交。
         void saveV2Project(serializeV2Project(project.v2.config))
           .then((result) => {
             if (result.ok) {
@@ -210,15 +201,7 @@ export default function App() {
             setProject((current) => setProjectStatus(current, "error", message));
             notifyError(message);
           });
-        return;
       }
-      void saveLocalProjectConfig(project.draftConfig)
-        .then((result) => setProject((current) => markProjectSaved(current, result)))
-        .catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          setProject((current) => setProjectStatus(current, "error", message));
-          notifyError(message);
-        });
     }, 600);
     return () => clearTimeout(timer);
   }, [project]);
@@ -250,14 +233,14 @@ export default function App() {
           <RoutingPage
             config={pageConfig}
             selectedRuleSetId={project.selectedRuleSetId}
-            draftActions={v2State ? v2Actions : draftActions}
+            draftActions={v2Actions}
             v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onOpenImport={openImport}
           />
         ) : project.selectedView === "library" ? (
           <LibraryPage
             config={pageConfig}
-            draftActions={v2State ? v2Actions : draftActions}
+            draftActions={v2Actions}
             v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
             onRefreshConfig={refreshConfig}
           />

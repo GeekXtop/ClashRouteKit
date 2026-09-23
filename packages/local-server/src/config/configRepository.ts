@@ -5,14 +5,10 @@ import {
   hasDiagnosticErrors,
   normalizeAuthorProjectConfig,
   parseAuthorProjectConfig,
-  parseRouteKitConfig,
-  serializeRouteKitConfig,
   toRouteKitConfig,
-  validateLegacyProjectConfig,
   validateNormalizedProject,
   type AuthorProjectConfigV2,
   type Diagnostic,
-  type ParsedAuthorProjectConfig,
   type RouteKitProjectConfig,
 } from "@clash-route-kit/core";
 import { writeFileAtomic } from "./atomic.js";
@@ -30,22 +26,8 @@ export interface ProjectOptions {
 export type ReadText = (filePath: string) => Promise<string>;
 export type WriteText = (filePath: string, text: string) => Promise<void>;
 
-export interface ProjectConfigFileOptions extends ProjectOptions {
-  readText?: ReadText;
-  statMtime?: (filePath: string) => Promise<number>;
-}
 
-export interface WriteProjectConfigFileOptions extends ProjectOptions {
-  config: RouteKitProjectConfig;
-  writeText?: WriteText;
-  statMtime?: (filePath: string) => Promise<number>;
-}
 
-export interface ProjectConfigFileResult {
-  yaml: string;
-  config: RouteKitProjectConfig;
-  mtime: number;
-}
 
 export function projectConfigPath(options: ProjectOptions): string {
   return path.resolve(options.root, options.configFile);
@@ -87,46 +69,15 @@ export function renderedConfigFromAuthorProjectV2(
 export async function readConfig(options: ProjectOptions): Promise<RouteKitProjectConfig> {
   const text = await readFile(path.join(options.root, options.configFile), "utf8");
   const parsed = parseAuthorProjectConfig(text);
-  let config: RouteKitProjectConfig;
-  if (parsed.schemaVersion === 2 && parsed.v2) {
-    config = renderedConfigFromAuthorProjectV2(
-      parsed.v2,
-      process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "",
-    );
-  } else if (parsed.v1) {
-    config = parsed.v1;
-  } else {
-    config = parseRouteKitConfig(text);
-  }
+  const config = renderedConfigFromAuthorProjectV2(
+    parsed.v2,
+    process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL ?? "",
+  );
   const publishBaseUrl = process.env.CLASH_ROUTE_KIT_PUBLISH_BASE_URL;
   return publishBaseUrl ? { ...config, publishBaseUrl } : config;
 }
 
-/**
- * 经 core parseAuthorProjectConfig 按顶层 schemaVersion 分发读取作者配置
- * （v1 → v1 config，schemaVersion: 2 → v2 config）。
- * 供迁移端点与 v2 编辑路径使用；既有 readConfig / readProjectConfigFile
- * 保持 v1 形状不变，v1 编辑路径零回归。
- */
-export async function readAuthorProject(options: ProjectOptions): Promise<ParsedAuthorProjectConfig> {
-  const text = await readFile(path.join(options.root, options.configFile), "utf8");
-  return parseAuthorProjectConfig(text);
-}
 
-export async function readProjectConfigFile(
-  options: ProjectConfigFileOptions,
-): Promise<ProjectConfigFileResult> {
-  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
-  const statMtime =
-    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
-  const configPath = projectConfigPath(options);
-  const yaml = await readText(configPath);
-  return {
-    yaml,
-    config: parseRouteKitConfig(yaml),
-    mtime: await statMtime(configPath),
-  };
-}
 
 export interface AuthorProjectFileOptions extends ProjectOptions {
   readText?: ReadText;
@@ -140,9 +91,12 @@ export interface AuthorProjectFileOptions extends ProjectOptions {
  * （catalog origins 与 vendor mutation 的 v2 消费方使用；HTTP 响应不得整体
  * 透传本结果，需按 schemaVersion 挑选字段）。
  */
-export type ReadAuthorProjectFileResult =
-  | { schemaVersion: 1; yaml: string; config: RouteKitProjectConfig; mtime: number }
-  | { schemaVersion: 2; yaml: string; v2: AuthorProjectConfigV2; mtime: number };
+export interface ReadAuthorProjectFileResult {
+  schemaVersion: 2;
+  yaml: string;
+  v2: AuthorProjectConfigV2;
+  mtime: number;
+}
 
 /**
  * GET /api/project/config 的读取路径：经 parseAuthorProjectConfig 分发 v1/v2，
@@ -159,16 +113,7 @@ export async function readAuthorProjectFile(
   const yaml = await readText(configPath);
   const parsed = parseAuthorProjectConfig(yaml);
   const mtime = await statMtime(configPath);
-  if (parsed.schemaVersion === 2) {
-    if (parsed.v2 === undefined) {
-      throw new Error("parseAuthorProjectConfig returned schemaVersion 2 without a v2 config");
-    }
-    return { schemaVersion: 2, yaml, v2: parsed.v2, mtime };
-  }
-  if (parsed.v1 === undefined) {
-    throw new Error("parseAuthorProjectConfig returned schemaVersion 1 without a v1 config");
-  }
-  return { schemaVersion: 1, yaml, config: parsed.v1, mtime };
+  return { schemaVersion: 2, yaml, v2: parsed.v2, mtime };
 }
 
 export interface SaveAuthorProjectOptions extends ProjectOptions {
@@ -223,25 +168,5 @@ export async function saveAuthorProject(
     yaml,
     mtime: await statMtime(configPath),
     diagnostics: validation.diagnostics.filter((diagnostic) => diagnostic.severity !== "error"),
-  };
-}
-
-export async function writeProjectConfigFile(
-  options: WriteProjectConfigFileOptions,
-): Promise<ProjectConfigFileResult> {
-  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFileAtomic(filePath, text));
-  const statMtime =
-    options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
-  const diagnostics = validateLegacyProjectConfig(options.config);
-  if (hasDiagnosticErrors(diagnostics)) {
-    throw new ConfigDiagnosticError(diagnostics);
-  }
-  const yaml = serializeRouteKitConfig(options.config);
-  const configPath = projectConfigPath(options);
-  await writeText(configPath, yaml);
-  return {
-    yaml,
-    config: options.config,
-    mtime: await statMtime(configPath),
   };
 }

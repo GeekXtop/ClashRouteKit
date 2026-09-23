@@ -88,18 +88,14 @@ export function catalogOriginsFromConfig(config: RouteKitProjectConfig): Catalog
 }
 
 /**
- * 目录浏览的来源加载：按顶层 schemaVersion 分发读取作者配置。
- * v1 取 config.vendorRepos；v2 取解析后的 v2.vendorRepos（形状兼容 v1，
- * 多出的稳定 id 字段不影响 origins 构造）。vendorRepos 清空时两者都
- * 回退到内置默认源（CATALOG_ORIGINS）。
+ * 目录浏览的来源加载：读取作者配置的 vendorRepos（vendorRepos 清空时
+ * 回退到内置默认源 CATALOG_ORIGINS）。
  */
 export async function loadCatalogOrigins(
   options: AuthorProjectFileOptions,
 ): Promise<CatalogOriginDef[]> {
   const document = await readAuthorProjectFile(options);
-  const repos =
-    document.schemaVersion === 1 ? document.config.vendorRepos : document.v2.vendorRepos ?? [];
-  return catalogOriginsFromVendorRepos(repos);
+  return catalogOriginsFromVendorRepos(document.v2.vendorRepos ?? []);
 }
 
 function catalogOrigin(origin: string, origins: CatalogOriginDef[] = CATALOG_ORIGINS): CatalogOriginDef {
