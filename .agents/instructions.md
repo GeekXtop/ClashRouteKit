@@ -73,6 +73,17 @@ Obsidian 项目笔记：`Agent/Projects/ClashRouteKit.md`。
 - 设计稿、实施计划等时点快照不进文档地图：它们记录当时的判断，不随后续改动更新。
 - 体积预算：本文件是每个任务开始都要读的规则源头，保持 **8 KB** 以内；只收约束和入口链接，细节放 `docs/README.md`、`docs/adr/` 和项目既有文档。文档地图保持 **4 KB** 以内。
 
+## 验证分层落地
+
+验证策略由 agent 全局规则承担（验证与审查；执行者无全局规则时，本节改记完整验证策略），本节登记本项目的落地值：
+
+- 受影响测试命令：`pnpm test`（vitest run 全量；未建受影响子集机制，需要时可现场用 vitest `--changed` / `--related` 选跑）
+- 提交门禁命令（本项目实际跑什么）：`pnpm test` + `pnpm typecheck`；改配置或规则源时额外 `pnpm generate` 与 `pnpm check`（AGENTS.md「测试」节口径）
+- 全量命令与承担者（本项目跑在哪，本地 / CI）：`pnpm test`，本地提交前 + CI（`.github/workflows/publish.yml`）
+- 依赖图推不出的检查与触发范围（读源码文本、数据驱动、子进程类）：`pnpm generate` / `pnpm check` 的配置驱动校验——改规则源或配置时触发
+- 测试并发预算与依据（值：并发数；依据：实测数据）：无自设预算（vitest 默认并发，`vitest.config.ts` 未配 pool/threads）
+- 选跑器路径：无（无自建选跑器脚本）
+
 ## 协作策略
 
 本节由项目自行约定；未填写时按单会话假设处理。
