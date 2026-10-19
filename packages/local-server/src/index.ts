@@ -142,3 +142,7 @@ export {
   type LocalServerContextOptions,
   type LocalServerMiddleware,
 } from "./http/localServer.js";
+export {
+  loadSimulateMaterials,
+  type SimulateMaterials,
+} from "./simulate/simulateMaterial.js";

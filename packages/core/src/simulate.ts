@@ -115,7 +115,9 @@ function routePredicates(
   if (source.type === "geoip") return { skip: "仅 IP 规则（geoip）" };
   if (source.type === "final") return { predicates: [] }; // 兜底由调用方特判
   if (source.type === "geosite") {
-    const entries = input.geositeEntries[source.value];
+    // "ai@cn" 属性语法：匹配走基础 tag，材料加载也以基础 tag 为键
+    const baseTag = source.value.split("@")[0] ?? source.value;
+    const entries = input.geositeEntries[baseTag];
     if (!entries) return { skip: `geosite tag 不在本地 vendor：${source.value}` };
     return { predicates: entries.map(parseRuleEntry).filter((p): p is DomainPredicate => p !== null) };
   }

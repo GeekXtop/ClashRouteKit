@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Diagnostic, RouteKitProjectConfig } from "@clash-route-kit/core";
-import { ConfigDiagnosticError } from "@clash-route-kit/core";
+import { ConfigDiagnosticError, hasDiagnosticErrors, isPlausibleDomain, simulateDomainRoute } from "@clash-route-kit/core";
 import {
   clearCatalogIndexCache,
   findCatalogPath,
@@ -17,6 +17,8 @@ import {
   readAuthorProjectFile,
   saveAuthorProject,
 } from "../config/configRepository.js";
+import { validateAuthorProjectV2Yaml } from "../config/authorProjectV2.js";
+import { loadSimulateMaterials } from "../simulate/simulateMaterial.js";
 import { loadLocalSettings } from "../config/localSettings.js";
 import {
   getPublishStatus,
@@ -412,6 +414,68 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
         .catch((error: unknown) =>
           writeJson(response, 400, { ok: false, output: error instanceof Error ? error.message : String(error) }),
         );
+      return;
+    }
+
+    if (url.pathname === "/api/route-simulate") {
+      // 命中模拟（spec: 2026-10-19-hit-simulator-design.md）：域名 → 命中路由 → 策略链。
+      // 只读评估，不落盘；yaml 覆盖时走与保存相同的 v2 校验链。
+      if (request.method !== "POST") {
+        writeJson(response, 405, { ok: false, output: "Method not allowed" });
+        return;
+      }
+      let body = "";
+      request.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+      });
+      request.on("end", () => {
+        void Promise.resolve()
+          .then(() => JSON.parse(body) as { domain?: unknown; yaml?: unknown })
+          .then(async (payload) => {
+            const domain = typeof payload.domain === "string" ? payload.domain : "";
+            if (!isPlausibleDomain(domain)) {
+              writeJson(response, 400, { ok: false, output: "Invalid domain" });
+              return undefined;
+            }
+            try {
+              const project =
+                typeof payload.yaml === "string"
+                  ? (() => {
+                      const validation = validateAuthorProjectV2Yaml(payload.yaml);
+                      if (hasDiagnosticErrors(validation.diagnostics)) {
+                        return { error: true as const, diagnostics: validation.diagnostics };
+                      }
+                      return { error: false as const, parsed: validation.parsed };
+                    })()
+                  : { error: false as const, parsed: (await readAuthorProjectFile(options)).v2 };
+              if (project.error) {
+                writeJson(response, 422, {
+                  ok: false,
+                  output: "Invalid v2 config yaml",
+                  diagnostics: project.diagnostics,
+                });
+                return undefined;
+              }
+              const materials = await loadSimulateMaterials(options, project.parsed);
+              const result = simulateDomainRoute({
+                domain,
+                routes: project.parsed.routes,
+                proxyGroups: project.parsed.proxyGroups,
+                memberSets: project.parsed.memberSets ?? {},
+                providerEntries: materials.providerEntries,
+                geositeEntries: materials.geositeEntries,
+              });
+              writeJson(response, 200, { ok: true, result });
+            } catch (error: unknown) {
+              // 磁盘配置缺失/非法（ConfigDiagnosticError）与其他读取异常 → 422
+              writeJson(response, 422, errorPayload(error));
+            }
+            return undefined;
+          })
+          .catch((error: unknown) => {
+            writeJson(response, 400, errorPayload(error));
+          });
+      });
       return;
     }
 
