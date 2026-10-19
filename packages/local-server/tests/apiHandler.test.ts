@@ -634,6 +634,25 @@ describe("createRouteKitApiHandler", () => {
     expect(JSON.parse(res.body)).toEqual({ url: "git@github.com:acme/routes.git" });
   });
 
+  it("rejects non-GET /api/git endpoints with 405 without running git", async () => {
+    let ran = false;
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      runCommand: async () => {
+        ran = true;
+        return "git@github.com:acme/routes.git\n";
+      },
+    });
+    for (const method of ["POST", "PUT", "DELETE"]) {
+      const remote = await callHandler(handler, "/api/git/remote", method);
+      expect(remote.status, `remote ${method}`).toBe(405);
+      expect(JSON.parse(remote.body)).toEqual({ ok: false, output: "Method not allowed" });
+      const status = await callHandler(handler, "/api/git/publish-status", method);
+      expect(status.status, `publish-status ${method}`).toBe(405);
+    }
+    expect(ran).toBe(false);
+  });
+
   it("returns branch and workflow status for GET /api/git/publish-status", async () => {
     const handler = createRouteKitApiHandler({
       ...baseOptions,

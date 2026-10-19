@@ -387,6 +387,16 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
       return;
     }
 
+    // 两个 git 端点是只读查询，仅放行 GET/HEAD；其余方法在触发 git 前拒绝。
+    if (
+      (url.pathname === "/api/git/remote" || url.pathname === "/api/git/publish-status") &&
+      request.method !== "GET" &&
+      request.method !== "HEAD"
+    ) {
+      writeJson(response, 405, { ok: false, output: "Method not allowed" });
+      return;
+    }
+
     if (url.pathname === "/api/git/remote") {
       void readGitRemote(options)
         .then((remote) => writeJson(response, 200, { url: remote }))
