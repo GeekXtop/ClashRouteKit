@@ -1,5 +1,6 @@
-import { readdir, rm, readFile, writeFile } from "node:fs/promises";
+import { readdir, rm, readFile } from "node:fs/promises";
 import path from "node:path";
+import { writeFileAtomic } from "../config/atomic.js";
 import type { ProjectOptions, ReadText, WriteText } from "../config/configRepository.js";
 
 export type { ReadText, WriteText };
@@ -71,7 +72,9 @@ export async function readProjectRuleFile(options: ProjectRuleFileOptions): Prom
 export async function writeProjectRuleFile(
   options: WriteProjectRuleFileOptions,
 ): Promise<ProjectRuleFileResult> {
-  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFile(filePath, text, "utf8"));
+  // 默认与 routes.yaml 同一原子写原语：.list 编辑器 600ms 防抖自动保存下
+  // 中断不会留半截文件
+  const writeText = options.writeText ?? ((filePath: string, text: string) => writeFileAtomic(filePath, text));
   const text = options.text.replace(/\r\n?/g, "\n").replace(/\n?$/, "\n");
   await writeText(resolveRuleFile(options, options.file), text);
   return {
