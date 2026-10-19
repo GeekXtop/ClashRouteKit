@@ -115,3 +115,16 @@ export type {
   SourceBase,
   VendorRepoConfig,
 } from "./types.js";
+
+export {
+  isPlausibleDomain,
+  parseDomainEntry,
+  parseRuleEntry,
+  simulateDomainRoute,
+  type DomainPredicate,
+  type DomainRouteInput,
+  type RouteTraceRow,
+  type SimulateChainNode,
+  type SimulateRouteResult,
+  type TraceOutcome,
+} from "./simulate.js";
