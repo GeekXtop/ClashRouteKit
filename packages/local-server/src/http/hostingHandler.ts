@@ -8,6 +8,8 @@ export interface HostingOptions extends ProjectOptions {
   publicBase: string;
   webRoot?: string;
   readText?: (filePath: string) => Promise<string>;
+  /** 提供时注入到所有 html 响应（静态命中与 SPA fallback）的 token meta。 */
+  htmlToken?: string;
 }
 
 const RULE_FILE = /^[A-Za-z0-9_.-]+\.yaml$/;
@@ -25,6 +27,14 @@ function send(res: ServerResponse, status: number, contentType: string, body: st
   res.statusCode = status;
   res.setHeader("content-type", contentType);
   res.end(body);
+}
+
+// token 由 randomBytes hex 生成，无转义需求；缺 </head> 时前置到文档开头。
+function injectTokenMeta(html: string, token?: string): string {
+  if (!token) return html;
+  const tag = `<meta name="clash-route-kit-token" content="${token}">`;
+  if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, (match) => `${match}${tag}`);
+  return `${tag}${html}`;
 }
 
 export function createHostingHandler(options: HostingOptions) {
@@ -83,12 +93,25 @@ export function createHostingHandler(options: HostingOptions) {
       send(response, 400, "text/plain; charset=utf-8", "Bad path");
       return;
     }
+    const ext = path.extname(candidate).toLowerCase();
+    if (ext === ".html") {
+      // html 以文本读出以便注入 token meta（守卫前端消费）
+      void readFile(candidate, "utf8")
+        .then((html) => send(response, 200, CONTENT_TYPES[".html"]!, injectTokenMeta(html, options.htmlToken)))
+        .catch(() => {
+          // SPA fallback
+          void readFile(path.resolve(webRoot, "index.html"), "utf8")
+            .then((html) => send(response, 200, CONTENT_TYPES[".html"]!, injectTokenMeta(html, options.htmlToken)))
+            .catch(() => send(response, 404, "text/plain; charset=utf-8", "Not found"));
+        });
+      return;
+    }
     void readFile(candidate)
-      .then((buf) => send(response, 200, CONTENT_TYPES[path.extname(candidate)] ?? "application/octet-stream", buf))
+      .then((buf) => send(response, 200, CONTENT_TYPES[ext] ?? "application/octet-stream", buf))
       .catch(() => {
         // SPA fallback
-        void readFile(path.resolve(webRoot, "index.html"))
-          .then((buf) => send(response, 200, "text/html; charset=utf-8", buf))
+        void readFile(path.resolve(webRoot, "index.html"), "utf8")
+          .then((html) => send(response, 200, CONTENT_TYPES[".html"]!, injectTokenMeta(html, options.htmlToken)))
           .catch(() => send(response, 404, "text/plain; charset=utf-8", "Not found"));
       });
   };

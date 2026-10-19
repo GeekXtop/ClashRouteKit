@@ -1,3 +1,4 @@
+import { authorizedFetch } from "./apiClient.js";
 import type { Diagnostic } from "@clash-route-kit/core";
 
 export type LocalRouteKitAction = "check" | "generate" | "git-status" | "git-commit" | "git-push";
@@ -24,7 +25,7 @@ function isLocalActionResponse(value: unknown): value is LocalActionResponse {
 
 export async function requestLocalAction(
   action: LocalRouteKitAction,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<LocalActionResponse> {
   const response = await fetcher(`/api/actions/${action}`, { method: "POST" });
   const payload = (await response.json()) as unknown;

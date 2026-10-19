@@ -176,4 +176,44 @@ describe("createHostingHandler", () => {
     expect(spa.headers["content-type"]).toMatch(/text\/html/);
     expect(spa.body).toContain("spa");
   });
+
+  it("html 响应在 htmlToken 提供时注入 token meta，非 html 不注入", async () => {
+    const webRoot = mkdtempSync(path.join(tmpdir(), "routekit-web-"));
+    writeFileSync(
+      path.join(webRoot, "index.html"),
+      "<html><head><title>t</title></head><body>x</body></html>",
+      "utf8",
+    );
+    writeFileSync(path.join(webRoot, "app.js"), "console.log(1)", "utf8");
+    const withToken = createHostingHandler({
+      root: "/proj",
+      configFile: "config/routes.yaml",
+      publicBase: "http://10.0.0.3:8787",
+      webRoot,
+      htmlToken: "tok-inject",
+      readText: async () => sampleConfig,
+    });
+
+    const rootHit = await run(withToken, "/");
+    expect(rootHit.statusCode).toBe(200);
+    expect(rootHit.body).toContain('name="clash-route-kit-token"');
+    expect(rootHit.body).toContain('content="tok-inject"');
+    expect(rootHit.body).toContain("<title>t</title>");
+
+    const spa = await run(withToken, "/console/output");
+    expect(spa.body).toContain('content="tok-inject"');
+
+    const asset = await run(withToken, "/app.js");
+    expect(asset.body).toBe("console.log(1)");
+
+    const noToken = createHostingHandler({
+      root: "/proj",
+      configFile: "config/routes.yaml",
+      publicBase: "http://10.0.0.3:8787",
+      webRoot,
+      readText: async () => sampleConfig,
+    });
+    const plain = await run(noToken, "/");
+    expect(plain.body).not.toContain("clash-route-kit-token");
+  });
 });

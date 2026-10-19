@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../../apiClient.js";
 import { useEffect, useState } from "react";
 import {
   createRawUrlTemplates,
@@ -76,7 +77,7 @@ export const SUBCONVERTER_PROBE_TIMEOUT_MS = 30_000;
  */
 export async function probeUrl(
   url: string,
-  fetchImpl: Fetcher = globalThis.fetch,
+  fetchImpl: Fetcher = authorizedFetch,
   timeoutMs = TEMPLATE_PROBE_TIMEOUT_MS,
 ): Promise<TemplateProbeResult> {
   const controller = new AbortController();
@@ -94,7 +95,7 @@ export async function probeUrl(
 /** 模板 URL 可达性探测（约 4s 超时）。 */
 export async function probeTemplateUrl(
   url: string,
-  fetchImpl: Fetcher = globalThis.fetch,
+  fetchImpl: Fetcher = authorizedFetch,
 ): Promise<TemplateProbeResult> {
   return probeUrl(url, fetchImpl, TEMPLATE_PROBE_TIMEOUT_MS);
 }
@@ -135,7 +136,7 @@ export function useTemplateSourceStatus(
   options: UseTemplateSourceStatusOptions,
 ): TemplateSourceStatusController {
   const { publishBaseUrl, templateOutput, enabled = true } = options;
-  const fetcher = options.fetcher ?? globalThis.fetch;
+  const fetcher = options.fetcher ?? authorizedFetch;
   const localUrl = createLocalTemplateUrl(publishBaseUrl, templateOutput);
 
   const [localStatus, setLocalStatus] = useState<LocalTemplateProbeState>("checking");

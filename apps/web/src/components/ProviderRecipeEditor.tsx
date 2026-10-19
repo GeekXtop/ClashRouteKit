@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useState } from "react";
 import { Alert, Button, Input, Popconfirm, Select, Space, Switch, Tooltip } from "antd";
 import { Plus, X } from "lucide-react";
@@ -40,7 +41,7 @@ export function ProviderRecipeEditor(props: {
   useEffect(() => setNotice(null), [props.provider.name]);
   useEffect(() => {
     let alive = true;
-    void fetchCatalogEntries("domain-list-community", props.fetcher ?? globalThis.fetch)
+    void fetchCatalogEntries("domain-list-community", props.fetcher ?? authorizedFetch)
       .then((entries) => alive && setDlcEntries(entries.map((e) => e.name)))
       .catch(() => {});
     return () => {

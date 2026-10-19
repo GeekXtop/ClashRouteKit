@@ -57,18 +57,32 @@ function routesConfigInlinePlugin(): Plugin {
 }
 
 function routeKitApiPlugin(): Plugin {
+  // token 在 configureServer（服务启动）时生成；transformIndexHtml 按请求读引用。
+  let bootToken: string | null = null;
   return {
     name: "route-kit-local-api",
+    transformIndexHtml() {
+      if (!bootToken) return [];
+      return [
+        {
+          tag: "meta",
+          attrs: { name: "clash-route-kit-token", content: bootToken },
+          injectTo: "head-prepend",
+        },
+      ];
+    },
     // local-server 的默认依赖注入让 dev 下 check/generate/sync-vendor/git-* 全部可用；
     // publicBase 经 loadLocalSettings 解析（env CLASH_ROUTE_KIT_PUBLISH_BASE_URL >
-    // .clashroutekit/local.yaml > 默认值）。
+    // .clashroutekit/local.yaml > 默认值）。vite dev 绑定本机回环，守卫白名单含回环集。
     async configureServer(server) {
       const settings = await loadLocalSettings({ root: projectRoot });
-      const { hostingHandler, apiHandler } = createLocalServerContext({
+      const { connectionGuard, hostingHandler, apiHandler, token } = createLocalServerContext({
         root: projectRoot,
         configFile,
         publicBase: settings.serve.publicBaseUrl,
       });
+      bootToken = token;
+      server.middlewares.use(connectionGuard);
       server.middlewares.use(hostingHandler);
       server.middlewares.use(apiHandler);
     },

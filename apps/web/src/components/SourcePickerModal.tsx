@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useMemo, useState } from "react";
 import { Button, Input, List, Modal, Select, Space, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
@@ -40,7 +41,7 @@ export function SourcePickerModal(props: {
   onClose: () => void;
   fetcher?: Fetcher;
 }) {
-  const fetcher = props.fetcher ?? globalThis.fetch;
+  const fetcher = props.fetcher ?? authorizedFetch;
   const [sources, setSources] = useState<CatalogSourceInfo[]>([]);
   const [origin, setOrigin] = useState<string>("");
   const [entries, setEntries] = useState<CatalogEntry[]>([]);

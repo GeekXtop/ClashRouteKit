@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input, List, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
@@ -48,7 +49,7 @@ export function CatalogBrowser({
   originKind?: string;
   fetcher?: Fetcher;
 }) {
-  const fetch = fetcher ?? globalThis.fetch;
+  const fetch = fetcher ?? authorizedFetch;
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);

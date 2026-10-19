@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useState } from "react";
 import { Alert, Button, Collapse, Input, Select, Switch } from "antd";
 import { Plus, X } from "lucide-react";
@@ -45,7 +46,7 @@ export function ConfigYamlSection(props: {
   templateUrl?: string;
   fetcher?: Fetcher;
 }) {
-  const fetcher = props.fetcher ?? globalThis.fetch;
+  const fetcher = props.fetcher ?? authorizedFetch;
   const [subs, setSubs] = useState<ProviderSubscription[]>([]);
   const [endpoint, setEndpoint] = useState(props.subconverterUrl);
   const [convert, setConvert] = useState<SubconverterConvertOptions>({ emoji: false, sort: false });

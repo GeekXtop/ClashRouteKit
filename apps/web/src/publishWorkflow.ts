@@ -1,3 +1,4 @@
+import { authorizedFetch } from "./apiClient.js";
 import type { LocalRouteKitAction } from "./actions.js";
 
 export type ActionStatus = "idle" | "running" | "success" | "error";
@@ -109,7 +110,7 @@ export interface PublishStatusPayload {
   workflow: WorkflowRunStatus;
 }
 
-export async function fetchGitRemote(fetcher: Fetcher = globalThis.fetch): Promise<string> {
+export async function fetchGitRemote(fetcher: Fetcher = authorizedFetch): Promise<string> {
   const response = await fetcher("/api/git/remote");
   const payload = (await response.json()) as { url?: unknown };
   if (!response.ok || typeof payload.url !== "string") {
@@ -118,7 +119,7 @@ export async function fetchGitRemote(fetcher: Fetcher = globalThis.fetch): Promi
   return payload.url;
 }
 
-export async function fetchPublishStatus(fetcher: Fetcher = globalThis.fetch): Promise<PublishStatusPayload> {
+export async function fetchPublishStatus(fetcher: Fetcher = authorizedFetch): Promise<PublishStatusPayload> {
   const response = await fetcher("/api/git/publish-status");
   const payload = (await response.json()) as Partial<PublishStatusPayload> | null;
   if (

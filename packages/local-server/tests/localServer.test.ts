@@ -36,6 +36,7 @@ function callHandler(
   handler: (req: IncomingMessage, res: ServerResponse, next: () => void) => void,
   url: string,
   method = "GET",
+  headers: Record<string, string> = { host: "127.0.0.1:8787" },
 ): Promise<{ status: number; body: string }> {
   return new Promise((resolve) => {
     const state = { statusCode: 0 };
@@ -51,7 +52,7 @@ function callHandler(
         resolve({ status: state.statusCode, body: chunk ?? "" });
       },
     } as unknown as ServerResponse;
-    const req = { url, method, on() {} } as unknown as IncomingMessage;
+    const req = { url, method, headers, on() {} } as unknown as IncomingMessage;
     handler(req, res, () => resolve({ status: 0, body: "next" }));
   });
 }
@@ -129,3 +130,32 @@ describe("createLocalServerContext default dependencies", () => {
     });
   });
 });
+
+describe("createLocalServerContext connection guard wiring", () => {
+  it("返回守卫与启动 token，hosting 拿同一 token 注入 html", async () => {
+    const root = await prepareProjectRoot();
+    const webRoot = await mkdtemp(path.join(tmpdir(), "route-kit-web-"));
+    await writeFile(path.join(webRoot, "index.html"), "<html><head></head></html>", "utf8");
+    const context = createLocalServerContext({
+      root,
+      configFile: "routes.yaml",
+      publicBase: "http://192.168.1.10:8787",
+      serveHost: "192.168.1.10",
+      webRoot,
+    });
+
+    expect(typeof context.connectionGuard).toBe("function");
+    expect(context.token).toMatch(/^[0-9a-f]{64}$/);
+
+    const html = await callHandler(context.hostingHandler, "/");
+    expect(html.body).toContain(`content="${context.token}"`);
+
+    // 守卫先于 hosting/api：白名单外 Host 直接 403，不触达后续中间件
+    const evil = await callHandler(context.connectionGuard, "/templates/Custom_Clash.ini", "GET", {
+      host: "evil.com",
+    });
+    expect(evil.status).toBe(403);
+    expect(evil.body).toContain("Forbidden");
+  });
+});
+

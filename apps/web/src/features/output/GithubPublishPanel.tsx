@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../../apiClient.js";
 import { useMemo, useState } from "react";
 import { Alert, Button, Space, Tag } from "antd";
 import { renderIni, type RouteKitProjectConfig } from "@clash-route-kit/core";
@@ -38,7 +39,7 @@ export function GithubPublishPanel(props: {
   /** OutputPage 提供的共享模板状态；缺省时面板内部自建（独立使用场景，enabled=false 关掉共享实例外的重复抓取） */
   templateStatus?: TemplateSourceStatusController;
 }) {
-  const fetcher = props.fetcher ?? globalThis.fetch;
+  const fetcher = props.fetcher ?? authorizedFetch;
   const internalStatus = useTemplateSourceStatus({
     publishBaseUrl: props.config.publishBaseUrl,
     templateOutput: props.config.template.output,

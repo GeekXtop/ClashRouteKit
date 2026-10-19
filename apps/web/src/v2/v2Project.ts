@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 /**
  * Schema v2 项目会话层（plan Task 4 数据层）：
  * - `loadV2Project`：parse → validateAuthorProjectConfigV2 → normalize →
@@ -110,7 +111,7 @@ function readDiagnostics(value: unknown): Diagnostic[] {
 }
 
 export async function fetchProjectDocument(
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<ProjectDocument> {
   const response = await fetcher("/api/project/config");
   const payload = (await response.json()) as unknown;
@@ -144,7 +145,7 @@ export type SaveV2ProjectResult =
 export async function saveV2Project(
   yaml: string,
   baseMtime: number,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<SaveV2ProjectResult> {
   const response = await fetcher("/api/project/config", {
     method: "PUT",

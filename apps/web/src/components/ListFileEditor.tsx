@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useState } from "react";
 import { Button, Input, Popconfirm, Space, Tag } from "antd";
 import { deleteRuleFile, loadRuleFile, saveRuleFile } from "../ruleFiles.js";
@@ -25,7 +26,7 @@ export function ListFileEditor({
   fetcher?: Fetcher;
   onDeleted?: (file: string) => void;
 }) {
-  const request = fetcher ?? globalThis.fetch;
+  const request = fetcher ?? authorizedFetch;
   const [text, setText] = useState("");
   const [savedText, setSavedText] = useState<string | null>(null);
   const [loadedFile, setLoadedFile] = useState<string | null>(null);

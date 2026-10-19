@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Empty, Input, Modal } from "antd";
 import type { RouteKitProjectConfig } from "@clash-route-kit/core";
@@ -63,7 +64,7 @@ export function LibraryPage({
   onRefreshConfig: () => void;
   fetcher?: Fetcher;
 }) {
-  const fetch = fetcher ?? globalThis.fetch;
+  const fetch = fetcher ?? authorizedFetch;
   const [sources, setSources] = useState<CatalogSourceInfo[]>([]);
   const [listFiles, setListFiles] = useState<string[]>([]);
   const [selection, setSelection] = useState<LibrarySelection | null>(null);

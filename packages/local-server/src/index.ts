@@ -129,6 +129,14 @@ export {
   type HostingOptions,
 } from "./http/hostingHandler.js";
 export {
+  assertBindableHost,
+  createConnectionGuard,
+  isWildcardHost,
+  normalizeHostHeader,
+  type ConnectionGuard,
+  type ConnectionGuardOptions,
+} from "./http/connectionGuard.js";
+export {
   createLocalServerContext,
   type LocalServerContext,
   type LocalServerContextOptions,

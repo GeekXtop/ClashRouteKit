@@ -1,3 +1,4 @@
+import { authorizedFetch } from "./apiClient.js";
 export interface RuleFileResponse {
   file: string;
   text: string;
@@ -27,7 +28,7 @@ async function readJson(response: Response): Promise<unknown> {
   return payload;
 }
 
-export async function listRuleFiles(fetcher: Fetcher = globalThis.fetch): Promise<string[]> {
+export async function listRuleFiles(fetcher: Fetcher = authorizedFetch): Promise<string[]> {
   const payload = (await readJson(await fetcher("/api/project/rules"))) as { files?: unknown };
   if (!Array.isArray(payload.files) || !payload.files.every((file) => typeof file === "string")) {
     throw new Error("Invalid rule file response");
@@ -37,7 +38,7 @@ export async function listRuleFiles(fetcher: Fetcher = globalThis.fetch): Promis
 
 export async function loadRuleFile(
   file: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<RuleFileResponse> {
   const payload = await readJson(await fetcher(`/api/project/rules/${encodeURIComponent(file)}`));
   if (!isRuleFileResponse(payload)) {
@@ -49,7 +50,7 @@ export async function loadRuleFile(
 export async function saveRuleFile(
   file: string,
   text: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<RuleFileResponse> {
   const payload = await readJson(
     await fetcher(`/api/project/rules/${encodeURIComponent(file)}`, {
@@ -66,7 +67,7 @@ export async function saveRuleFile(
 
 export async function deleteRuleFile(
   file: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<DeleteRuleFileResponse> {
   const payload = await readJson(
     await fetcher(`/api/project/rules/${encodeURIComponent(file)}`, { method: "DELETE" }),

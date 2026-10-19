@@ -1,3 +1,4 @@
+import { authorizedFetch } from "../apiClient.js";
 import { useEffect, useState } from "react";
 import { Button, Input, Modal, Segmented, Select, Space } from "antd";
 import {
@@ -19,7 +20,7 @@ export function ImportModal(props: {
   onImport: (text: string, mode: "replace" | "merge") => void;
   fetcher?: Fetcher;
 }) {
-  const fetcher = props.fetcher ?? globalThis.fetch;
+  const fetcher = props.fetcher ?? authorizedFetch;
   const [mode, setMode] = useState<Mode>("template");
   const [paste, setPaste] = useState("");
   const [origin, setOrigin] = useState("");

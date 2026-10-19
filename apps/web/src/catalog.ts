@@ -1,3 +1,4 @@
+import { authorizedFetch } from "./apiClient.js";
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export interface CatalogEntry {
@@ -14,7 +15,7 @@ export interface CatalogEntryDetail {
 
 export async function fetchCatalogEntries(
   origin: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<CatalogEntry[]> {
   const response = await fetcher(`/api/catalog/entries?origin=${encodeURIComponent(origin)}`);
   const payload = (await response.json()) as { entries?: unknown };
@@ -38,7 +39,7 @@ export async function fetchCatalogEntries(
 export async function fetchCatalogEntry(
   origin: string,
   name: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<CatalogEntryDetail> {
   const response = await fetcher(
     `/api/catalog/entry?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
@@ -59,7 +60,7 @@ export async function fetchCatalogEntry(
 export async function fetchCatalogDomains(
   origin: string,
   name: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<string[]> {
   const response = await fetcher(
     `/api/catalog/domains?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
@@ -90,7 +91,7 @@ export interface CatalogSearchHit {
 export async function searchCatalogEntries(
   origin: string,
   query: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<CatalogSearchHit[]> {
   const response = await fetcher(
     `/api/catalog/search?origin=${encodeURIComponent(origin)}&q=${encodeURIComponent(query)}`,
@@ -114,7 +115,7 @@ export async function searchCatalogEntries(
 export async function fetchCatalogPath(
   origin: string,
   name: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<string[]> {
   const response = await fetcher(
     `/api/catalog/path?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
@@ -136,7 +137,7 @@ export interface CatalogSourceInfo {
   browsable: boolean;
 }
 
-export async function fetchCatalogSources(fetcher: Fetcher = globalThis.fetch): Promise<CatalogSourceInfo[]> {
+export async function fetchCatalogSources(fetcher: Fetcher = authorizedFetch): Promise<CatalogSourceInfo[]> {
   const response = await fetcher("/api/catalog/sources");
   const payload = (await response.json()) as { sources?: unknown };
   if (!response.ok || !Array.isArray(payload.sources)) {
@@ -152,7 +153,7 @@ export function formatSyncedAt(ms: number | null, nowMs: number): string {
   return `${days}天前同步`;
 }
 
-export async function syncCatalogVendor(fetcher: Fetcher = globalThis.fetch, only?: string): Promise<string> {
+export async function syncCatalogVendor(fetcher: Fetcher = authorizedFetch, only?: string): Promise<string> {
   const url = only ? `/api/actions/sync-vendor?name=${encodeURIComponent(only)}` : "/api/actions/sync-vendor";
   const response = await fetcher(url, { method: "POST" });
   const payload = (await response.json()) as { ok?: boolean; output?: string };
@@ -184,14 +185,14 @@ async function postJson(url: string, body: unknown, fetcher: Fetcher, failMsg: s
   }
 }
 
-export function addVendorRepoRequest(input: VendorRepoInput, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+export function addVendorRepoRequest(input: VendorRepoInput, fetcher: Fetcher = authorizedFetch): Promise<void> {
   return postJson("/api/vendor/add", { input }, fetcher, "添加上游仓库失败");
 }
 
 export async function updateVendorRepoRequest(
   name: string,
   input: VendorRepoInput,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<{ resync: boolean }> {
   const response = await fetcher("/api/vendor/update", {
     method: "POST",
@@ -205,14 +206,14 @@ export async function updateVendorRepoRequest(
   return { resync: Boolean(payload.resync) };
 }
 
-export function removeVendorRepoRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+export function removeVendorRepoRequest(name: string, fetcher: Fetcher = authorizedFetch): Promise<void> {
   return postJson("/api/vendor/remove", { name }, fetcher, "移除上游仓库失败");
 }
 
 export async function fetchCatalogTemplate(
   origin: string,
   name: string,
-  fetcher: Fetcher = globalThis.fetch,
+  fetcher: Fetcher = authorizedFetch,
 ): Promise<string> {
   const response = await fetcher(
     `/api/catalog/template?origin=${encodeURIComponent(origin)}&name=${encodeURIComponent(name)}`,
@@ -224,7 +225,7 @@ export async function fetchCatalogTemplate(
   return payload.ini;
 }
 
-export async function createRuleFileRequest(name: string, fetcher: Fetcher = globalThis.fetch): Promise<void> {
+export async function createRuleFileRequest(name: string, fetcher: Fetcher = authorizedFetch): Promise<void> {
   const response = await fetcher(`/api/project/rules/${encodeURIComponent(name)}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
