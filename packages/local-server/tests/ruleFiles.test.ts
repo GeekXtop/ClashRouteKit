@@ -120,6 +120,7 @@ describe("writeProjectRuleFile 原子替换", () => {
     expect(result.text).toBe("new-content\n");
     expect(await readFile(target, "utf8")).toBe("new-content\n");
     expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
     const leftovers = (await readdir(configDir)).filter((name) => name !== "Demo_Domain.list");
     expect(leftovers).toEqual([]);
     await rm(dir, { recursive: true, force: true });

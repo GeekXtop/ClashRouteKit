@@ -129,7 +129,10 @@ export interface SaveAuthorProjectOptions extends ProjectOptions {
 export interface SaveAuthorProjectSuccess {
   ok: true;
   schemaVersion: 2;
-  /** 实际写入配置文件的 v2 YAML（schemaVersion: 2 固定在文件顶部）。 */
+  /**
+   * 实际写入配置文件的 v2 YAML：提交文本以 schemaVersion: 2 开头时原样返回
+   * （含注释与排版），否则为重序列化置顶文本。
+   */
   yaml: string;
   mtime: number;
   /** 校验链中 warning 及以下的诊断。 */
@@ -159,11 +162,16 @@ export type SaveAuthorProjectResult =
 
 /**
  * v2 作者配置保存（plan Task 4 服务端补全）：与迁移 apply 共用
- * authorProjectV2 的完整校验链，存在 error 级诊断返回 ok:false 且不写盘；
- * 通过后以 schemaVersion: 2 置顶重新序列化并经 writeFileAtomic 原子写入。
+ * authorProjectV2 的完整校验链，存在 error 级诊断返回 ok:false 且不写盘。
+ * 注释保真：提交文本以 schemaVersion: 2 开头时原样写盘（校验链已在该文本上
+ * 通过），保留作者注释与排版；其余情况（如 schemaVersion 不在首位）回退
+ * 重序列化，维持"schemaVersion 置顶"的磁盘不变量——文件头注释会随重序列化
+ * 丢失，为已知限制。写入经 writeFileAtomic 原子替换。
  * 写前比对 baseMtime（乐观锁）：不匹配返回 conflict + 服务端当前全文，不落盘。
  * 已知限制：文件系统 mtime 粒度较粗（部分 FS 秒级），极短间隔的连续外部写入
- * 可能漏检冲突——单用户本地工具可接受，需要更强保证时升级为内容 hash。
+ * 可能漏检冲突；且 stat 比对与写入之间是 check-then-act 窗口（TOCTOU），并发
+ * 写以最后落盘者为准、不产生半份文件——单用户本地工具可接受，需要更强保证时
+ * 升级为内容 hash 或文件锁。
  * 解析失败（YAML 语法、v2 结构错误、schemaVersion 非 2）抛 ConfigDiagnosticError，
  * 由 API 层转换为 400 + diagnostics。
  */
@@ -179,7 +187,10 @@ export async function saveAuthorProject(
   if (hasDiagnosticErrors(validation.diagnostics)) {
     return { ok: false, diagnostics: validation.diagnostics };
   }
-  const yaml = serializeAuthorProjectV2(validation.parsed);
+  // 校验保证 schemaVersion: 2 存在；置顶与否决定能否原样保留注释。
+  const yaml = options.yaml.startsWith("schemaVersion: 2")
+    ? options.yaml
+    : serializeAuthorProjectV2(validation.parsed);
   const configPath = projectConfigPath(options);
   const currentMtime = await statMtime(configPath);
   if (currentMtime !== options.baseMtime) {

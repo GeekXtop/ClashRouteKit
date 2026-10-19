@@ -163,7 +163,7 @@ export async function saveV2Project(
       ok: true,
       yaml: payload.yaml,
       warnings: readDiagnostics(payload.diagnostics),
-      mtime: typeof payload.mtime === "number" ? payload.mtime : 0,
+      mtime: typeof payload.mtime === "number" ? payload.mtime : baseMtime,
     };
   }
   if (response.status === 409 && isRecord(payload) && payload.conflict === true) {

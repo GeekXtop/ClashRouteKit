@@ -145,6 +145,19 @@ describe("saveV2Project", () => {
     });
   });
 
+  it("成功响应缺 mtime 时回退 baseMtime 而非 0", async () => {
+    const yaml = createV2Yaml();
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true, schemaVersion: 2, yaml }), { status: 200 }),
+    );
+    await expect(saveV2Project(yaml, 4242, fetcher)).resolves.toEqual({
+      ok: true,
+      yaml,
+      warnings: [],
+      mtime: 4242,
+    });
+  });
+
   it("returns diagnostics on a 422 validation rejection", async () => {
     const diagnostics = [
       { code: "validate.reference.missing", severity: "error", message: "引用的策略组不存在" },

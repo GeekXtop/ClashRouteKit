@@ -354,6 +354,30 @@ describe("createRouteKitApiHandler", () => {
     expect(writes[0]?.text).toBe(payload.yaml);
   });
 
+  it("PUT 注释保真：schemaVersion 置顶的提交文本原样落盘并回显", async () => {
+    const writes: Array<{ filePath: string; text: string }> = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      writeText: async (filePath, text) => {
+        writes.push({ filePath, text });
+      },
+    });
+    const commented = validV2Yaml.replace(
+      "ruleProviders: []",
+      "# 人工注释\nruleProviders: []",
+    );
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: commented, baseMtime: 0 }),
+    );
+    expect(res.status).toBe(200);
+    const payload = JSON.parse(res.body) as { yaml: string };
+    expect(payload.yaml).toBe(commented);
+    expect(writes[0]?.text).toBe(commented);
+  });
+
   it("routes a yaml-only PUT body with a v2 document to the v2 save path", async () => {
     let written = "";
     const handler = createRouteKitApiHandler({

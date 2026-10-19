@@ -129,6 +129,28 @@ describe("saveAuthorProject", () => {
     expect(await readdir(configDir)).toEqual(["routes.yaml"]);
   });
 
+  it("注释保真：schemaVersion 置顶的提交文本原样写盘，不重序列化", async () => {
+    const written: string[] = [];
+    const commented = V2_YAML.replace(
+      "ruleProviders: []",
+      "# 人工注释：不得被重序列化吃掉\nruleProviders: []",
+    );
+    const result = await saveAuthorProject({
+      ...baseOptions("unused-root"),
+      yaml: commented,
+      baseMtime: 1000,
+      statMtime: async () => 1000,
+      writeText: async (_filePath, text) => {
+        written.push(text);
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.yaml).toBe(commented);
+    expect(written[0]).toBe(commented);
+    expect(result.yaml).toContain("# 人工注释");
+  });
+
   it("rejects an invalid v2 config with error diagnostics and writes nothing", async () => {
     const root = await makeTempRoot();
     const configDir = path.join(root, "config");

@@ -50,13 +50,13 @@
 契约（PUT `/api/project/config`）：
 
 - 请求体：`{ schemaVersion: 2, yaml, baseMtime }`，`baseMtime` 为必带 number（ms，与 GET 返回的 `mtime` 同源）。
-- 服务端写路径（`configRepository.ts`，与 GET 共用 `statMtime` 注入点保证读写口径一致）：写前 stat 当前文件比对 `baseMtime`——相等则写入；不等则 **409** `{ ok:false, code:"config.conflict", output, currentYaml, mtime }`，不落盘；缺字段或非 number 则 **400**。
+- 服务端写路径（`configRepository.ts`，与 GET 共用 `statMtime` 注入点保证读写口径一致）：写前 stat 当前文件比对 `baseMtime`——相等则写入；不等则 **409** `{ ok:false, conflict:true, code:"config.conflict", currentYaml, mtime }`，不落盘（勘误 2026-10-19：实现未带 `output`，以 `conflict:true` 标记冲突变体）；缺字段或非 number 则 **400**。
 - 200 成功响应在现有返回体（已含 post-write `mtime`，`configRepository.ts:169`）上不变——客户端每次保存成功后更新本地 base，否则下一次自动保存会与自己冲突。
 
 web 侧：
 
 - `fetchProjectDocument` 的 `ProjectDocument` 增加 `mtime` 字段透传。
-- `saveV2Project` 增加 `baseMtime` 参数并入请求体；响应处理增加显式 409 分支：服务端返回 `{ ok:false, code:"config.conflict", output, currentYaml, mtime }`，`saveV2Project` 将其解析为返回类型 `{ ok:false, conflict:true, currentYaml, mtime }`（区别于普通校验失败），供调用方分流。
+- `saveV2Project` 增加 `baseMtime` 参数并入请求体；响应处理增加显式 409 分支：服务端返回 `{ ok:false, conflict:true, code:"config.conflict", currentYaml, mtime }`，`saveV2Project` 将其解析为返回类型 `{ ok:false, conflict:true, currentYaml, mtime }`（区别于普通校验失败），供调用方分流。
 - 409 → 弹「文件已被外部修改」对话框，两个动作：**覆盖**（以 409 返回的 `mtime` 为 base 重新保存当前编辑内容）/ **重载**（重新 GET，以服务端内容替换编辑态）。调用点为现有自动保存与抽屉保存路径，随 plan 细化。
 
 `.list` 原子写（不加版本令牌）：
