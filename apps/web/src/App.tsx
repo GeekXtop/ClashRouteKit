@@ -303,6 +303,7 @@ export default function App() {
             config={pageConfig}
             selectedRuleSetId={project.selectedRuleSetId}
             v2={v2State ? { state: v2State, actions: v2Actions } : undefined}
+            draftYaml={project.draftYaml}
             onOpenImport={openImport}
           />
         ) : project.selectedView === "library" ? (

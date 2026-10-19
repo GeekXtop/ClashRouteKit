@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Empty, Space } from "antd";
+import { Button, Collapse, Empty, Space } from "antd";
 import { Eye } from "lucide-react";
 import {
   type Diagnostic,
@@ -9,6 +9,7 @@ import type { useV2DraftActions } from "../v2/useV2DraftActions.js";
 import type { V2ProjectState } from "../v2/v2Project.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
 import { GroupNav, type GroupLocate } from "./GroupNav.js";
+import { HitSimulatorPanel } from "./HitSimulatorPanel.js";
 import { GroupDrawer } from "./GroupDrawer.js";
 import { IniResultModal } from "./IniResultModal.js";
 import { ValidationBar } from "./ValidationBar.js";
@@ -117,6 +118,7 @@ export function RoutingPage({
   selectedRuleSetId,
   v2,
   fetcher,
+  draftYaml,
   onOpenImport,
 }: {
   config: RouteKitProjectConfig;
@@ -124,6 +126,8 @@ export function RoutingPage({
   /** Schema v2 编辑会话：存在时 mutation 走稳定 ID 通路，config 为渲染投影。 */
   v2?: RoutingV2Session;
   fetcher?: Fetcher;
+  /** 当前草稿全文（未保存也可模拟）；缺省时服务端按磁盘配置评估。 */
+  draftYaml?: string;
   onOpenImport?: () => void;
 }) {
   const v2State = v2?.state;
@@ -281,6 +285,17 @@ export function RoutingPage({
           查看生成结果
         </Button>
       </div>
+      <Collapse
+        ghost
+        className="rk-hit-simulator"
+        items={[
+          {
+            key: "hit-simulator",
+            label: "命中模拟",
+            children: <HitSimulatorPanel yaml={draftYaml} fetcher={fetcher} />,
+          },
+        ]}
+      />
       <div className="rk-routing" style={{ flex: 1 }}>
         <div className="rk-pane">
           <GroupNav
