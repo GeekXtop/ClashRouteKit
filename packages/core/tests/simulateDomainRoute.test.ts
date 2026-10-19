@@ -262,6 +262,21 @@ describe("simulateDomainRoute 策略链", () => {
     expect(result.matched?.possibleTerminals).toEqual(["runtime-select:A", "runtime-select:B"]);
   });
 
+  it("memberSet 自引用与互引不死循环", () => {
+    const result = simulateDomainRoute(
+      baseInput({
+        routes: [route("r1", { group: "g1" }, { type: "final" })],
+        proxyGroups: [group("g1", "A", "select", [{ preset: "s1" }])],
+        memberSets: {
+          s1: { members: [{ preset: "s2" }, { builtin: "DIRECT" }] },
+          s2: { members: [{ preset: "s1" }, { builtin: "REJECT" }] },
+        },
+      }),
+    );
+    // 遍历序：g1 标签 → s1 → s2（REJECT 先收）→ 回到 s1 的 DIRECT
+    expect(result.matched?.possibleTerminals).toEqual(["runtime-select:A", "reject", "direct"]);
+  });
+
   it("policy 引用不存在的组按 unmatched 组名兜底不抛异常", () => {
     const result = simulateDomainRoute(
       baseInput({

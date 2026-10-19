@@ -172,7 +172,10 @@ function resolvePolicy(
         else terminals.add(`runtime-select:${member.group}`);
       } else {
         const set = input.memberSets[member.preset];
-        if (!set || !visited.add(`set:${member.preset}`)) continue;
+        // Set.add 返回 Set 本身（恒真值），防环必须显式 has/add
+        const key = `set:${member.preset}`;
+        if (!set || visited.has(key)) continue;
+        visited.add(key);
         visitMembers(set.members);
       }
     }
