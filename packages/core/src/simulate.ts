@@ -55,8 +55,12 @@ export interface DomainRouteInput {
   routes: RouteV2[];
   proxyGroups: ProxyGroupV2[];
   memberSets: Record<string, MemberSet>;
-  /** provider id → 载荷条目；entries 为 null 表示输出文件缺失 */
-  providerEntries: Record<string, { behavior: ProviderBehavior; entries: string[] | null }>;
+  /** provider id → 载荷条目；entries 为 null 表示输出文件缺失；disabled 标记配置中被禁用 */
+  providerEntries: Record<string, {
+    behavior: ProviderBehavior;
+    entries: string[] | null;
+    disabled?: boolean;
+  }>;
   /** geosite tag → 转换后的规则串；null 表示 tag 不在本地 vendor */
   geositeEntries: Record<string, string[] | null>;
 }
@@ -86,9 +90,9 @@ export function parseRuleEntry(rule: string): DomainPredicate | null {
   return null;
 }
 
-/** 宽松合法性：非空、无空白/路径/端口字符、标签字符受限（含单标签关键词如 "openai"）。 */
+/** 宽松合法性：非空、无空白/路径/端口字符、标签字符受限（含单标签关键词如 "openai"）；接受 FQDN 尾点。 */
 export function isPlausibleDomain(input: string): boolean {
-  const value = input.trim().toLowerCase();
+  const value = input.trim().toLowerCase().replace(/\.$/, "");
   if (!value || value.length > 253) return false;
   return /^[a-z0-9]([a-z0-9_-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9_-]*[a-z0-9])?)*$/.test(value);
 }
@@ -122,7 +126,13 @@ function routePredicates(
     return { predicates: entries.map(parseRuleEntry).filter((p): p is DomainPredicate => p !== null) };
   }
   const provider = input.providerEntries[source.provider];
-  if (!provider || provider.entries === null) {
+  if (!provider) {
+    return { skip: `provider 输出缺失（先执行 generate）：${source.provider}` };
+  }
+  if (provider.disabled) {
+    return { skip: `provider 已禁用：${source.provider}` };
+  }
+  if (provider.entries === null) {
     return { skip: `provider 输出缺失（先执行 generate）：${source.provider}` };
   }
   if (provider.behavior === "ipcidr") return { skip: "仅 IP 规则（ipcidr）" };
@@ -185,7 +195,8 @@ function resolvePolicy(
 }
 
 export function simulateDomainRoute(input: DomainRouteInput): SimulateRouteResult {
-  const domain = input.domain.trim().toLowerCase();
+  // FQDN 尾点（"www.a.com."）与无尾点解析等价，归一时剥去
+  const domain = input.domain.trim().toLowerCase().replace(/\.$/, "");
   const trace: RouteTraceRow[] = [];
   let matchedIndex = -1;
 

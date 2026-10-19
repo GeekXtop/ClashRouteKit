@@ -467,13 +467,21 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
               });
               writeJson(response, 200, { ok: true, result });
             } catch (error: unknown) {
-              // 磁盘配置缺失/非法（ConfigDiagnosticError）与其他读取异常 → 422
-              writeJson(response, 422, errorPayload(error));
+              // 配置层错误（非法：ConfigDiagnosticError；缺失：ENOENT）归 422；
+              // 实现缺陷原样上抛，由外层归 500
+              const isMissingConfig =
+                typeof error === "object" && error !== null && (error as NodeJS.ErrnoException).code === "ENOENT";
+              if (error instanceof ConfigDiagnosticError || isMissingConfig) {
+                writeJson(response, 422, errorPayload(error));
+                return undefined;
+              }
+              throw error;
             }
             return undefined;
           })
           .catch((error: unknown) => {
-            writeJson(response, 400, errorPayload(error));
+            // body 非合法 JSON 是客户端错误；其余（含评估器缺陷）按服务端错误 500
+            writeJson(response, error instanceof SyntaxError ? 400 : 500, errorPayload(error));
           });
       });
       return;

@@ -23,7 +23,11 @@ export async function loadSimulateMaterials(
 ): Promise<SimulateMaterials> {
   const providerEntries: SimulateMaterials["providerEntries"] = {};
   for (const provider of config.ruleProviders) {
-    if (provider.enabled === false) continue;
+    // 禁用的 provider 不读文件，标记 disabled 让评估轨迹给出准确原因
+    if (provider.enabled === false) {
+      providerEntries[provider.id] = { behavior: provider.behavior, entries: null, disabled: true };
+      continue;
+    }
     try {
       const text = await readFile(path.resolve(options.root, "output/rules", provider.output), "utf8");
       const parsed = YAML.parse(text) as { payload?: unknown };

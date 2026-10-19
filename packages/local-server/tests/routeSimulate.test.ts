@@ -77,6 +77,8 @@ async function writeProviderOutput(root: string, payload: string[]): Promise<voi
 function callHandler(
   handler: ReturnType<typeof createRouteKitApiHandler>,
   body: unknown,
+  url = "/api/route-simulate",
+  method = "POST",
 ): Promise<{ status: number; body: string }> {
   return new Promise((resolve) => {
     const state = { statusCode: 0 };
@@ -95,11 +97,11 @@ function callHandler(
     const chunks = JSON.stringify(body);
     let sent = false;
     const req = {
-      url: "/api/route-simulate",
-      method: "POST",
+      url,
+      method,
       headers: {},
       on(event: string, cb: (chunk?: Buffer) => void) {
-        if (event === "data" && !sent) {
+        if (event === "data" && !sent && method !== "GET") {
           sent = true;
           cb(Buffer.from(chunks, "utf8"));
         }
@@ -177,12 +179,44 @@ describe("POST /api/route-simulate", () => {
   it("非法域名 400", async () => {
     const root = await prepareRoot(baseConfig);
     const handler = createRouteKitApiHandler({ root, configFile: "config/routes.yaml" });
-    for (const domain of ["", "a/b", "a b.com"]) {
+    for (const domain of ["", "a/b", "a b.com", "a:b"]) {
       const res = await callHandler(handler, { domain });
       expect(res.status, domain).toBe(400);
       expect(JSON.parse(res.body)).toMatchObject({ ok: false });
     }
     await rm(root, { recursive: true, force: true });
+  });
+
+  it("非 POST 方法 405", async () => {
+    const root = await prepareRoot(baseConfig);
+    const handler = createRouteKitApiHandler({ root, configFile: "config/routes.yaml" });
+    const res = await callHandler(handler, {}, "/api/route-simulate", "GET");
+    expect(res.status).toBe(405);
+    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Method not allowed" });
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("禁用 provider 与缺失 geosite tag 在端到端轨迹中区分", async () => {
+    const disabledProviderConfig = providerFirstConfig.replace(
+      "  - id: ai-domain",
+      "  - id: ai-domain\n    enabled: false",
+    );
+    const root = await prepareRoot(disabledProviderConfig);
+    const handler = createRouteKitApiHandler({ root, configFile: "config/routes.yaml" });
+    const payload = JSON.parse((await callHandler(handler, { domain: "x.a.com" })).body) as MatchedPayload;
+    expect(payload.result.matched?.routeId).toBe("final");
+    expect(payload.result.trace[0]?.outcome.kind).toBe("skipped");
+    expect(payload.result.trace[0]?.outcome.reason).toContain("禁用");
+    await rm(root, { recursive: true, force: true });
+
+    // geosite tag 不在本地 vendor → skipped(vendor) 端到端
+    const root2 = await prepareRoot(baseConfig);
+    const handler2 = createRouteKitApiHandler({ root: root2, configFile: "config/routes.yaml" });
+    const payload2 = JSON.parse((await callHandler(handler2, { domain: "www.openai.com" })).body) as MatchedPayload;
+    expect(payload2.result.matched?.routeId).toBe("final");
+    expect(payload2.result.trace[0]?.outcome.kind).toBe("skipped");
+    expect(payload2.result.trace[0]?.outcome.reason).toContain("vendor");
+    await rm(root2, { recursive: true, force: true });
   });
 
   it("覆盖 yaml 未过 v2 校验 → 422 + diagnostics；磁盘配置缺失 → 422", async () => {

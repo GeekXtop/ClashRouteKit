@@ -71,6 +71,19 @@ describe("isPlausibleDomain", () => {
       expect(isPlausibleDomain(bad), bad).toBe(false);
     }
   });
+
+  it("接受 FQDN 尾点并按去点域名评估", () => {
+    expect(isPlausibleDomain("www.a.com.")).toBe(true);
+    const result = simulateDomainRoute(
+      baseInput({
+        domain: "www.a.com.",
+        routes: [route("r1", { builtin: "DIRECT" }, { type: "geosite", value: "tags" })],
+        geositeEntries: { tags: ["DOMAIN-SUFFIX,a.com"] },
+      }),
+    );
+    expect(result.status).toBe("matched");
+    expect(result.domain).toBe("www.a.com");
+  });
 });
 
 describe("simulateDomainRoute 匹配谓词", () => {
@@ -168,6 +181,20 @@ describe("simulateDomainRoute 源类型", () => {
     expect(result.matched?.routeId).toBe("final");
     expect(result.trace[0]?.outcome).toEqual({ kind: "skipped", reason: expect.stringContaining("generate") });
     expect(result.trace[1]?.outcome).toEqual({ kind: "skipped", reason: expect.stringContaining("vendor") });
+  });
+
+  it("禁用 provider 的 skip reason 指向禁用而非缺失", () => {
+    const result = simulateDomainRoute(
+      baseInput({
+        routes: [
+          route("r1", { builtin: "DIRECT" }, { type: "rule-provider", provider: "off" }),
+          route("final", { builtin: "DIRECT" }, { type: "final" }),
+        ],
+        providerEntries: { off: { behavior: "domain", entries: null, disabled: true } },
+      }),
+    );
+    expect(result.matched?.routeId).toBe("final");
+    expect(result.trace[0]?.outcome).toEqual({ kind: "skipped", reason: expect.stringContaining("禁用") });
   });
 });
 
