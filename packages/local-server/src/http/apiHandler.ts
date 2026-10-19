@@ -129,18 +129,28 @@ export function createRouteKitApiHandler(options: ApiHandlerOptions) {
                   config?: RouteKitProjectConfig;
                   schemaVersion?: unknown;
                   yaml?: unknown;
+                  baseMtime?: unknown;
                 },
             )
             .then(async (payload) => {
-              // v2 保存：提交 { schemaVersion: 2, yaml }。解析失败 400 + diagnostics，
-              // 校验 error 422 + diagnostics，成功 200。
+              // v2 保存：提交 { schemaVersion: 2, yaml, baseMtime }。缺 baseMtime 400，
+              // 解析失败 400 + diagnostics，baseMtime 过期 409 + 服务端当前全文，
+              // 校验 error 422 + diagnostics，成功 200（响应含写后 mtime）。
               if (typeof payload.yaml !== "string") {
                 writeJson(response, 400, { ok: false, output: "Missing v2 config yaml" });
                 return undefined;
               }
+              if (typeof payload.baseMtime !== "number") {
+                writeJson(response, 400, { ok: false, output: "Missing baseMtime" });
+                return undefined;
+              }
               try {
-                const result = await saveAuthorProject({ ...options, yaml: payload.yaml });
-                writeJson(response, result.ok ? 200 : 422, result);
+                const result = await saveAuthorProject({
+                  ...options,
+                  yaml: payload.yaml,
+                  baseMtime: payload.baseMtime,
+                });
+                writeJson(response, result.ok ? 200 : "conflict" in result ? 409 : 422, result);
               } catch (error: unknown) {
                 writeJson(response, 400, errorPayload(error));
               }

@@ -6,9 +6,10 @@
  * - `serializeV2Project`：schemaVersion: 2 置顶序列化，与 local-server
  *   `serializeAuthorProjectV2` 同一算法（服务端会重排，前端保持一致）；
  * - `fetchProjectDocument`：GET /api/project/config，v2-only 响应
- *   （{ schemaVersion: 2, yaml, runtimeUrls }）；
- * - `saveV2Project`：PUT { schemaVersion: 2, yaml }；200 返回服务器规范化后
- *   的 yaml 与 warning 诊断，422/400 返回结构化 diagnostics，网络错误向上抛出。
+ *   （{ schemaVersion: 2, yaml, runtimeUrls, mtime }）；
+ * - `saveV2Project`：PUT { schemaVersion: 2, yaml, baseMtime }；200 返回服务器规范化后
+ *   的 yaml 与 warning 诊断，409 返回 conflict 变体，422/400 返回结构化
+ *   diagnostics，网络错误向上抛出。
  */
 import {
   normalizeAuthorProjectConfig,
@@ -76,6 +77,8 @@ export interface ProjectDocument {
   schemaVersion: 2;
   yaml: string;
   runtimeUrls?: RuntimeUrls;
+  /** 服务端文件 mtime；保存时作为 baseMtime 回传做冲突检测。 */
+  mtime: number;
 }
 
 /** 本地设置解析出的运行时 URL（spec 5.3）；旧响应缺失时为 undefined。 */
@@ -114,31 +117,39 @@ export async function fetchProjectDocument(
   if (!response.ok || !isRecord(payload) || typeof payload.yaml !== "string") {
     throw new Error("Invalid local project response");
   }
-  if (payload.schemaVersion === 2) {
-    return { schemaVersion: 2, yaml: payload.yaml, runtimeUrls: readRuntimeUrls(payload) };
+  if (payload.schemaVersion === 2 && typeof payload.mtime === "number") {
+    return {
+      schemaVersion: 2,
+      yaml: payload.yaml,
+      runtimeUrls: readRuntimeUrls(payload),
+      mtime: payload.mtime,
+    };
   }
   throw new Error("Invalid local project response");
 }
 
 export type SaveV2ProjectResult =
-  | { ok: true; yaml: string; warnings: Diagnostic[] }
-  | { ok: false; reason: string; diagnostics: Diagnostic[] };
+  | { ok: true; yaml: string; warnings: Diagnostic[]; mtime: number }
+  | { ok: false; reason: string; diagnostics: Diagnostic[] }
+  | { ok: false; conflict: true; currentYaml: string; mtime: number };
 
 /**
- * v2 保存：PUT { schemaVersion: 2, yaml }。
- * - 200：服务器重新序列化后的 yaml + 非 error 诊断（warnings）；
+ * v2 保存：PUT { schemaVersion: 2, yaml, baseMtime }。
+ * - 200：服务器重新序列化后的 yaml + 写后 mtime + 非 error 诊断（warnings）；
+ * - 409：baseMtime 过期，返回 conflict 变体（服务端当前全文 + 当前 mtime）；
  * - 422 / 400：ok:false，reason 取服务器 output 或默认提示，diagnostics 为
  *   结构化校验诊断；
  * - 响应体非 JSON / 缺 yaml、网络错误：抛异常，由调用方按保存失败处理。
  */
 export async function saveV2Project(
   yaml: string,
+  baseMtime: number,
   fetcher: Fetcher = globalThis.fetch,
 ): Promise<SaveV2ProjectResult> {
   const response = await fetcher("/api/project/config", {
     method: "PUT",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ schemaVersion: 2, yaml }),
+    body: JSON.stringify({ schemaVersion: 2, yaml, baseMtime }),
   });
   let payload: unknown;
   try {
@@ -147,7 +158,20 @@ export async function saveV2Project(
     payload = undefined;
   }
   if (response.ok && isRecord(payload) && typeof payload.yaml === "string") {
-    return { ok: true, yaml: payload.yaml, warnings: readDiagnostics(payload.diagnostics) };
+    return {
+      ok: true,
+      yaml: payload.yaml,
+      warnings: readDiagnostics(payload.diagnostics),
+      mtime: typeof payload.mtime === "number" ? payload.mtime : 0,
+    };
+  }
+  if (response.status === 409 && isRecord(payload) && payload.conflict === true) {
+    return {
+      ok: false,
+      conflict: true,
+      currentYaml: typeof payload.currentYaml === "string" ? payload.currentYaml : "",
+      mtime: typeof payload.mtime === "number" ? payload.mtime : baseMtime,
+    };
   }
   if (isRecord(payload)) {
     const reason =

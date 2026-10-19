@@ -135,3 +135,20 @@ describe("document loading", () => {
     expect(saved.runtimeUrls).toEqual(runtimeUrls);
   });
 });
+
+describe("baseMtime 透传", () => {
+  it("createV2ProjectController 携带 baseMtime，markV2ProjectSaved 更新它", () => {
+    const state = createV2ProjectController(createV2Yaml(), undefined, 1234);
+    expect(state.baseMtime).toBe(1234);
+
+    const mutated = applyV2Config(state, state.v2!.config);
+    expect(mutated.baseMtime).toBe(1234);
+    const saved = markV2ProjectSaved(mutated, mutated.draftYaml, 5678);
+    expect(saved.baseMtime).toBe(5678);
+  });
+
+  it("未传 baseMtime 时为 undefined（调用方以 ?? 0 兜底）", () => {
+    const state = createV2ProjectController(createV2Yaml());
+    expect(state.baseMtime).toBeUndefined();
+  });
+});

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import YAML from "yaml";
 import { AppShell } from "./components/AppShell.js";
+import { ConfigConflictDialog } from "./components/ConfigConflictDialog.js";
 import { ImportModal } from "./components/ImportModal.js";
 import { LibraryPage } from "./components/LibraryPage.js";
 import { RoutingPage } from "./components/RoutingPage.js";
@@ -51,6 +52,8 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false);
   const [importSources, setImportSources] = useState<CatalogSourceInfo[]>([]);
   const [lastWorkView, setLastWorkView] = useState<Exclude<ProjectView, "project">>("routing");
+  // 写冲突（PUT 409）待决策状态：currentYaml 供后续扩展展示，mtime 是覆盖重试的新 base
+  const [conflict, setConflict] = useState<{ currentYaml: string; mtime: number } | null>(null);
 
   function openImport() {
     setImportOpen(true);
@@ -78,12 +81,19 @@ export default function App() {
           notifyError(converted.error);
           return;
         }
-        const save = await saveV2Project(converted.yaml);
+        const save = await saveV2Project(converted.yaml, project.baseMtime ?? 0);
         if (!save.ok) {
+          if ("conflict" in save) {
+            // 导入是显式单次动作，草稿语义与自动保存不同：冲突时提示重载，
+            // 不自动覆盖（覆盖会丢掉外部修改且无法撤销）。
+            notifyError("配置文件已被外部修改，导入已取消，请重载后重试");
+            refreshConfig();
+            return;
+          }
           notifyError(save.diagnostics.map((d) => `[${d.code}] ${d.message}`).join("；") || save.reason);
           return;
         }
-        setProject(createV2ProjectController(save.yaml, project.runtimeUrls));
+        setProject(createV2ProjectController(save.yaml, project.runtimeUrls, save.mtime));
         notifySuccess(
           converted.warningCount
             ? `已导入并转换为 Schema v2 配置（${converted.warningCount} 条警告，规则源可在规则库补全）`
@@ -105,7 +115,9 @@ export default function App() {
 
   function refreshConfig() {
     void fetchProjectDocument()
-      .then((document) => setProject(createV2ProjectController(document.yaml, document.runtimeUrls)))
+      .then((document) =>
+        setProject(createV2ProjectController(document.yaml, document.runtimeUrls, document.mtime)),
+      )
       .catch((error: unknown) => notifyError(error instanceof Error ? error.message : String(error)));
   }
 
@@ -130,14 +142,21 @@ export default function App() {
     setProject((current) => setProjectStatus(current, "saving", "正在创建空白项目"));
     // 空白项目直接以 Schema v2 落盘（saveV2Project 走 v2 校验链），
     // 避免经 v1 保存路径把配置降级写回旧格式。
-    void saveV2Project(YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }))
+    void saveV2Project(YAML.stringify(createBlankProjectConfigV2(), { lineWidth: 0 }), project.baseMtime ?? 0)
       .then((save) => {
         if (!save.ok) {
+          if ("conflict" in save) {
+            // 与导入同口径：显式动作遇冲突不自动覆盖
+            setProject((current) => setProjectStatus(current, "error", "配置文件已被外部修改，请重载后重试"));
+            notifyError("配置文件已被外部修改，请重载后重试");
+            refreshConfig();
+            return;
+          }
           const message =
             save.diagnostics.map((d) => `[${d.code}] ${d.message}`).join("；") || save.reason;
           throw new Error(message);
         }
-        setProject((current) => createV2ProjectController(save.yaml, current.runtimeUrls));
+        setProject((current) => createV2ProjectController(save.yaml, current.runtimeUrls, save.mtime));
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
@@ -151,7 +170,7 @@ export default function App() {
     setProject((current) => setProjectStatus(current, "loading", "正在读取本地 config/routes.yaml"));
     void fetchProjectDocument()
       .then((document) => {
-        if (alive) setProject(createV2ProjectController(document.yaml, document.runtimeUrls));
+        if (alive) setProject(createV2ProjectController(document.yaml, document.runtimeUrls, document.mtime));
       })
       .catch((error: unknown) => {
         if (!alive) return;
@@ -177,11 +196,17 @@ export default function App() {
     const timer = setTimeout(() => {
       setProject((current) => setProjectStatus(current, "saving", "正在保存"));
       if (project.v2) {
-        // v2 保存链路：以序列化后的 v2 作者配置整体提交。
-        void saveV2Project(serializeV2Project(project.v2.config))
+        // v2 保存链路：以序列化后的 v2 作者配置整体提交，携带 mtime 基线做冲突检测。
+        void saveV2Project(serializeV2Project(project.v2.config), project.baseMtime ?? 0)
           .then((result) => {
             if (result.ok) {
-              setProject((current) => markV2ProjectSaved(current, result.yaml));
+              setProject((current) => markV2ProjectSaved(current, result.yaml, result.mtime));
+            } else if ("conflict" in result) {
+              // 文件被外部修改：停下等用户裁决（覆盖 / 重载），不静默覆盖
+              setProject((current) =>
+                setProjectStatus(current, "error", "配置文件已被外部修改，请选择覆盖或重载"),
+              );
+              setConflict({ currentYaml: result.currentYaml, mtime: result.mtime });
             } else {
               setProject((current) => setProjectStatus(current, "error", result.reason));
               notifyError(result.reason);
@@ -196,6 +221,40 @@ export default function App() {
     }, 600);
     return () => clearTimeout(timer);
   }, [project]);
+
+  function handleConflictOverwrite() {
+    if (!conflict || !project.v2) return;
+    // 以 409 返回的服务端 mtime 为新 base 重试；若期间又被外部修改会再次 409，
+    // 对话框以最新 mtime 重新出现（不循环自动重试）。
+    const retryMtime = conflict.mtime;
+    setProject((current) => setProjectStatus(current, "saving", "正在覆盖保存"));
+    void saveV2Project(serializeV2Project(project.v2!.config), retryMtime)
+      .then((result) => {
+        if (result.ok) {
+          setConflict(null);
+          setProject((current) => markV2ProjectSaved(current, result.yaml, result.mtime));
+        } else if ("conflict" in result) {
+          setProject((current) =>
+            setProjectStatus(current, "error", "配置文件已被外部修改，请选择覆盖或重载"),
+          );
+          setConflict({ currentYaml: result.currentYaml, mtime: result.mtime });
+        } else {
+          setConflict(null);
+          setProject((current) => setProjectStatus(current, "error", result.reason));
+          notifyError(result.reason);
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        setProject((current) => setProjectStatus(current, "error", message));
+        notifyError(message);
+      });
+  }
+
+  function handleConflictReload() {
+    setConflict(null);
+    refreshConfig();
+  }
 
   const saveLabel =
     project.status === "saving" ? "保存中…" : project.status === "error" ? "保存失败" : project.dirty ? "" : "已保存";
@@ -249,6 +308,13 @@ export default function App() {
         mergeDisabled={Boolean(v2State)}
         onClose={() => setImportOpen(false)}
         onImport={handleImport}
+      />
+      <ConfigConflictDialog
+        open={conflict !== null}
+        serverMtime={conflict?.mtime ?? 0}
+        onOverwrite={handleConflictOverwrite}
+        onReload={handleConflictReload}
+        onCancel={() => setConflict(null)}
       />
     </>
   );

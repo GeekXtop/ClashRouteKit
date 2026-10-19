@@ -213,7 +213,7 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ schemaVersion: 2, yaml: validConfigYaml }),
+      JSON.stringify({ schemaVersion: 2, yaml: validConfigYaml, baseMtime: 0 }),
     );
     expect(res.status).toBe(200);
     expect(writes[0]?.filePath).toBe(path.resolve("E:/repo", "config/routes.yaml"));
@@ -240,10 +240,49 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ schemaVersion: 2, yaml: invalidYaml }),
+      JSON.stringify({ schemaVersion: 2, yaml: invalidYaml, baseMtime: 0 }),
     );
     expect(res.status).toBe(422);
     JSON.parse(res.body);
+    expect(writes).toEqual([]);
+  });
+
+  it("rejects PUT /api/project/config without a numeric baseMtime", async () => {
+    const handler = createRouteKitApiHandler({ ...baseOptions, writeText: async () => {} });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: validConfigYaml }),
+    );
+    expect(res.status).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({ ok: false, output: "Missing baseMtime" });
+  });
+
+  it("responds 409 with server yaml when baseMtime is stale", async () => {
+    const writes: string[] = [];
+    const handler = createRouteKitApiHandler({
+      ...baseOptions,
+      statMtime: async () => 1000,
+      readText: async () => "server current yaml",
+      writeText: async (filePath) => {
+        writes.push(filePath);
+      },
+    });
+    const res = await callHandler(
+      handler,
+      "/api/project/config",
+      "PUT",
+      JSON.stringify({ schemaVersion: 2, yaml: validConfigYaml, baseMtime: 999 }),
+    );
+    expect(res.status).toBe(409);
+    expect(JSON.parse(res.body)).toEqual({
+      ok: false,
+      conflict: true,
+      code: "config.conflict",
+      currentYaml: "server current yaml",
+      mtime: 1000,
+    });
     expect(writes).toEqual([]);
   });
 
@@ -297,7 +336,7 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ schemaVersion: 2, yaml: reordered }),
+      JSON.stringify({ schemaVersion: 2, yaml: reordered, baseMtime: 0 }),
     );
     expect(res.status).toBe(200);
     const payload = JSON.parse(res.body) as {
@@ -327,7 +366,7 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ yaml: validV2Yaml }),
+      JSON.stringify({ yaml: validV2Yaml, baseMtime: 0 }),
     );
     expect(res.status).toBe(200);
     expect((JSON.parse(res.body) as { ok: boolean }).ok).toBe(true);
@@ -346,7 +385,7 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ schemaVersion: 2, yaml: validV2Yaml.replace("group: proxy", "group: ghost") }),
+      JSON.stringify({ schemaVersion: 2, yaml: validV2Yaml.replace("group: proxy", "group: ghost"), baseMtime: 0 }),
     );
     expect(res.status).toBe(422);
     const payload = JSON.parse(res.body) as {
@@ -370,7 +409,7 @@ describe("createRouteKitApiHandler", () => {
       handler,
       "/api/project/config",
       "PUT",
-      JSON.stringify({ schemaVersion: 2, yaml: "proxyGroups: [unclosed\n" }),
+      JSON.stringify({ schemaVersion: 2, yaml: "proxyGroups: [unclosed\n", baseMtime: 0 }),
     );
     expect(res.status).toBe(400);
     const payload = JSON.parse(res.body) as {

@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { readAuthorProjectFile, saveAuthorProject } from "../src/index.js";
 
 const tempRoots: string[] = [];
@@ -108,7 +108,12 @@ describe("saveAuthorProject", () => {
       "proxyGroups:",
       "schemaVersion: 2\nproxyGroups:",
     );
-    const result = await saveAuthorProject({ ...baseOptions(root), yaml: reordered });
+    const result = await saveAuthorProject({
+      ...baseOptions(root),
+      yaml: reordered,
+      baseMtime: 1000,
+      statMtime: async () => 1000,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.schemaVersion).toBe(2);
@@ -131,9 +136,9 @@ describe("saveAuthorProject", () => {
     await writeFile(path.join(configDir, "routes.yaml"), V2_YAML, "utf8");
 
     const invalidYaml = V2_YAML.replace("group: proxy", "group: ghost");
-    const result = await saveAuthorProject({ ...baseOptions(root), yaml: invalidYaml });
+    const result = await saveAuthorProject({ ...baseOptions(root), yaml: invalidYaml, baseMtime: 0 });
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok || "conflict" in result) return;
     expect(result.diagnostics.some((diagnostic) => diagnostic.severity === "error")).toBe(true);
     expect(await readdir(configDir)).toEqual(["routes.yaml"]);
   });
@@ -145,12 +150,72 @@ describe("saveAuthorProject", () => {
     await writeFile(path.join(configDir, "routes.yaml"), V2_YAML, "utf8");
 
     await expect(
-      saveAuthorProject({ ...baseOptions(root), yaml: "proxyGroups: [unclosed\n" }),
+      saveAuthorProject({ ...baseOptions(root), yaml: "proxyGroups: [unclosed\n", baseMtime: 0 }),
     ).rejects.toMatchObject({ name: "ConfigDiagnosticError" });
     // v1 文档送进 v2 保存同样拒绝
     await expect(
-      saveAuthorProject({ ...baseOptions(root), yaml: V1_YAML }),
+      saveAuthorProject({ ...baseOptions(root), yaml: V1_YAML, baseMtime: 0 }),
     ).rejects.toMatchObject({ name: "ConfigDiagnosticError" });
     expect(await readdir(configDir)).toEqual(["routes.yaml"]);
+  });
+});
+
+describe("saveAuthorProject baseMtime 冲突检测", () => {
+  it("baseMtime 与盘上 mtime 匹配时写入", async () => {
+    const written: string[] = [];
+    const result = await saveAuthorProject({
+      ...baseOptions("unused-root"),
+      yaml: V2_YAML,
+      baseMtime: 1000,
+      statMtime: async () => 1000,
+      writeText: async (_filePath, text) => {
+        written.push(text);
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(written.join("")).toContain("schemaVersion: 2");
+  });
+
+  it("baseMtime 过期时返回 conflict 且不落盘", async () => {
+    const writeText = vi.fn(async () => {});
+    const result = await saveAuthorProject({
+      ...baseOptions("unused-root"),
+      yaml: V2_YAML,
+      baseMtime: 999,
+      statMtime: async () => 1000,
+      readText: async () => "server current yaml",
+      writeText,
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      conflict: true,
+      code: "config.conflict",
+      currentYaml: "server current yaml",
+      mtime: 1000,
+    });
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("文件不存在按 mtime 0 语义处理", async () => {
+    const miss = await saveAuthorProject({
+      ...baseOptions("unused-root"),
+      yaml: V2_YAML,
+      baseMtime: 5,
+      statMtime: async () => 0,
+      readText: async () => {
+        throw new Error("ENOENT");
+      },
+      writeText: async () => {},
+    });
+    expect(miss).toMatchObject({ ok: false, conflict: true, currentYaml: "", mtime: 0 });
+
+    const hit = await saveAuthorProject({
+      ...baseOptions("unused-root"),
+      yaml: V2_YAML,
+      baseMtime: 0,
+      statMtime: async () => 0,
+      writeText: async () => {},
+    });
+    expect(hit.ok).toBe(true);
   });
 });

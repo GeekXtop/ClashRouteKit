@@ -69,6 +69,7 @@ describe("fetchProjectDocument", () => {
       schemaVersion: 2,
       yaml,
       runtimeUrls,
+      mtime: 1,
     });
     expect(fetcher).toHaveBeenCalledWith("/api/project/config");
   });
@@ -79,7 +80,15 @@ describe("fetchProjectDocument", () => {
       new Response(JSON.stringify({ schemaVersion: 2, yaml, mtime: 1 }), { status: 200 }),
     );
 
-    await expect(fetchProjectDocument(fetcher)).resolves.toEqual({ schemaVersion: 2, yaml });
+    await expect(fetchProjectDocument(fetcher)).resolves.toEqual({ schemaVersion: 2, yaml, mtime: 1 });
+  });
+
+  it("rejects a v2 payload without an mtime (冲突检测需要版本令牌)", async () => {
+    const yaml = createV2Yaml();
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ schemaVersion: 2, yaml }), { status: 200 }),
+    );
+    await expect(fetchProjectDocument(fetcher)).rejects.toThrow("Invalid local project response");
   });
 
   it("rejects legacy v1 payloads (config field, no schemaVersion)", async () => {
@@ -106,17 +115,33 @@ describe("saveV2Project", () => {
       expect(String(input)).toBe("/api/project/config");
       expect(init?.method).toBe("PUT");
       expect(init?.headers).toEqual({ "content-type": "application/json" });
-      expect(JSON.parse(String(init?.body))).toEqual({ schemaVersion: 2, yaml });
+      expect(JSON.parse(String(init?.body))).toEqual({ schemaVersion: 2, yaml, baseMtime: 1000 });
       return new Response(
-        JSON.stringify({ ok: true, schemaVersion: 2, yaml: `${yaml}# normalized\n`, diagnostics: [warning] }),
+        JSON.stringify({ ok: true, schemaVersion: 2, yaml: `${yaml}# normalized\n`, mtime: 2000, diagnostics: [warning] }),
         { status: 200 },
       );
     });
 
-    await expect(saveV2Project(yaml, fetcher)).resolves.toEqual({
+    await expect(saveV2Project(yaml, 1000, fetcher)).resolves.toEqual({
       ok: true,
       yaml: `${yaml}# normalized\n`,
       warnings: [warning],
+      mtime: 2000,
+    });
+  });
+
+  it("parses a 409 conflict into the conflict variant", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ ok: false, conflict: true, code: "config.conflict", currentYaml: "server yaml", mtime: 2000 }),
+        { status: 409 },
+      ),
+    );
+    await expect(saveV2Project(createV2Yaml(), 1000, fetcher)).resolves.toEqual({
+      ok: false,
+      conflict: true,
+      currentYaml: "server yaml",
+      mtime: 2000,
     });
   });
 
@@ -128,7 +153,7 @@ describe("saveV2Project", () => {
       new Response(JSON.stringify({ ok: false, diagnostics }), { status: 422 }),
     );
 
-    const result = await saveV2Project(createV2Yaml(), fetcher);
+    const result = await saveV2Project(createV2Yaml(), 0, fetcher);
     expect(result).toEqual({
       ok: false,
       reason: "Schema v2 保存被拒绝",
@@ -141,7 +166,7 @@ describe("saveV2Project", () => {
       new Response(JSON.stringify({ ok: false, output: "Missing v2 config yaml" }), { status: 400 }),
     );
 
-    await expect(saveV2Project(createV2Yaml(), fetcher)).resolves.toEqual({
+    await expect(saveV2Project(createV2Yaml(), 0, fetcher)).resolves.toEqual({
       ok: false,
       reason: "Missing v2 config yaml",
       diagnostics: [],
@@ -152,12 +177,12 @@ describe("saveV2Project", () => {
     const fetcher = vi.fn(async () => {
       throw new Error("network offline");
     });
-    await expect(saveV2Project(createV2Yaml(), fetcher)).rejects.toThrow("network offline");
+    await expect(saveV2Project(createV2Yaml(), 0, fetcher)).rejects.toThrow("network offline");
   });
 
   it("throws on non-JSON error responses", async () => {
     const fetcher = vi.fn(async () => new Response("<html>", { status: 500 }));
-    await expect(saveV2Project(createV2Yaml(), fetcher)).rejects.toThrow(
+    await expect(saveV2Project(createV2Yaml(), 0, fetcher)).rejects.toThrow(
       "Invalid v2 project save response",
     );
   });

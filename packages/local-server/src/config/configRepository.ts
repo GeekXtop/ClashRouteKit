@@ -119,6 +119,9 @@ export async function readAuthorProjectFile(
 export interface SaveAuthorProjectOptions extends ProjectOptions {
   /** 客户端提交的完整 v2 YAML 文本（顶层 schemaVersion: 2）。 */
   yaml: string;
+  /** 写前比对的基础 mtime（与 GET 返回的 mtime 同源）；不匹配返回 conflict 不落盘。 */
+  baseMtime: number;
+  readText?: ReadText;
   writeText?: WriteText;
   statMtime?: (filePath: string) => Promise<number>;
 }
@@ -139,18 +142,35 @@ export interface SaveAuthorProjectRejection {
   diagnostics: Diagnostic[];
 }
 
-export type SaveAuthorProjectResult = SaveAuthorProjectSuccess | SaveAuthorProjectRejection;
+export interface SaveAuthorProjectConflict {
+  ok: false;
+  conflict: true;
+  code: "config.conflict";
+  /** 服务端当前 yaml 全文（供前端展示/重载）；文件不存在时为空串。 */
+  currentYaml: string;
+  /** 服务端当前 mtime（覆盖重试时作为新 base）。 */
+  mtime: number;
+}
+
+export type SaveAuthorProjectResult =
+  | SaveAuthorProjectSuccess
+  | SaveAuthorProjectRejection
+  | SaveAuthorProjectConflict;
 
 /**
  * v2 作者配置保存（plan Task 4 服务端补全）：与迁移 apply 共用
  * authorProjectV2 的完整校验链，存在 error 级诊断返回 ok:false 且不写盘；
  * 通过后以 schemaVersion: 2 置顶重新序列化并经 writeFileAtomic 原子写入。
+ * 写前比对 baseMtime（乐观锁）：不匹配返回 conflict + 服务端当前全文，不落盘。
+ * 已知限制：文件系统 mtime 粒度较粗（部分 FS 秒级），极短间隔的连续外部写入
+ * 可能漏检冲突——单用户本地工具可接受，需要更强保证时升级为内容 hash。
  * 解析失败（YAML 语法、v2 结构错误、schemaVersion 非 2）抛 ConfigDiagnosticError，
  * 由 API 层转换为 400 + diagnostics。
  */
 export async function saveAuthorProject(
   options: SaveAuthorProjectOptions,
 ): Promise<SaveAuthorProjectResult> {
+  const readText = options.readText ?? ((filePath: string) => readFile(filePath, "utf8"));
   const writeText = options.writeText ?? ((filePath: string, text: string) => writeFileAtomic(filePath, text));
   const statMtime =
     options.statMtime ?? ((filePath: string) => stat(filePath).then((info) => info.mtimeMs).catch(() => 0));
@@ -161,6 +181,11 @@ export async function saveAuthorProject(
   }
   const yaml = serializeAuthorProjectV2(validation.parsed);
   const configPath = projectConfigPath(options);
+  const currentMtime = await statMtime(configPath);
+  if (currentMtime !== options.baseMtime) {
+    const currentYaml = await readText(configPath).catch(() => "");
+    return { ok: false, conflict: true, code: "config.conflict", currentYaml, mtime: currentMtime };
+  }
   await writeText(configPath, yaml);
   return {
     ok: true,

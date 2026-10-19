@@ -41,6 +41,11 @@ export interface ProjectControllerState {
    * 装载时从 GET /api/project/config 响应透传，渲染投影据此填充。
    */
   runtimeUrls?: RuntimeUrls;
+  /**
+   * 服务端文件 mtime 基线：保存时作为 baseMtime 回传做冲突检测，
+   * 装载时取自 GET 响应，保存成功后以响应中的写后 mtime 更新。
+   */
+  baseMtime?: number;
   validation: ProjectValidationState;
   selectedView: ProjectView;
   selectedRuleSetId: string;
@@ -77,7 +82,11 @@ function v2ReadOnlyProjection(templateOutput: string, runtimeUrls?: RuntimeUrls)
 }
 
 /** Schema v2 项目控制器工厂：yaml 经 loadV2Project 完整装载链进入 v2 状态。 */
-export function createV2ProjectController(yaml: string, runtimeUrls?: RuntimeUrls): ProjectControllerState {
+export function createV2ProjectController(
+  yaml: string,
+  runtimeUrls?: RuntimeUrls,
+  baseMtime?: number,
+): ProjectControllerState {
   let v2: V2ProjectState | undefined;
   let status: ProjectStatus = "ready";
   let message = "已读取本地 config/routes.yaml（Schema v2）";
@@ -102,6 +111,7 @@ export function createV2ProjectController(yaml: string, runtimeUrls?: RuntimeUrl
     schemaVersion: 2,
     v2,
     runtimeUrls,
+    baseMtime,
     validation: {
       status: "idle",
       output: "尚未运行检查",
@@ -175,8 +185,12 @@ export function applyV2Config(
   };
 }
 
-/** v2 保存成功后的基线重置：以服务器规范化后的 yaml 为新基线。 */
-export function markV2ProjectSaved(state: ProjectControllerState, yaml: string): ProjectControllerState {
+/** v2 保存成功后的基线重置：以服务器规范化后的 yaml 与写后 mtime 为新基线。 */
+export function markV2ProjectSaved(
+  state: ProjectControllerState,
+  yaml: string,
+  mtime?: number,
+): ProjectControllerState {
   if (!state.v2) return state;
   const warnings = state.v2.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "warning",
@@ -186,6 +200,7 @@ export function markV2ProjectSaved(state: ProjectControllerState, yaml: string):
     originalYaml: yaml,
     draftYaml: yaml,
     dirty: false,
+    baseMtime: mtime ?? state.baseMtime,
     status: "ready",
     message:
       warnings.length > 0
