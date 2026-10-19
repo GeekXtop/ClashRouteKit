@@ -1,0 +1,1180 @@
+schemaVersion: 2
+project:
+  template:
+    output: Custom_Clash.ini
+  defaults:
+    proxyGroups:
+      healthCheck:
+        url: https://cp.cloudflare.com/generate_204
+        interval: 300
+        timeout: 5
+      urlTest:
+        tolerance: 50
+    ruleSets:
+      ruleProviderInterval: 28800
+      geoipNoResolve: true
+memberSets:
+  set-1:
+    members:
+      - group: group-1
+      - group: group-2
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+  set-2:
+    members:
+      - group: group-1
+      - group: group-2
+      - group: group-39
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+  set-3:
+    members:
+      - group: group-1
+      - group: group-2
+      - group: group-52
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+  set-4:
+    members:
+      - group: group-52
+      - group: group-1
+      - group: group-2
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+proxyGroups:
+  - id: group-1
+    name: 🚀 手动选择
+    type: select
+    members:
+      - group: group-2
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+    nodeFilters:
+      - match: .*
+  - id: group-2
+    name: ♻️ 自动选择
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: .*
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-3
+    name: 💬 即时通讯
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: group-4
+    name: 🌐 社交媒体
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: talkatone
+    name: 📞 Talkatone
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: github
+    name: 🚀 GitHub
+    type: select
+    members:
+      - group: group-1
+      - group: group-2
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+      - group: group-52
+    nodeFilters:
+      - match: .*
+  - id: chatgpt
+    name: 🤖 ChatGPT
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: copilot
+    name: 🤖 Copilot
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: ai
+    name: 🤖 AI服务
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: tiktok
+    name: 🎶 TikTok
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: youtube
+    name: 📹 YouTube
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: netflix
+    name: 🎥 Netflix
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: disneyplus
+    name: 🎥 DisneyPlus
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: hbo
+    name: 🎥 HBO
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: primevideo
+    name: 🎥 PrimeVideo
+    type: select
+    members:
+      - preset: set-2
+    nodeFilters:
+      - match: .*
+  - id: appletv
+    name: 🎥 AppleTV+
+    type: select
+    members:
+      - group: group-1
+      - group: group-2
+      - group: group-39
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+      - group: group-52
+    nodeFilters:
+      - match: .*
+  - id: emby
+    name: 🎥 Emby
+    type: select
+    members:
+      - preset: set-3
+    nodeFilters:
+      - match: .*
+  - id: spotify
+    name: 🎻 Spotify
+    type: select
+    members:
+      - preset: set-3
+    nodeFilters:
+      - match: .*
+  - id: bahamut
+    name: 📺 Bahamut
+    type: select
+    members:
+      - group: group-40
+      - group: group-1
+      - group: group-52
+    nodeFilters:
+      - match: .*
+  - id: group-20
+    name: 🌎 国外媒体
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: group-21
+    name: 🛒 国外电商
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: group-22
+    name: 🪙 加密货币
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: fcm
+    name: 📢 谷歌FCM
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: group-24
+    name: 🇬 谷歌服务
+    type: select
+    members:
+      - preset: set-1
+    nodeFilters:
+      - match: .*
+  - id: group-25
+    name: 🍎 苹果服务
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: group-26
+    name: Ⓜ️ 微软服务
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: onedrive
+    name: 💾 OneDrive
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: paypal
+    name: 💳 PayPal
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: group-29
+    name: 🎮 游戏平台
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: steam
+    name: 🎮 Steam
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: pt
+    name: ⏬ PT站点
+    type: select
+    members:
+      - group: group-36
+      - group: group-37
+      - group: group-38
+      - group: group-39
+      - group: group-40
+      - group: group-41
+      - group: group-42
+      - group: group-43
+      - group: group-44
+      - group: group-45
+      - group: group-46
+      - group: group-47
+      - group: group-48
+      - group: group-49
+      - group: group-50
+      - group: group-51
+      - group: group-1
+      - group: group-2
+      - group: group-52
+    nodeFilters:
+      - match: .*
+  - id: group-32
+    name: 🚀 测速工具
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: group-33
+    name: 🌍 国外域名
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: group-34
+    name: 🐟 漏网之鱼
+    type: select
+    members:
+      - preset: set-4
+    nodeFilters:
+      - match: .*
+  - id: group-35
+    name: 🔀 非标端口
+    type: select
+    members:
+      - group: group-34
+      - group: group-52
+  - id: group-36
+    name: 🇭🇰 香港节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇭🇰|港|\bHK(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|hk|Hong Kong|HongKong|hongkong|HONG KONG|HONGKONG|深港|HKG|九龙|Kowloon|新界|沙田|荃湾|葵涌)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-37
+    name: 🇺🇸 美国节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇺🇸|美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|纽约|纽纽|亚特兰大|迈阿密|华盛顿|\bUS(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|United States|UnitedStates|UNITED STATES|USA|America|AMERICA|JFK|EWR|IAD|ATL|ORD|MIA|NYC|LAX|SFO|SEA|DFW|SJC)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-38
+    name: 🇯🇵 日本节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇯🇵|日本|川日|东京|大阪|泉日|埼玉|沪日|深日|(?<!尼|-)日|\bJP(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Japan|JAPAN|JPN|NRT|HND|KIX|TYO|OSA|关西|Kansai|KANSAI)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-39
+    name: 🇸🇬 新加坡节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇸🇬|新加坡|坡|狮城|\bSG(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Singapore|SINGAPORE|SIN)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-40
+    name: 🇼🇸 台湾节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇹🇼|🇼🇸|台|新北|彰化|\bTW(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Taiwan|TAIWAN|TWN|TPE|ROC)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-41
+    name: 🇰🇷 韩国节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇰🇷|\bKR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Korea|KOREA|KOR|首尔|韩|韓|春川|Chuncheon|ICN)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-42
+    name: 🇨🇦 加拿大节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇨🇦|加拿大|\bCA(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Canada|CANADA|CAN|渥太华|温哥华|卡尔加里|蒙特利尔|Montreal|YVR|YYZ|YUL)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-43
+    name: 🇬🇧 英国节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇬🇧|英国|Britain|United Kingdom|UNITED KINGDOM|England|伦敦|曼彻斯特|Manchester|\bUK(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|GBR|LHR|MAN)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-44
+    name: 🇫🇷 法国节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇫🇷|法国|\bFR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|France|FRANCE|FRA|巴黎|马赛|Marseille|CDG|MRS)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-45
+    name: 🇩🇪 德国节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇩🇪|德国|Germany|GERMANY|\bDE(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|DEU|柏林|法兰克福|慕尼黑|Munich|MUC)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-46
+    name: 🇳🇱 荷兰节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇳🇱|荷兰|Netherlands|NETHERLANDS|\bNL(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|NLD|阿姆斯特丹|AMS)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-47
+    name: 🇹🇷 土耳其节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇹🇷|土耳其|Turkey|TURKEY|Türkiye|\bTR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|TUR|IST|ANK)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-48
+    name: 🇷🇺 俄罗斯节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (🇷🇺|(?<!白)俄罗斯|(?<!白)俄|莫斯科|圣彼得堡|新西伯利亚|海参崴|符拉迪沃斯托克|哈巴罗夫斯克|伯力|\bRU(?:[-_ ]?\d+)?\b|Russia)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-49
+    name: 🌐 其他地区
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (^(?!.*(港|\bHK(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|hk|Hong Kong|HongKong|hongkong|HONG KONG|HONGKONG|深港|HKG|🇭🇰|九龙|Kowloon|新界|沙田|荃湾|葵涌|美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|纽约|纽纽|亚特兰大|迈阿密|华盛顿|\bUS(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|United States|UnitedStates|UNITED STATES|USA|America|AMERICA|JFK|EWR|IAD|ATL|ORD|MIA|NYC|LAX|SFO|SEA|DFW|SJC|🇺🇸|日本|川日|东京|大阪|泉日|埼玉|沪日|深日|(?<!尼|-)日|\bJP(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Japan|JAPAN|JPN|NRT|HND|KIX|TYO|OSA|🇯🇵|关西|Kansai|KANSAI|新加坡|坡|狮城|\bSG(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Singapore|SINGAPORE|SIN|🇸🇬|台|新北|彰化|\bTW(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Taiwan|TAIWAN|TWN|TPE|ROC|🇹🇼|\bKR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Korea|KOREA|KOR|首尔|韩|韓|春川|Chuncheon|ICN|🇰🇷|加拿大|\bCA(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|Canada|CANADA|CAN|渥太华|温哥华|卡尔加里|蒙特利尔|Montreal|YVR|YYZ|YUL|🇨🇦|英国|Britain|United Kingdom|UNITED KINGDOM|England|伦敦|曼彻斯特|Manchester|\bUK(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|GBR|LHR|MAN|🇬🇧|法国|\bFR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|France|FRANCE|FRA|巴黎|马赛|Marseille|CDG|MRS|🇫🇷|德国|Germany|GERMANY|\bDE(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|DEU|柏林|法兰克福|慕尼黑|Munich|MUC|🇩🇪|荷兰|Netherlands|NETHERLANDS|\bNL(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|NLD|阿姆斯特丹|AMS|🇳🇱|土耳其|Turkey|TURKEY|Türkiye|\bTR(?:[-_ ]?\d+(?:[-_ ]?[A-Za-z]{2,})?)?\b|TUR|IST|ANK|🇹🇷|🇷🇺|(?<!白)俄罗斯|(?<!白)俄|莫斯科|圣彼得堡|新西伯利亚|海参崴|符拉迪沃斯托克|哈巴罗夫斯克|伯力|\bRU(?:[-_ ]?\d+)?\b|Russia|家宽|家庭宽带|住宅|Residential|低倍率|低倍|(?<![\d\.])0?\.\d+(?![0-9])(?:x|倍)?|倍率[:： ]?0?\.\d+)).*)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-50
+    name: 🏠 家宽节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (家宽|家庭宽带|住宅|Residential)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-51
+    name: 🐢 低倍率节点
+    type: url-test
+    members: []
+    nodeFilters:
+      - match: (低倍率|低倍|(?<![\d\.])0?\.\d+(?![0-9])(?:x|倍)?|倍率[:： ]?0?\.\d+)
+    url: https://cp.cloudflare.com/generate_204
+    interval: 300
+    timeout: null
+    tolerance: 50
+  - id: group-52
+    name: 🎯 全球直连
+    type: select
+    members:
+      - builtin: DIRECT
+routes:
+  - id: private
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: private
+    section: 本地地址和域名直连
+  - id: geoip-private
+    policy:
+      group: group-52
+    source:
+      type: geoip
+      value: private
+      noResolve: true
+  - id: custom_direct_domain
+    policy:
+      group: group-52
+    source:
+      type: rule-provider
+      provider: custom_direct
+    section: 本项目收录的直连规则
+  - id: custom_direct_classical_ip-2
+    policy:
+      group: group-52
+    source:
+      type: rule-provider
+      provider: custom_direct_classical_ip
+  - id: custom_proxy_domain
+    policy:
+      group: group-1
+    source:
+      type: rule-provider
+      provider: custom_proxy
+    section: 本项目收录的代理规则
+  - id: custom_proxy_classical_ip-2
+    policy:
+      group: group-1
+    source:
+      type: rule-provider
+      provider: custom_proxy_classical_ip
+  - id: google-cn
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: google@cn
+    section: 谷歌在国内可用的域名直连
+  - id: category-gamescn
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: category-games@cn
+    section: 国内游戏域名直连
+  - id: steam_cdn_classical-2
+    policy:
+      group: group-52
+    source:
+      type: rule-provider
+      provider: steam_cdn_classical
+    section: Steam 下载 CDN 直连
+  - id: category-game-platforms-download
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: category-game-platforms-download
+    section: 各大游戏平台下载域名直连
+  - id: category-public-tracker
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: category-public-tracker
+    section: BT Tracker 相关域名直连
+  - id: category-communication
+    policy:
+      group: group-3
+    source:
+      type: geosite
+      value: category-communication
+    section: 即时通讯包括了 Telegram/WhatsApp/Line 等海外主流即时通讯软件域名
+  - id: category-social-media-cn
+    policy:
+      group: group-4
+    source:
+      type: geosite
+      value: category-social-media-!cn
+    section: 社交媒体包括了 Twitter(X)/Facebook/Instagram 等海外主流社交媒体
+  - id: talkatone-2
+    policy:
+      group: talkatone
+    source:
+      type: geosite
+      value: talkatone
+  - id: openai
+    policy:
+      group: chatgpt
+    source:
+      type: geosite
+      value: openai
+  - id: onedrive-2
+    policy:
+      group: onedrive
+    source:
+      type: geosite
+      value: onedrive
+  - id: bing
+    policy:
+      group: copilot
+    source:
+      type: geosite
+      value: bing
+  - id: category-ai-cn
+    policy:
+      group: ai
+    source:
+      type: geosite
+      value: category-ai-!cn
+  - id: github-2
+    policy:
+      group: github
+    source:
+      type: geosite
+      value: github
+  - id: category-speedtest
+    policy:
+      group: group-32
+    source:
+      type: geosite
+      value: category-speedtest
+    section: 测速工具包括 SpeedTest 等主流测速工具域名
+  - id: steam-2
+    policy:
+      group: steam
+    source:
+      type: geosite
+      value: steam
+  - id: youtube-2
+    policy:
+      group: youtube
+    source:
+      type: geosite
+      value: youtube
+  - id: apple-tvplus
+    policy:
+      group: appletv
+    source:
+      type: geosite
+      value: apple-tvplus
+  - id: apple
+    policy:
+      group: group-25
+    source:
+      type: geosite
+      value: apple
+  - id: microsoft
+    policy:
+      group: group-26
+    source:
+      type: geosite
+      value: microsoft
+  - id: googlefcm
+    policy:
+      group: fcm
+    source:
+      type: geosite
+      value: googlefcm
+  - id: google
+    policy:
+      group: group-24
+    source:
+      type: geosite
+      value: google
+  - id: tiktok-2
+    policy:
+      group: tiktok
+    source:
+      type: geosite
+      value: tiktok
+  - id: netflix-2
+    policy:
+      group: netflix
+    source:
+      type: geosite
+      value: netflix
+  - id: disney
+    policy:
+      group: disneyplus
+    source:
+      type: geosite
+      value: disney
+  - id: hbo-2
+    policy:
+      group: hbo
+    source:
+      type: geosite
+      value: hbo
+  - id: primevideo-2
+    policy:
+      group: primevideo
+    source:
+      type: geosite
+      value: primevideo
+  - id: category-emby
+    policy:
+      group: emby
+    source:
+      type: geosite
+      value: category-emby
+    section: Emby 包括主流 Emby 服务相关域名
+  - id: spotify-2
+    policy:
+      group: spotify
+    source:
+      type: geosite
+      value: spotify
+  - id: bahamut-2
+    policy:
+      group: bahamut
+    source:
+      type: geosite
+      value: bahamut
+  - id: category-games
+    policy:
+      group: group-29
+    source:
+      type: geosite
+      value: category-games
+  - id: category-entertainment
+    policy:
+      group: group-20
+    source:
+      type: geosite
+      value: category-entertainment
+  - id: category-pt
+    policy:
+      group: pt
+    source:
+      type: geosite
+      value: category-pt
+  - id: paypal-2
+    policy:
+      group: paypal
+    source:
+      type: geosite
+      value: paypal
+  - id: category-ecommerce
+    policy:
+      group: group-21
+    source:
+      type: geosite
+      value: category-ecommerce
+  - id: category-cryptocurrency
+    policy:
+      group: group-22
+    source:
+      type: geosite
+      value: category-cryptocurrency
+  - id: gfw
+    policy:
+      group: group-1
+    source:
+      type: geosite
+      value: gfw
+  - id: geoip-telegram
+    policy:
+      group: group-3
+    source:
+      type: geoip
+      value: telegram
+      noResolve: true
+  - id: geoip-twitter
+    policy:
+      group: group-4
+    source:
+      type: geoip
+      value: twitter
+      noResolve: true
+  - id: geoip-facebook
+    policy:
+      group: group-4
+    source:
+      type: geoip
+      value: facebook
+      noResolve: true
+  - id: geoip-google
+    policy:
+      group: group-24
+    source:
+      type: geoip
+      value: google
+      noResolve: true
+  - id: geoip-netflix
+    policy:
+      group: netflix
+    source:
+      type: geoip
+      value: netflix
+      noResolve: true
+  - id: geolocation-cn
+    policy:
+      group: group-33
+    source:
+      type: geosite
+      value: geolocation-!cn
+    section: GFW 及专用规则未命中的国外域名默认直连，可在策略组中切换代理
+  - id: cn
+    policy:
+      group: group-52
+    source:
+      type: geosite
+      value: cn
+    section: 由于 OpenClash 使用的大陆白名单收录不全，此处留有 geosite:cn 作为国内域名兜底
+  - id: geoip-cn
+    policy:
+      group: group-52
+    source:
+      type: geoip
+      value: cn
+      noResolve: true
+    section: 由于 OpenClash 使用的大陆白名单收录不全，此处留有 geoip:cn 作为国内 IP 兜底
+  - id: custom_port_direct-2
+    policy:
+      group: group-35
+    source:
+      type: rule-provider
+      provider: custom_port_direct
+    section: PT/BT 优化开启会使 80/443 以外端口的流量直连
+  - id: final
+    policy:
+      group: group-34
+    source:
+      type: final
+    section: 漏网之鱼直连时，无法通过 DNS 泄露测试，但是并不存在泄露
+ruleProviders:
+  - id: custom_direct
+    name: Custom_Direct
+    output: Custom_Direct_Domain.yaml
+    behavior: domain
+    sources:
+      - id: localdirect
+        name: LocalDirect
+        type: clash-list
+        path: config/rules/Custom_Direct_Domain.list
+  - id: custom_proxy
+    name: Custom_Proxy
+    output: Custom_Proxy_Domain.yaml
+    behavior: domain
+    sources:
+      - id: localproxy
+        name: LocalProxy
+        type: clash-list
+        path: config/rules/Custom_Proxy_Domain.list
+  - id: googlecn
+    name: GoogleCN
+    output: GoogleCN_Domain.yaml
+    behavior: domain
+    sources:
+      - id: acl4ssr_googlecn
+        name: ACL4SSR_GoogleCN
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/GoogleCN.list
+  - id: gamedownload
+    name: GameDownload
+    output: GameDownload_Domain.yaml
+    behavior: domain
+    sources:
+      - id: acl4ssr_gamedownload
+        name: ACL4SSR_GameDownload
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/GameDownload.list
+  - id: proxygfwlist
+    name: ProxyGFWlist
+    output: ProxyGFWlist_Domain.yaml
+    behavior: domain
+    sources:
+      - id: acl4ssr_proxygfwlist
+        name: ACL4SSR_ProxyGFWlist
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/ProxyGFWlist.list
+  - id: ai-2
+    name: AI
+    output: AI_Domain.yaml
+    behavior: domain
+    sources:
+      - id: dlerrules_ai_suite
+        name: DlerRules_AI_Suite
+        type: clash-provider
+        basePath: vendor/dler-io
+        path: Clash/Provider/AI Suite.yaml
+      - id: dlc_openai
+        name: DLC_openai
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: openai
+      - id: dlc_anthropic
+        name: DLC_anthropic
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: anthropic
+      - id: dlc_google_gemini
+        name: DLC_google_gemini
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: google-gemini
+      - id: dlc_google_deepmind
+        name: DLC_google_deepmind
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: google-deepmind
+      - id: dlc_jetbrains_ai
+        name: DLC_jetbrains_ai
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: jetbrains-ai
+      - id: dlc_github_copilot
+        name: DLC_github_copilot
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: github-copilot
+  - id: developer
+    name: Developer
+    output: Developer_Domain.yaml
+    behavior: domain
+    sources:
+      - id: localdeveloper
+        name: LocalDeveloper
+        type: clash-list
+        path: config/rules/Developer_Domain.list
+      - id: acl4ssr_developer
+        name: ACL4SSR_Developer
+        type: clash-list
+        basePath: vendor/ACL4SSR
+        path: Clash/Ruleset/Developer.list
+      - id: dlc_github
+        name: DLC_github
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: github
+      - id: dlc_gitlab
+        name: DLC_gitlab
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: gitlab
+      - id: dlc_npmjs
+        name: DLC_npmjs
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: npmjs
+      - id: dlc_nodejs
+        name: DLC_nodejs
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: nodejs
+      - id: dlc_docker
+        name: DLC_docker
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: docker
+      - id: dlc_debian
+        name: DLC_debian
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: debian
+      - id: dlc_ubuntu
+        name: DLC_ubuntu
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: ubuntu
+      - id: dlc_python
+        name: DLC_python
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: python
+      - id: dlc_golang
+        name: DLC_golang
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: golang
+      - id: dlc_rust
+        name: DLC_rust
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: rust
+      - id: dlc_jetbrains
+        name: DLC_jetbrains
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: jetbrains
+      - id: dlc_sourceforge
+        name: DLC_sourceforge
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: sourceforge
+  - id: crypto
+    name: Crypto
+    output: Crypto_Domain.yaml
+    behavior: domain
+    sources:
+      - id: dlerrules_crypto
+        name: DlerRules_Crypto
+        type: clash-provider
+        basePath: vendor/dler-io
+        path: Clash/Provider/Crypto.yaml
+      - id: dlc_binance
+        name: DLC_binance
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: binance
+      - id: dlc_okx
+        name: DLC_okx
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: okx
+      - id: dlc_bybit
+        name: DLC_bybit
+        type: domain-list-community
+        basePath: vendor/domain-list-community/data
+        entry: bybit
+  - id: custom_direct_classical_ip
+    name: Custom_Direct_Classical_IP
+    output: Custom_Direct_Classical_IP.yaml
+    behavior: classical
+    sources:
+      - id: aethersailor_custom_direct_classical_ip
+        name: Aethersailor_Custom_Direct_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Direct_Classical_IP.yaml
+  - id: custom_proxy_classical_ip
+    name: Custom_Proxy_Classical_IP
+    output: Custom_Proxy_Classical_IP.yaml
+    behavior: classical
+    sources:
+      - id: aethersailor_custom_proxy_classical_ip
+        name: Aethersailor_Custom_Proxy_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Proxy_Classical_IP.yaml
+  - id: steam_cdn_classical
+    name: Steam_CDN_Classical
+    output: Steam_CDN_Classical.yaml
+    behavior: classical
+    sources:
+      - id: aethersailor_steam_cdn_classical_ip
+        name: Aethersailor_Steam_CDN_Classical_IP
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Steam_CDN_Classical_IP.yaml
+  - id: custom_port_direct
+    name: Custom_Port_Direct
+    output: Custom_Port_Direct.yaml
+    behavior: classical
+    sources:
+      - id: aethersailor_custom_port_direct
+        name: Aethersailor_Custom_Port_Direct
+        type: clash-provider
+        basePath: vendor/Aethersailor
+        path: rule/Custom_Port_Direct.yaml
+vendorRepos:
+  - name: domain-list-community
+    url: https://github.com/v2fly/domain-list-community.git
+    path: vendor/domain-list-community
+    catalog:
+      dir: vendor/domain-list-community/data
+      kind: domain-list
+    id: domain-list-community
+  - name: ACL4SSR
+    url: https://github.com/ACL4SSR/ACL4SSR.git
+    path: vendor/ACL4SSR
+    catalog:
+      dir: vendor/ACL4SSR/Clash
+      kind: list-dir
+    templateDir: vendor/ACL4SSR/Clash/config
+    id: acl4ssr
+  - name: dler-io
+    url: https://github.com/dler-io/Rules.git
+    path: vendor/dler-io
+    branch: main
+    catalog:
+      dir: vendor/dler-io/Clash/Provider
+      kind: provider-yaml
+    id: dler-io
+  - name: Aethersailor
+    url: https://github.com/Aethersailor/Custom_OpenClash_Rules.git
+    path: vendor/Aethersailor
+    branch: main
+    catalog:
+      dir: vendor/Aethersailor/rule
+      kind: list-dir
+    templateDir: vendor/Aethersailor/cfg
+    id: aethersailor

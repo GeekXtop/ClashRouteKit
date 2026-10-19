@@ -10,7 +10,7 @@ ClashRouteKit 适合作为自己的 GitHub 仓库模板使用。
 
 1. Fork 本仓库，或从模板创建自己的仓库。
 2. 将自己的仓库 clone 到本地。
-3. 从示例创建本地配置：`Copy-Item config/routes.yaml.example config/routes.yaml`（`config/routes.yaml` 是个人配置，不进入 Git）。
+3. 直接修改仓库内的 `config/routes.yaml`（已入库）；从零开始可复制 `config/routes.yaml.example` 作模板。
 4. 运行 `pnpm install` 安装依赖。
 5. 运行 `pnpm dev` 启动本地 Web 编辑器。
 6. 在 Web UI 中编辑 RuleSets、Custom Proxy Groups、rule provider 和规则文件。
@@ -61,7 +61,7 @@ https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish/templates/Custo
 https://raw.githubusercontent.com/GeekXtop/ClashRouteKit/publish/rules/Developer_Domain.yaml
 ```
 
-不提交到 `main`：`config/routes.yaml`（个人配置，仓库只跟踪 `config/routes.yaml.example`）、订阅链接、最终 `config.yaml`、`output/`、`vendor/`、`dist/`、provider 缓存、`.mrs`、本地环境文件。
+不提交到 `main`：订阅链接、最终 `config.yaml`、`output/`、`vendor/`、`dist/`、provider 缓存、`.mrs`、本地环境文件（`.clashroutekit/`）。`config/routes.yaml` 已入库，是单一事实源。
 
 最终 `config.yaml` 仍由本地 SubConverter-Extended 生成，再导入 OpenClash。
 
@@ -277,7 +277,7 @@ CLASH_ROUTE_KIT_PUBLISH_BASE_URL=https://raw.githubusercontent.com/GeekXtop/Clas
 publish output/ -> publish branch
 ```
 
-因为 `config/routes.yaml` 不进入 Git，CI 在本地配置缺失时会从 `routes.yaml.example` 生成发布产物；个人配置的发布请在本地完成 generate 后推送。
+`config/routes.yaml` 已入库，CI 直接用它生成发布产物；`routes.yaml.example` 仅在该文件缺失时兜底（正常情况不触发）。
 
 ## 目录
 
