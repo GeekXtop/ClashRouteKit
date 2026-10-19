@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import YAML from "yaml";
 import { AppShell } from "./components/AppShell.js";
 import { ConfigConflictDialog } from "./components/ConfigConflictDialog.js";
@@ -54,6 +54,10 @@ export default function App() {
   const [lastWorkView, setLastWorkView] = useState<Exclude<ProjectView, "project">>("routing");
   // 写冲突（PUT 409）待决策状态：currentYaml 供后续扩展展示，mtime 是覆盖重试的新 base
   const [conflict, setConflict] = useState<{ currentYaml: string; mtime: number } | null>(null);
+  // 冲突挂起锁：记录进入冲突时的 draftYaml。自动保存 effect 见此非空且草稿未变即跳过，
+  // 否则 dirty 未清会每 600ms 带同一过期 base 重试（409 循环），取消对话框也会立即重开。
+  // 用户继续编辑（draftYaml 变化）或覆盖/重载解决冲突后解锁。
+  const conflictBlockRef = useRef<string | null>(null);
 
   function openImport() {
     setImportOpen(true);
@@ -185,6 +189,14 @@ export default function App() {
 
   // 实时自动保存：草稿有效且有改动时，防抖写回 config/routes.yaml
   useEffect(() => {
+    if (conflictBlockRef.current !== null) {
+      if (project.draftYaml !== conflictBlockRef.current) {
+        // 用户在冲突待决下继续编辑：解除挂起，允许下一次自动保存重试（可能再 409 进对话框）
+        conflictBlockRef.current = null;
+      } else {
+        return;
+      }
+    }
     if (!project.dirty) return;
     const readiness = canSaveProject(project);
     if (!readiness.ok) {
@@ -202,7 +214,9 @@ export default function App() {
             if (result.ok) {
               setProject((current) => markV2ProjectSaved(current, result.yaml, result.mtime));
             } else if ("conflict" in result) {
-              // 文件被外部修改：停下等用户裁决（覆盖 / 重载），不静默覆盖
+              // 文件被外部修改：停下等用户裁决（覆盖 / 重载），不静默覆盖；
+              // 挂起自动保存直到用户编辑或解决冲突（见 conflictBlockRef 注释）
+              conflictBlockRef.current = project.draftYaml;
               setProject((current) =>
                 setProjectStatus(current, "error", "配置文件已被外部修改，请选择覆盖或重载"),
               );
@@ -231,14 +245,18 @@ export default function App() {
     void saveV2Project(serializeV2Project(project.v2!.config), retryMtime)
       .then((result) => {
         if (result.ok) {
+          conflictBlockRef.current = null;
           setConflict(null);
           setProject((current) => markV2ProjectSaved(current, result.yaml, result.mtime));
         } else if ("conflict" in result) {
+          // 又被外部修改：以最新 mtime 重现对话框，保持挂起（不自动重试）
+          conflictBlockRef.current = project.draftYaml;
           setProject((current) =>
             setProjectStatus(current, "error", "配置文件已被外部修改，请选择覆盖或重载"),
           );
           setConflict({ currentYaml: result.currentYaml, mtime: result.mtime });
         } else {
+          conflictBlockRef.current = null;
           setConflict(null);
           setProject((current) => setProjectStatus(current, "error", result.reason));
           notifyError(result.reason);
@@ -252,6 +270,7 @@ export default function App() {
   }
 
   function handleConflictReload() {
+    conflictBlockRef.current = null;
     setConflict(null);
     refreshConfig();
   }
