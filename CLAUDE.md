@@ -31,9 +31,10 @@ ClashRouteKit 是声明式维护 OpenClash / Clash Meta 路由规则、SubConver
 
 ## 架构
 
-pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
+pnpm workspace monorepo，四个包通过 `workspace:*` 互相引用：
 
 - `packages/core`（`@clash-route-kit/core`）— **纯函数**核心库，无任何文件 IO，是所有渲染/转换逻辑的唯一所在。
+- `packages/local-server`（`@clash-route-kit/local-server`）— 本地服务层：`http/`（hostingHandler/apiHandler）、config 仓储与 v2 校验链、git 动作、vendor 同步、catalog。
 - `apps/cli`（`@clash-route-kit/cli`）— 命令行入口，负责读写文件并调用 core。
 - `apps/web`（`@clash-route-kit/web`）— React 19 控制台，**可读写编辑器** + 实时 INI 预览：经 dev/serve 的 `/api` 把改动写回 `config/routes.yaml`（脏检查 + 保存）。
 
@@ -63,7 +64,7 @@ pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
 
 - `generate` → 读 config + 各 provider source → 写 `output/templates/<template.output>` 和 `output/rules/<provider.output>`
 - `preview` / `check` → 只读 config，分别打印规则顺序、校验策略组引用完整性
-- `serve` → `serve.ts` 用 `node:http` 组合「托管层」（`serveHosting.ts`：`/templates` 实时 `renderIni`、`/rules` 静态读 `output/rules`、`/api/*` 透传、其余 web 静态 + SPA fallback）与「API」（`serveApi.ts`：`/api/*` 配置 CRUD/catalog/actions）。`apps/web/vite.config.ts` 的 dev 中间件复用同一套 `serveHosting`+`serveApi`，故 `pnpm dev` 与 `pnpm serve` 行为一致（dev 不带 webRoot，前端由 vite 提供）
+- `serve` → `serve.ts` 经 `createLocalServerContext` 组合 local-server 的「托管层」（`packages/local-server/src/http/hostingHandler.ts`：`/templates` 实时 `renderIni`、`/rules` 静态读 `output/rules`、`/api/*` 透传、其余 web 静态 + SPA fallback）与「API」（`apiHandler.ts`：`/api/*` 配置 CRUD/catalog/actions）。`apps/web/vite.config.ts` 的 dev 中间件复用同一套 hostingHandler+apiHandler，故 `pnpm dev` 与 `pnpm serve` 行为一致（dev 不带 webRoot，前端由 vite 提供）
 
 项目根的定位：`resolveProjectRoot` 从 cwd 向上查找含 `config/routes.yaml` 的目录。可用环境变量覆盖：`CLASH_ROUTE_KIT_CONFIG`（默认 `config/routes.yaml`）、`CLASH_ROUTE_KIT_ROOT`。
 
@@ -82,7 +83,7 @@ pnpm workspace monorepo，三个包通过 `workspace:*` 互相引用：
 `output/` 本地 ignored，不提交到 `main`。`.github/workflows/publish.yml` 在 `main` 变更或手动触发时运行：
 
 1. checkout 本仓库。
-2. 运行 `pnpm sync:vendor` 同步三个上游仓库到 `vendor/`。
+2. 运行 `pnpm sync:vendor` 同步四个上游仓库到 `vendor/`。
 3. 运行 `pnpm test`、`pnpm typecheck`、`pnpm build`、`pnpm check`。
 4. 用公开 raw URL 覆盖 `publishBaseUrl` 并运行 `pnpm generate`。
 5. 将 `output/` 发布到 `publish` 分支。

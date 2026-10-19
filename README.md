@@ -83,7 +83,7 @@ http://127.0.0.1:8787
 
 ```powershell
 pnpm generate
-pnpm serve:output
+pnpm serve
 ```
 
 然后本机 SubConverter 可以访问：
@@ -226,7 +226,7 @@ pnpm preview
 pnpm import -- <file.ini>
 pnpm sync:vendor
 pnpm generate
-pnpm serve:output
+pnpm serve
 pnpm dev
 ```
 
@@ -240,7 +240,7 @@ pnpm preview
 pnpm sync:vendor
 pnpm generate
 pnpm subconvert-url
-pnpm serve:output
+pnpm serve
 ```
 
 如果本地已经同步 `vendor/domain-list-community/data`，`pnpm check` 会同时校验 `ruleSets[].source.type: geosite` 引用的 tag 是否存在；未同步 vendor 时会跳过这项检查。

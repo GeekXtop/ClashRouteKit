@@ -17,7 +17,7 @@
 
 - `pnpm install`：根据 `pnpm-lock.yaml` 安装依赖。
 - `pnpm dev`：通过 Vite 启动 Web 控制台。
-- `pnpm serve:output`：把 `output/` 以 `http://127.0.0.1:8787` 暴露给本地 SubConverter。
+- `pnpm serve`：把 `output/` 以 `http://127.0.0.1:8787` 暴露给本地 SubConverter。
 - `pnpm sync:vendor`：同步上游公开规则仓库到 ignored `vendor/`。
 - `pnpm test`：运行全部 Vitest 测试。
 - `pnpm typecheck`：检查所有包和应用的 TypeScript 类型。
