@@ -46,7 +46,7 @@ describe("HitSimulatorPanel", () => {
     expect(JSON.parse(String(init.body))).toEqual({ domain: "www.openai.com" });
   });
 
-  it("命中结果展示命中路由、策略链与可能终点", async () => {
+  it("命中结果展示命中路由、经过策略组与可能终点", async () => {
     const fetcher = jsonFetcher(matchedResponse);
     render(<HitSimulatorPanel fetcher={fetcher as unknown as never} />);
     fireEvent.change(screen.getByPlaceholderText("输入域名，如 www.example.com"), {
@@ -57,6 +57,9 @@ describe("HitSimulatorPanel", () => {
     const summary = screen.getByText(/命中路由：/).textContent ?? "";
     expect(summary).toContain("GEOSITE,ai");
     expect(summary).toContain("Proxy");
+    // DFS 访问序不是线性链，文案不得用 "→" 暗示先后
+    expect(screen.getByText(/经过策略组/).textContent).toContain("Proxy");
+    expect(screen.queryByText(/策略链：/)).toBeNull();
     expect(screen.getByText(/runtime-select:Proxy/)).toBeTruthy();
     fireEvent.click(screen.getByText(/评估轨迹/));
     expect(await screen.findByText("未评估")).toBeTruthy();
@@ -82,5 +85,27 @@ describe("HitSimulatorPanel", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /模\s*拟/ }));
     await waitFor(() => expect(screen.getByText(/Invalid domain/)).toBeTruthy());
+  });
+
+  it("422 校验拒绝时展示结构化诊断", async () => {
+    const rejecting = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          ok: false,
+          output: "Invalid v2 config yaml",
+          diagnostics: [
+            { code: "validate.reference.missing", severity: "error", message: "引用的策略组不存在" },
+          ],
+        }),
+        { status: 422 },
+      ),
+    );
+    render(<HitSimulatorPanel fetcher={rejecting as unknown as never} />);
+    fireEvent.change(screen.getByPlaceholderText("输入域名，如 www.example.com"), {
+      target: { value: "a.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /模\s*拟/ }));
+    await waitFor(() => expect(screen.getByText(/Invalid v2 config yaml/)).toBeTruthy());
+    expect(screen.getByText(/引用的策略组不存在/)).toBeTruthy();
   });
 });

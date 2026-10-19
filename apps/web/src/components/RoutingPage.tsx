@@ -10,6 +10,7 @@ import type { V2ProjectState } from "../v2/v2Project.js";
 import { createCustomProxyGroupStats, selectInboundRuleSets } from "../routeSummary.js";
 import { GroupNav, type GroupLocate } from "./GroupNav.js";
 import { HitSimulatorPanel } from "./HitSimulatorPanel.js";
+import type { Fetcher } from "../fetcher.js";
 import { GroupDrawer } from "./GroupDrawer.js";
 import { IniResultModal } from "./IniResultModal.js";
 import { ValidationBar } from "./ValidationBar.js";
@@ -21,7 +22,6 @@ import { RuleDrawer } from "./RuleDrawer.js";
 import { RuleStream, type RuleLocate } from "./RuleStream.js";
 import { SourcePickerModal } from "./SourcePickerModal.js";
 
-type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 type LocateTarget =
   | ({ kind: "rule" } & RuleLocate)

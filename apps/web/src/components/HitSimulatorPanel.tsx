@@ -1,9 +1,8 @@
 import { useState } from "react";
-import type { RouteTraceRow, SimulateRouteResult } from "@clash-route-kit/core";
+import type { Diagnostic, RouteTraceRow, SimulateRouteResult } from "@clash-route-kit/core";
 import { Alert, Button, Collapse, Input, Space, Table, Tag, Typography } from "antd";
-import { simulateRouteHit } from "../routeSimulator.js";
-
-type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+import type { Fetcher } from "../fetcher.js";
+import { SimulateRejection, simulateRouteHit } from "../routeSimulator.js";
 
 const OUTCOME_TEXT: Record<string, string> = {
   hit: "命中",
@@ -21,7 +20,7 @@ export function HitSimulatorPanel(props: { yaml?: string; fetcher?: Fetcher }) {
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SimulateRouteResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; diagnostics: Diagnostic[] } | null>(null);
 
   const run = async (): Promise<void> => {
     const trimmed = domain.trim();
@@ -32,7 +31,11 @@ export function HitSimulatorPanel(props: { yaml?: string; fetcher?: Fetcher }) {
       setResult(await simulateRouteHit(trimmed, props.yaml, props.fetcher));
     } catch (cause) {
       setResult(null);
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(
+        cause instanceof SimulateRejection
+          ? { message: cause.message, diagnostics: cause.diagnostics }
+          : { message: cause instanceof Error ? cause.message : String(cause), diagnostics: [] },
+      );
     } finally {
       setLoading(false);
     }
@@ -54,7 +57,22 @@ export function HitSimulatorPanel(props: { yaml?: string; fetcher?: Fetcher }) {
           模拟
         </Button>
       </Space.Compact>
-      {error ? <Alert type="error" showIcon message={error} /> : null}
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          message={error.message}
+          description={
+            error.diagnostics.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {error.diagnostics.slice(0, 8).map((diagnostic, i) => (
+                  <li key={`${diagnostic.code}:${i}`}>{diagnostic.message}</li>
+                ))}
+              </ul>
+            ) : undefined
+          }
+        />
+      ) : null}
       {result && !matched ? (
         <Typography.Text type="secondary">未命中且无 final 兜底：{result.domain}</Typography.Text>
       ) : null}
@@ -64,8 +82,9 @@ export function HitSimulatorPanel(props: { yaml?: string; fetcher?: Fetcher }) {
             命中路由：{matched.label}（第 {matched.index + 1} 条）→ {matched.policyLabel}
           </Typography.Text>
           {matched.chain.length > 0 ? (
+            // DFS 访问序非线性链，用顿号列举避免 "→" 暗示先后
             <Typography.Text type="secondary">
-              策略链：{matched.chain.map((node) => node.name).join(" → ")}
+              经过策略组：{matched.chain.map((node) => `${node.name}（${node.type}）`).join("、")}
             </Typography.Text>
           ) : null}
           <Space size={4} wrap>
